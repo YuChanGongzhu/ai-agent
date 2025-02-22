@@ -52,7 +52,7 @@ export const DialogPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-3xl shadow-lg h-[600px] flex flex-col relative overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-lg h-full flex flex-col relative overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">

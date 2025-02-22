@@ -4,6 +4,8 @@ import NavBar from './navBar/navBar';
 import { Dashboard } from './dashboard/dashboard';
 import { EmployeeTable } from './employee/employeeTable';
 import { EmployeeEdit } from './employee/employeeEdit';
+import { Dialog } from './dialog/dialog';
+import { CalendarComponent } from './calendar/calender';
 
 function App() {
   return (
@@ -15,9 +17,9 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/employee" element={<EmployeeTable />} />
             <Route path="/employee/edit/:name" element={<EmployeeEdit />} />
-            <Route path="/dialog" element={<div>Dialog Page</div>} />
+            <Route path="/dialog" element={<Dialog />} />
             <Route path="/task" element={<div>Task Page</div>} />
-            <Route path="/calendar" element={<div>Calendar Page</div>} />
+            <Route path="/calendar" element={<CalendarComponent />} />
           </Routes>
         </div>
       </div>

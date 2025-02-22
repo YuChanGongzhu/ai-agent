@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
 
 interface DialogUser {
     id: number;
@@ -14,6 +15,7 @@ interface DialogUser {
 export const DialogList: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
+    const [selectedId, setSelectedId] = useState<number | null>(null);
 
     const users: DialogUser[] = [
         {
@@ -50,7 +52,7 @@ export const DialogList: React.FC = () => {
     );
 
     return (
-        <div className="bg-white rounded-lg shadow-lg h-[600px] flex flex-col">
+        <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
             <div className="p-4 border-b flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <h3 className="text-lg font-medium text-gray-900">会话</h3>
@@ -82,12 +84,17 @@ export const DialogList: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto px-2">
                 {filteredUsers.map((user) => (
                     <div
                         key={user.id}
-                        onClick={() => navigate(`/dialog/${user.id}`)}
-                        className="flex items-center p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => {
+                            setSelectedId(user.id);
+                        }}
+                        className={clsx(
+                            'flex items-center p-3 rounded-lg cursor-pointer',
+                            selectedId === user.id ? 'bg-purple-50' : 'hover:bg-gray-50'
+                        )}
                     >
                         <div className="relative">
                             <img
@@ -122,6 +129,25 @@ export const DialogList: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            {/* New Chat Button */}
+
+            <div className="p-4 border-t">
+
+                <button
+
+                    className="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors duration-200"
+
+                    onClick={() => navigate('/dialog/new')}
+
+                >
+
+                    新建对话
+
+                </button>
+
+            </div>
+
         </div>
     );
 };
