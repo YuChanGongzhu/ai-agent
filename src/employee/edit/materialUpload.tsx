@@ -5,7 +5,7 @@ interface FileWithPreview extends File {
     preview?: string;
 }
 
-export const MaterialBase: React.FC = () => {
+export const MaterialUpload: React.FC = () => {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {

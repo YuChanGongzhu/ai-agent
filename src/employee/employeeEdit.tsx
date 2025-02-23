@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { EmployeeConfig } from './edit/employeeConfig';
-import { MaterialBase } from './edit/materialBase';
+import { MaterialUpload } from './edit/materialUpload';
 import { DialogTest } from './edit/dialogTest';
 
 export const EmployeeEdit: React.FC = () => {
@@ -15,7 +15,7 @@ export const EmployeeEdit: React.FC = () => {
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-6">
                     <EmployeeConfig />
-                    <MaterialBase />
+                    <MaterialUpload />
                 </div>
                 <div>
                     <DialogTest />
