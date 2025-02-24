@@ -1,78 +1,65 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 
-interface DialogUser {
-    id: number;
-    name: string;
-    avatar: string;
-    lastMessage: string;
-    time: string;
-    unread: number;
-    online: boolean;
+import { Conversation } from '../api/dify';
+
+interface DialogListProps {
+    dialogs?: Conversation[];
+    onSelectDialog?: (dialog: Conversation) => void;
 }
 
-export const DialogList: React.FC = () => {
+export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
-    const [selectedId, setSelectedId] = useState<number | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    const users: DialogUser[] = [
-        {
-            id: 1,
-            name: 'Alexan',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-            lastMessage: '好的稍等',
-            time: '1min ago',
-            unread: 3,
-            online: true
-        },
-        {
-            id: 2,
-            name: 'Carin',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carin',
-            lastMessage: '👋',
-            time: '2min ago',
-            unread: 0,
-            online: true
-        },
-        {
-            id: 3,
-            name: 'Dona',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dona',
-            lastMessage: '好的',
-            time: '5h ago',
-            unread: 0,
-            online: false
-        }
-    ];
+    useEffect(()=>{
+        console.log(dialogs)
+    },[dialogs])
 
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const getAvatarText = (name: string) => {
+        return name.charAt(0).toUpperCase();
+    };
+
+    const formatTime = (timestamp: number) => {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString();
+    };
+
+    const handleDialogClick = (dialog: Conversation) => {
+        setSelectedId(dialog.id);
+        onSelectDialog?.(dialog);
+    };
+
+    const filteredDialogs = dialogs.filter(dialog =>
+        dialog.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
         <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+            {/* Header */}
             <div className="p-4 border-b flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <h3 className="text-lg font-medium text-gray-900">会话</h3>
                     <span className="bg-purple-500 text-white text-sm px-2 py-0.5 rounded-full">
-                        5
+                        {filteredDialogs.length}
                     </span>
                 </div>
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="搜索"
+                        placeholder="搜索..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-4 py-1 rounded-full bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-48"
                     />
                     <svg
                         className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
                         fill="none"
-                        viewBox="0 0 24 24"
                         stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
                     >
                         <path
                             strokeLinecap="round"
@@ -84,70 +71,62 @@ export const DialogList: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2">
-                {filteredUsers.map((user) => (
-                    <div
-                        key={user.id}
-                        onClick={() => {
-                            setSelectedId(user.id);
-                        }}
-                        className={clsx(
-                            'flex items-center p-3 rounded-lg cursor-pointer',
-                            selectedId === user.id ? 'bg-purple-50' : 'hover:bg-gray-50'
-                        )}
-                    >
-                        <div className="relative">
-                            <img
-                                src={user.avatar}
-                                alt={user.name}
-                                className="w-10 h-10 rounded-full"
+            {/* Dialog List */}
+            <div className="flex-1 overflow-y-auto">
+                {filteredDialogs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <svg
+                            className="w-12 h-12 mb-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                             />
-                            {user.online && (
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                            )}
-                        </div>
-                        <div className="ml-3 flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium text-gray-900 truncate">
-                                    {user.name}
-                                </h4>
-                                <span className="text-xs text-gray-500">
-                                    {user.time}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between mt-1">
-                                <p className="text-sm text-gray-500 truncate">
-                                    {user.lastMessage}
-                                </p>
-                                {user.unread > 0 && (
-                                    <span className="ml-2 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                        {user.unread}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+                        </svg>
+                        <p>没有会话</p>
                     </div>
-                ))}
+                ) : (
+                    <div className="space-y-1 p-2">
+                        {filteredDialogs.map(dialog => (
+                            <div 
+                                key={dialog.id}
+                                className={clsx(
+                                    'flex items-center space-x-4 p-4 rounded-lg cursor-pointer transition-colors',
+                                    selectedId === dialog.id ? 'bg-purple-100' : 'hover:bg-gray-100'
+                                )}
+                                onClick={() => handleDialogClick(dialog)}
+                            >
+                                {/* Avatar */}
+                                <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                    {getAvatarText(dialog.name)}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 flex flex-col">
+                                    <div className="flex-1">
+                                        <h3 className="text-sm font-medium text-gray-900 truncate">{dialog.name}</h3>
+                                        <div className="text-sm text-gray-500 truncate">
+                                            {dialog.introduction || '没有消息'}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <span className="text-xs text-gray-500">
+                                            {new Date(dialog.updated_at*1000).toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {/* New Chat Button */}
-
-            <div className="p-4 border-t">
-
-                <button
-
-                    className="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors duration-200"
-
-                    onClick={() => navigate('/dialog/new')}
-
-                >
-
-                    新建对话
-
-                </button>
-
-            </div>
-
         </div>
     );
+                       
 };

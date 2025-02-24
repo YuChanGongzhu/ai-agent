@@ -3,89 +3,28 @@ import { DialogPage } from './dialogPage';
 import { ChatMemory } from './chatMemory';
 import { MaterialBase } from './materialBase';
 import { EmployeeStudy } from './employeeStudy';
-import { sendChatMessageApi, getConversationsApi, getMessagesApi, parseStreamingEvent } from '../api/dify';
-import { useEffect } from 'react';
+import {  getConversationsApi } from '../api/dify';
+import { useEffect, useState } from 'react';
+import { Conversation } from '../api/dify';
 
 export const Dialog = () => {
-    const sendBlockingMessage = async () => {
-        const res = await sendChatMessageApi({
-            inputs: {},
-            query: "有什么医美资料",
-            response_mode: 'blocking',
-            conversation_id: '',
-            user: 'abc-123'
-        })
-        console.log('Blocking response:', res)
-    }
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
-    const sendStreamingMessage = async () => {
-        const stream = await sendChatMessageApi({
-            inputs: {},
-            query: "What are the specs of the iPhone 13 Pro Max?",
-            response_mode: 'streaming',
-            conversation_id: '',
-            user: 'abc-123',
-            files: [
-                {
-                    type: 'image',
-                    transfer_method: 'remote_url',
-                    url: 'https://cloud.dify.ai/logo/logo-site.png'
-                }
-            ]
-        }) as ReadableStream
-
-        const reader = stream.getReader()
-        const decoder = new TextDecoder()
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-
-                // Process the stream data
-                const chunk = decoder.decode(value)
-                const lines = chunk.split('\n')
-
-                for (const line of lines) {
-                    if (line.trim() === '') continue
-                    const event = parseStreamingEvent(line)
-                    if (event) {
-                        console.log('Streaming event:', event)
-                        // Handle different event types
-                        switch (event.event) {
-                            case 'message':
-                                // Append text to UI
-                                console.log('Message chunk:', event.answer)
-                                break
-                            case 'message_end':
-                                // Show final metadata
-                                console.log('Final metadata:', event.metadata)
-                                break
-                        }
-                    }
-                }
-            }
-        } finally {
-            reader.releaseLock()
-        }
-    }
     const getConversations = async () => {
-        const res = await getConversationsApi({ user: '45319021894@chatroom_thanks0' })
-        console.log('Conversations:', res)
-        if (res.data.length > 0) {
-            // Get messages for the first conversation
-            const messages = await getMessagesApi({
-                user: '45319021894@chatroom_thanks0',
-                conversation_id: res.data[0].id
-            })
-            console.log('Messages:', messages)
+        try {
+            const res = await getConversationsApi({ 
+                user: 'zacks',
+                sort_by: '-updated_at'
+            });
+            setConversations(res.data);
+            console.log('Conversations loaded:', res.data);
+        } catch (error) {
+            console.error('Error fetching conversations:', error);
         }
-    }
+    };
 
     useEffect(() => {
-        // Test both modes
-        // sendBlockingMessage()
-        // sendStreamingMessage()
         getConversations()
     }, [])
     return (
@@ -93,14 +32,19 @@ export const Dialog = () => {
             {/* Left Column - Chat List */}
             <div className="w-[240px] flex-shrink-0">
                 <div className="h-full">
-                    <DialogList />
+                    <DialogList 
+                        dialogs={conversations}
+                        onSelectDialog={setSelectedConversation}
+                    />
                 </div>
             </div>
 
             {/* Middle Column - Chat Window */}
             <div className="flex-1">
                 <div className="h-full">
-                    <DialogPage />
+                    <DialogPage 
+                        conversation={selectedConversation}
+                    />
                 </div>
             </div>
 

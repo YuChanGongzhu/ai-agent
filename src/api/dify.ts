@@ -2,11 +2,30 @@
 const BASE_URL = 'http://43.160.203.237/v1';
 const API_KEY = 'app-PxThpS1NYVqrtgZoTWhvNeMd'; //工号001机器人
 
-interface Conversation {
+type SortBy = 'created_at' | '-created_at' | 'updated_at' | '-updated_at';
+
+interface GetConversationsParams {
+  user: string;
+  last_id?: string;
+  limit?: number;
+  sort_by?: SortBy;
+}
+
+export interface Conversation {
   id: string;
   name: string;
-  inputs: Record<string, any>;
+  inputs: {
+    ai_reply?: string;
+    is_group?: string | null;
+    my_name?: string;
+    room_id?: string;
+    room_name?: string;
+    sender_id?: string;
+    sender_name?: string;
+    [key: string]: any;
+  };
   status: string;
+  introduction: string;
   created_at: number;
   updated_at: number;
 }
@@ -29,7 +48,7 @@ interface RetrieverResource {
   content: string;
 }
 
-interface Message {
+export interface Message {
   id: string;
   conversation_id: string;
   inputs: Record<string, any>;
@@ -213,7 +232,7 @@ export async function getMessagesApi(params: { user: string; conversation_id: st
   }
 }
 
-export async function getConversationsApi(params: { user: string; last_id?: string; limit?: number }): Promise<ConversationsResponse> {
+export async function getConversationsApi(params: GetConversationsParams): Promise<ConversationsResponse> {
   try {
     const queryParams = new URLSearchParams({
       user: params.user,
