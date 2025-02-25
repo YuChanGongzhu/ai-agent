@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 
 import { Conversation } from '../api/dify';
@@ -11,12 +10,7 @@ interface DialogListProps {
 
 export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const navigate = useNavigate();
     const [selectedId, setSelectedId] = useState<string | null>(null);
-
-    useEffect(()=>{
-        console.log(dialogs)
-    },[dialogs])
 
     const getAvatarText = (name: string) => {
         return name.charAt(0).toUpperCase();
@@ -24,7 +18,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
     const formatTime = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
-        return date.toLocaleString();
+        return date.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     };
 
     const handleDialogClick = (dialog: Conversation) => {
@@ -49,10 +43,10 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="搜索..."
+                        placeholder="搜索"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-48"
+                        className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-auto"
                     />
                     <svg
                         className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
@@ -117,7 +111,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                     </div>
                                     <div className="flex justify-end">
                                         <span className="text-xs text-gray-500">
-                                            {new Date(dialog.updated_at*1000).toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                                            {formatTime(dialog.updated_at)}
                                         </span>
                                     </div>
                                 </div>

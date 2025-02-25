@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
-import { Conversation, Message as DifyMessage, parseStreamingEvent, sendChatMessageApi, getMessagesApi } from '../api/dify';
+import { Conversation, Message as DifyMessage, getMessagesApi } from '../api/dify';
+import { WxAccount, sendChatMessageApi } from '../api/airflow';
 
 interface DialogPageProps {
     conversation: Conversation | null;
+    selectedAccount: WxAccount | null;
 }
 
 interface Message {
@@ -15,7 +17,7 @@ interface Message {
     senderName: string;
 }
 
-export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
+export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -33,6 +35,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
         } else {
             setMessages([]);
         }
+        console.log('Conversation changed:', conversation);
     }, [conversation]);
 
     useEffect(() => {
@@ -45,11 +48,9 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
         setIsFetchingHistory(true);
         try {
             const response = await getMessagesApi({
-                user: 'zacks',
+                user: selectedAccount?.name || '',
                 conversation_id: conversation.id
             });
-
-            console.log(response);
 
             const formattedMessages = response.data.flatMap(msg => {
                 const messages: Message[] = [];
@@ -64,7 +65,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
                     });
                 }
 
-                if (msg.answer) {
+                if (msg.answer && msg.answer !== '#仅记录, 不自动回复#') {
                     messages.push({
                         id: msg.id + '-answer',
                         content: msg.answer,
@@ -77,7 +78,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
                 return messages;
             });
 
-            console.log('Formatted messages:', formattedMessages);
+            // console.log('Formatted messages:', formattedMessages);
 
             setMessages(formattedMessages);
         } catch (error) {
@@ -88,14 +89,14 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
     };
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !conversation) return;
+        if (!newMessage.trim() || !conversation || !selectedAccount) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
             content: newMessage,
             timestamp: Date.now(),
-            isUser: false,
-            senderName: 'User'
+            isUser: true,
+            senderName: selectedAccount.name
         };
 
         setMessages(prev => [...prev, userMessage]);
@@ -103,57 +104,21 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
         setIsLoading(true);
 
         try {
-            const response = await sendChatMessageApi({
-                inputs: {},
-                query: newMessage,
-                response_mode: 'streaming',
-                conversation_id: conversation.id,
-                user: 'zacks'
+            const currentTime = new Date().toISOString();
+            const dagRunId = `manual_${selectedAccount.name}_${currentTime}`;
+            
+            await sendChatMessageApi({
+                conf: {
+                    msg: newMessage,
+                    source_ip: selectedAccount.source_ip,
+                    room_id: conversation.inputs.room_id as string // Using conversation.id as room_id
+                },
+                dag_run_id: dagRunId,
+                data_interval_end: currentTime,
+                data_interval_start: currentTime,
+                logical_date: currentTime,
+                note: 'string'
             });
-
-            // Handle streaming response
-            if (response instanceof ReadableStream) {
-                const reader = response.getReader();
-                const decoder = new TextDecoder();
-                let aiResponse = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
-
-                    for (const line of lines) {
-                        if (line.trim() === '') continue;
-                        const event = parseStreamingEvent(line);
-                        if (event && event.event === 'message') {
-                            aiResponse += event.answer;
-                            setMessages(prev => {
-                                const lastMessage = prev[prev.length - 1];
-                                if (!lastMessage.isUser && lastMessage.id === 'ai-typing') {
-                                    // Update existing AI message
-                                    return [...prev.slice(0, -1), {
-                                        ...lastMessage,
-                                        content: aiResponse,
-                                        senderName: 'Assistant',
-                                        isUser: true
-                                    }];
-                                } else {
-                                    // Add new AI message
-                                    return [...prev, {
-                                        id: 'ai-typing',
-                                        content: aiResponse,
-                                        timestamp: Date.now(),
-                                        isUser: true,
-                                        senderName: 'Assistant'
-                                    }];
-                                }
-                            });
-                        }
-                    }
-                }
-            }
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
@@ -171,7 +136,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation }) => {
     if (!conversation) {
         return (
             <div className="h-full flex items-center justify-center text-gray-500">
-                Select a conversation to start chatting
+                请选择一个会话
             </div>
         );
     }

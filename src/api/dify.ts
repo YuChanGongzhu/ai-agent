@@ -161,50 +161,6 @@ interface BlockingChatResponse {
   created_at: number;
 }
 
-export async function sendChatMessageApi(request: ChatRequest): Promise<BlockingChatResponse | ReadableStream> {
-  try {
-    const response = await fetch(`${BASE_URL}/chat-messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request)
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    if (request.response_mode === 'blocking') {
-      return await response.json();
-    } else {
-      // Streaming mode
-      if (!response.body) {
-        throw new Error('No response body received for streaming request');
-      }
-      return response.body;
-    }
-  } catch (error) {
-    console.error('Error sending chat message:', error);
-    throw error;
-  }
-}
-
-// Helper function to parse streaming events
-export function parseStreamingEvent(data: string): StreamingEvent | null {
-  try {
-    if (data.startsWith('data: ')) {
-      const jsonStr = data.slice(6); // Remove 'data: ' prefix
-      return JSON.parse(jsonStr);
-    }
-    return null;
-  } catch (error) {
-    console.error('Error parsing streaming event:', error);
-    return null;
-  }
-}
-
 export async function getMessagesApi(params: { user: string; conversation_id: string; last_id?: string; limit?: number }): Promise<MessagesResponse> {
   try {
     const queryParams = new URLSearchParams({
