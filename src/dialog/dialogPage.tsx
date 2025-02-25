@@ -105,13 +105,14 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
 
         try {
             const currentTime = new Date().toISOString();
-            const dagRunId = `manual_${selectedAccount.name}_${currentTime}`;
+            const roomId = (conversation.inputs.room_id as string).replace(/@/g, '');
+            const dagRunId = `manual_${selectedAccount.name}_${roomId}_${currentTime}`;
             
             await sendChatMessageApi({
                 conf: {
                     msg: newMessage,
                     source_ip: selectedAccount.source_ip,
-                    room_id: conversation.inputs.room_id as string // Using conversation.id as room_id
+                    room_id: conversation.inputs.room_id as string
                 },
                 dag_run_id: dagRunId,
                 data_interval_end: currentTime,
