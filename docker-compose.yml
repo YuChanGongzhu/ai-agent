@@ -1,13 +1,15 @@
 version: '3'
 
 services:
-  frontend:
+  web_ui:
     image: node:20
     working_dir: /app
     volumes:
       - ./:/app
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
