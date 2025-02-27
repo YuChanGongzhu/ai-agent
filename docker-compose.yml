@@ -17,3 +17,14 @@ services:
     stdin_open: true # 为了支持React的交互模式
     tty: true 
     
+  github_webhook:
+    image: python:3.9
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "5001:5001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: sh -c "pip install flask && python webhook_server.py"
+    restart: always
