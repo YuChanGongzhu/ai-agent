@@ -1,46 +1,75 @@
-# Getting Started with Create React App
+# AI-Agent 项目
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+基于React的前端项目，使用Docker进行开发和部署。
 
-## Available Scripts
+## Docker快速启动
 
-In the project directory, you can run:
+### 环境准备
 
-### `yarn start`
+1. 复制环境变量文件：
+```bash
+cp .env.example .env
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+2. 根据需要修改`.env`文件中的配置
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### 启动项目
 
-### `yarn test`
+```bash
+# 启动项目（前台运行）
+docker-compose up
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# 后台运行
+docker-compose up -d
+```
 
-### `yarn build`
+访问地址：http://localhost:3000
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 停止项目
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+docker-compose down
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 代码更新方式
 
-### `yarn eject`
+### 方式一：手动更新
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+# 停止容器
+docker-compose down
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# 拉取最新代码
+git pull
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+# 重新启动
+docker-compose up -d
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### 方式二：自动更新（Webhook）
 
-## Learn More
+项目包含GitHub Webhook服务，配置后可自动更新代码：
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. GitHub仓库设置中添加Webhook：
+   - URL: `http://你的服务器IP:5001/update`
+   - 类型: `application/json`
+   - 事件: 仅推送事件
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. 每次推送代码到仓库时，服务器会自动更新
+
+## 常用命令
+
+```bash
+# 进入容器
+docker-compose exec web_ui sh
+
+# 安装依赖
+docker-compose exec web_ui yarn add 包名
+
+# 构建生产版本
+docker-compose exec web_ui yarn build
+
+# 查看日志
+docker-compose logs
+docker-compose logs -f  # 实时查看
+```
