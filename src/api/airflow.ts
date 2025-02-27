@@ -13,9 +13,9 @@ export interface WxAccount {
   update_time: string;
 }
 
-const BASE_URL = 'http://129.204.143.82/api/v1';
-const USERNAME = 'claude89757';
-const PASSWORD = 'claude@airflow';
+const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL
+const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME
+const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
 
 const airflowAxios = axios.create({
   baseURL: BASE_URL,
