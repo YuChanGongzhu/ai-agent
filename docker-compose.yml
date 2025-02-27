@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  frontend:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "yarn config set registry https://mirrors.cloud.tencent.com/npm/ && yarn install && yarn start"
+    stdin_open: true # 为了支持React的交互模式
+    tty: true 
+    
