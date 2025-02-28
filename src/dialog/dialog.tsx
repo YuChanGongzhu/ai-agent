@@ -107,8 +107,8 @@ export const Dialog = () => {
 
             <div className="flex space-x-6 flex-1">
                 {/* Left Column - Chat List */}
-                <div className="w-[240px] flex-shrink-0">
-                <div className="h-full">
+                <div className="w-[240px] flex-shrink-0 h-[calc(100vh-100px)]">
+                <div className="h-full w-full">
                     <DialogList 
                         dialogs={conversations}
                         onSelectDialog={setSelectedConversation}

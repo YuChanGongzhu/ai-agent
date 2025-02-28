@@ -66,7 +66,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
             </div>
 
             {/* Dialog List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                 {filteredDialogs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
                         <svg

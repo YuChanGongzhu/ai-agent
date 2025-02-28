@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import calenderSVG from '../img/nav/calender.svg';
@@ -24,6 +24,8 @@ const navItems: NavItem[] = [
 
 const NavBar: React.FC = () => {
   const [selected, setSelected] = useState<string>('仪表盘');
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
 
@@ -31,6 +33,25 @@ const NavBar: React.FC = () => {
     setSelected(itemName);
     navigate(url);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    navigate('/login');
+  };
+
+  // 点击外部关闭对话框
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
+        setShowLogoutDialog(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
       <div className="bg-white p-4 w-48 rounded-lg shadow-lg h-screen flex flex-col">
@@ -58,7 +79,7 @@ const NavBar: React.FC = () => {
         </div>
 
         {/* User Profile Section */}
-        <div className="mt-auto pt-4 border-t">
+        <div className="mt-auto pt-4 border-t relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <img
@@ -68,15 +89,30 @@ const NavBar: React.FC = () => {
               />
               <div>
                 <div className="text-sm font-medium">昵称</div>
-                <div className="text-xs text-gray-500">账号</div>
+                <div 
+                  className="text-xs text-gray-500 cursor-pointer hover:text-purple-600"
+                  onClick={() => setShowLogoutDialog(!showLogoutDialog)}
+                >
+                  账号
+                </div>
               </div>
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
-            </button>
           </div>
+
+          {/* 退出登录对话框 */}
+          {showLogoutDialog && (
+            <div 
+              ref={dialogRef}
+              className="absolute bottom-full left-0 mb-2 w-32 bg-white rounded-lg shadow-lg py-2 border border-gray-200"
+            >
+              <button
+                onClick={handleLogout}
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 hover:text-purple-600"
+              >
+                退出登录
+              </button>
+            </div>
+          )}
         </div>
       </div>
   );
