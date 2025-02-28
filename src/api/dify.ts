@@ -1,6 +1,16 @@
+import axios from 'axios';
 
-const BASE_URL = 'http://43.160.203.237/v1';
-const API_KEY = 'app-PxThpS1NYVqrtgZoTWhvNeMd'; //工号001机器人
+const BASE_URL = process.env.REACT_APP_DIFY_BASE_URL;
+const API_KEY = process.env.REACT_APP_DIFY_API_KEY;
+
+// Create axios instance with default config
+const difyAxios = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
 
 type SortBy = 'created_at' | '-created_at' | 'updated_at' | '-updated_at';
 
@@ -163,25 +173,16 @@ interface BlockingChatResponse {
 
 export async function getMessagesApi(params: { user: string; conversation_id: string; last_id?: string; limit?: number }): Promise<MessagesResponse> {
   try {
-    const queryParams = new URLSearchParams({
-      user: params.user,
-      conversation_id: params.conversation_id,
-      ...(params.last_id ? { last_id: params.last_id } : {}),
-      ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
-    });
-
-    const response = await fetch(`${BASE_URL}/messages?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+    const response = await difyAxios.get('/messages', {
+      params: {
+        user: params.user,
+        conversation_id: params.conversation_id,
+        ...(params.last_id ? { last_id: params.last_id } : {}),
+        ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
       }
     });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    return await response.json();
+    
+    return response.data;
   } catch (error) {
     console.error('Error getting messages:', error);
     throw error;
@@ -190,24 +191,15 @@ export async function getMessagesApi(params: { user: string; conversation_id: st
 
 export async function getConversationsApi(params: GetConversationsParams): Promise<ConversationsResponse> {
   try {
-    const queryParams = new URLSearchParams({
-      user: params.user,
-      ...(params.last_id ? { last_id: params.last_id } : {}),
-      ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
-    });
-
-    const response = await fetch(`${BASE_URL}/conversations?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+    const response = await difyAxios.get('/conversations', {
+      params: {
+        user: params.user,
+        ...(params.last_id ? { last_id: params.last_id } : {}),
+        ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
       }
     });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    return await response.json();
+    
+    return response.data;
   } catch (error) {
     console.error('Error getting conversations:', error);
     throw error;
