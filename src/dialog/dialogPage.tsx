@@ -30,7 +30,13 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const messageContainer = messagesEndRef.current?.parentElement;
+        if (messageContainer) {
+            messageContainer.scrollTo({
+                top: messageContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
     };
 
     useEffect(() => {
@@ -127,7 +133,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 } finally {
                     setIsSending(false);
                 }
-            }, 1000);
+            }, 2000);
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
@@ -269,6 +275,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         )}
                     </div>
                 )}
+                <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
