@@ -86,9 +86,13 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             
             await sendChatMessageApi({
                 conf: {
-                    msg: newMessage,
+                    content: newMessage,
                     source_ip: selectedAccount.source_ip,
-                    room_id: conversation.room_id
+                    room_id: conversation.room_id,
+                    sender: selectedAccount?.wxid || 'unknown',
+                    msg_type: 1,
+                    is_self: true,
+                    is_group: conversation.is_group
                 },
                 dag_run_id: dagRunId,
                 data_interval_end: new Date().toISOString(),

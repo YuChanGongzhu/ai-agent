@@ -47,9 +47,13 @@ export const getAIReplyListApi=async(username:string)=> {
 }
 
 interface ChatMessageConf {
-  msg: string;
-  source_ip: string;
   room_id: string;
+  content: string;
+  source_ip: string;
+  sender: string;
+  msg_type: number;
+  is_self: boolean;
+  is_group: boolean;
 }
 
 interface ChatMessageRequest {

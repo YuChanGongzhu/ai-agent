@@ -56,6 +56,7 @@ export interface RoomListMessage {
     msg_content: string;
     msg_datetime: string;
     msg_type: number;
+    is_group: boolean;
 }
 
 export interface RoomListMessagesResponse {
