@@ -1,7 +1,7 @@
-const sqlUrl = process.env.REACT_APP_MYSQL_URL;
+const roomMsgListUrl = process.env.REACT_APP_GET_ROOM_MSG_LIST;
+const roomListUrl = process.env.REACT_APP_GET_ROOM_LIST;
 
 export interface ChatMessage {
-    id: number;
     msg_id: string;
     wx_user_id: string;
     wx_user_name: string;
@@ -12,13 +12,7 @@ export interface ChatMessage {
     msg_type: number;
     msg_type_name: string;
     content: string;
-    is_self: number;
-    is_group: number;
-    source_ip: string;
-    msg_timestamp: number;
     msg_datetime: string;
-    created_at: string;
-    updated_at: string;
 }
 
 export interface ChatMessagesResponse {
@@ -44,9 +38,43 @@ export const getChatMessagesApi = async (params: {
         if (value) queryParams.append(key, value.toString());
     });
 
-    const response = await fetch(`${sqlUrl}/messages?${queryParams.toString()}`);
+    const response = await fetch(`${roomMsgListUrl}/messages?${queryParams.toString()}`);
     if (!response.ok) {
         throw new Error('Failed to fetch chat messages');
     }
     return response.json() as Promise<ChatMessagesResponse>;
+};
+
+export interface RoomListMessage {
+    room_id: string;
+    room_name: string;
+    wx_user_id: string;
+    wx_user_name: string;
+    sender_id: string;
+    sender_name: string;
+    msg_id: string;
+    msg_content: string;
+    msg_datetime: string;
+    msg_type: number;
+}
+
+export interface RoomListMessagesResponse {
+    code: number;
+    message: string;
+    data: RoomListMessage[];
+}
+
+export const getRoomListMessagesApi = async (params: {
+    wx_user_id?: string;
+}) => {
+    const queryParams = new URLSearchParams();
+    if (params.wx_user_id) {
+        queryParams.append('wx_user_id', params.wx_user_id);
+    }
+
+    const response = await fetch(`${roomListUrl}?${queryParams.toString()}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch chat messages');
+    }
+    return response.json() as Promise<RoomListMessagesResponse>;
 };

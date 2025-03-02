@@ -3,15 +3,14 @@ import { DialogPage } from './dialogPage';
 import { ChatMemory } from './chatMemory';
 import { MaterialBase } from './materialBase';
 import { EmployeeStudy } from './employeeStudy';
-import {  getConversationsApi } from '../api/dify';
 import { useEffect, useState } from 'react';
-import { Conversation } from '../api/dify';
 import { getWxAccountListApi, WxAccount } from '../api/airflow';
+import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 
 export const Dialog = () => {
-    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [conversations, setConversations] = useState<RoomListMessage[]>([]);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
-    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+    const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{[key: string]: boolean}>({});
 
@@ -19,9 +18,8 @@ export const Dialog = () => {
         if (!selectedAccount) return;
         
         try {
-            const res = await getConversationsApi({ 
-                user: selectedAccount.name,
-                limit: 100
+            const res = await getRoomListMessagesApi({
+                wx_user_id: selectedAccount.wxid
             });
             setConversations(res.data);
             console.log('Conversations loaded for', selectedAccount.name, ':', res.data);

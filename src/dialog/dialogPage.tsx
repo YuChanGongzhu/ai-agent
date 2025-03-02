@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
-import { Conversation, Message as DifyMessage, getMessagesApi } from '../api/dify';
+import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
 import { WxAccount, sendChatMessageApi } from '../api/airflow';
+import { getMessageContent } from '../utils/messageTypes';
 
 interface DialogPageProps {
-    conversation: Conversation | null;
+    conversation: RoomListMessage | null;
     selectedAccount: WxAccount | null;
 }
 
@@ -15,6 +16,7 @@ interface Message {
     timestamp: number;
     isUser: boolean;
     senderName: string;
+    msgType?: number;
 }
 
 export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount }) => {
@@ -47,40 +49,22 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
         
         setIsFetchingHistory(true);
         try {
-            const response = await getMessagesApi({
-                user: selectedAccount?.name || '',
-                conversation_id: conversation.id
+            const response = await getChatMessagesApi({
+                wx_user_id: selectedAccount?.wxid || '',
+                room_id: conversation?.room_id || ''
             });
 
-            const formattedMessages = response.data.flatMap(msg => {
-                const messages: Message[] = [];
-                
-                if (msg.query) {
-                    messages.push({
-                        id: msg.id + '-query',
-                        content: msg.query,
-                        timestamp: msg.created_at * 1000,
-                        isUser: false,
-                        senderName: msg.inputs?.sender_name || 'User'
-                    });
-                }
+            // Transform the messages into the required format
+            const transformedMessages = response.data.records.reverse().map(msg => ({
+                id: msg.msg_id,
+                content: msg.content || '',
+                timestamp: new Date(msg.msg_datetime).getTime(),
+                isUser: msg.sender_id === selectedAccount?.wxid,
+                senderName: msg.sender_name || msg.sender_id,
+                msgType: msg.msg_type
+            }));
 
-                if (msg.answer && msg.answer !== '#仅记录, 不自动回复#') {
-                    messages.push({
-                        id: msg.id + '-answer',
-                        content: msg.answer,
-                        timestamp: msg.created_at * 1000,
-                        isUser: true,
-                        senderName: 'Assistant'
-                    });
-                }
-
-                return messages;
-            });
-
-            // console.log('Formatted messages:', formattedMessages);
-
-            setMessages(formattedMessages);
+            setMessages(transformedMessages);
         } catch (error) {
             console.error('Error loading messages:', error);
         } finally {
@@ -91,35 +75,35 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !conversation || !selectedAccount) return;
 
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            content: newMessage,
-            timestamp: Date.now(),
-            isUser: true,
-            senderName: selectedAccount.name
-        };
-
-        setMessages(prev => [...prev, userMessage]);
         setNewMessage('');
         setIsLoading(true);
 
         try {
             const currentTime = new Date().toISOString();
-            const roomId = (conversation.inputs.room_id as string).replace(/@/g, '');
-            const dagRunId = `manual_${selectedAccount.name}_${roomId}_${currentTime}`;
+            const roomId = conversation.room_id.replace(/@/g, '');
+            const dagRunId = `manual_${selectedAccount?.name || 'unknown'}_${roomId}_${currentTime}`;
             
             await sendChatMessageApi({
                 conf: {
                     msg: newMessage,
                     source_ip: selectedAccount.source_ip,
-                    room_id: conversation.inputs.room_id as string
+                    room_id: conversation.room_id
                 },
-                dag_run_id: dagRunId,
-                data_interval_end: currentTime,
-                data_interval_start: currentTime,
-                logical_date: currentTime,
-                note: 'string'
+                dag_run_id: 'manual_send',
+                data_interval_end: new Date().toISOString(),
+                data_interval_start: new Date().toISOString(),
+                logical_date: new Date().toISOString(),
+                note: 'manual_send'
             });
+
+            // Add the message to the local state immediately
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                content: newMessage,
+                timestamp: Date.now(),
+                isUser: true,
+                senderName: selectedAccount?.name || 'User'
+            }]);
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
@@ -148,9 +132,9 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
-                        {conversation.name.charAt(0).toUpperCase()}
+                        {(conversation.room_name || conversation.sender_name || 'Chat').charAt(0).toUpperCase()}
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900">{conversation.name}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
                 </div>
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">AI</span>
@@ -231,7 +215,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">
-                                        {message.content}
+                                        {message.msgType ? getMessageContent(message.msgType, message.content) : message.content}
                                     </div>
                                     <div
                                         className={clsx(

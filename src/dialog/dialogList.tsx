@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 
-import { Conversation } from '../api/dify';
+import { RoomListMessage } from '../api/mysql';
+import { getMessageContent } from '../utils/messageTypes';
 
 interface DialogListProps {
-    dialogs?: Conversation[];
-    onSelectDialog?: (dialog: Conversation) => void;
+    dialogs?: RoomListMessage[];
+    onSelectDialog?: (dialog: RoomListMessage) => void;
 }
 
 export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog }) => {
@@ -21,13 +22,13 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
         return date.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleDialogClick = (dialog: Conversation) => {
-        setSelectedId(dialog.id);
+    const handleDialogClick = (dialog: RoomListMessage) => {
+        setSelectedId(dialog.msg_id);
         onSelectDialog?.(dialog);
     };
 
     const filteredDialogs = dialogs.filter(dialog =>
-        dialog.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (dialog.room_name || dialog.sender_name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -89,29 +90,31 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                     <div className="space-y-1 p-2">
                         {filteredDialogs.map(dialog => (
                             <div 
-                                key={dialog.id}
+                                key={dialog.msg_id}
                                 className={clsx(
                                     'flex items-center space-x-4 p-4 rounded-lg cursor-pointer transition-colors',
-                                    selectedId === dialog.id ? 'bg-purple-100' : 'hover:bg-gray-100'
+                                    selectedId === dialog.msg_id ? 'bg-purple-100' : 'hover:bg-gray-100'
                                 )}
                                 onClick={() => handleDialogClick(dialog)}
                             >
                                 {/* Avatar */}
                                 <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                                    {getAvatarText(dialog.name)}
+                                    {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0 flex flex-col">
                                     <div className="flex-1">
-                                        <h3 className="text-sm font-medium text-gray-900 truncate">{dialog.name}</h3>
+                                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                                            {dialog.room_name || dialog.sender_name || 'Chat'}
+                                        </h3>
                                         <div className="text-sm text-gray-500 truncate">
-                                            {dialog.introduction || '没有消息'}
+                                            {dialog.msg_content ? getMessageContent(dialog.msg_type, dialog.msg_content) : '没有消息'}
                                         </div>
                                     </div>
                                     <div className="flex justify-end">
                                         <span className="text-xs text-gray-500">
-                                            {formatTime(dialog.updated_at)}
+                                            {formatTime(new Date(dialog.msg_datetime).getTime() / 1000)}
                                         </span>
                                     </div>
                                 </div>
