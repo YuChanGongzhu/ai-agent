@@ -28,14 +28,29 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isAIEnabled, setIsAIEnabled] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messageContainerRef = useRef<HTMLDivElement>(null);
+    const [userScrolled, setUserScrolled] = useState(false);
 
-    const scrollToBottom = () => {
-        const messageContainer = messagesEndRef.current?.parentElement;
+    const scrollToBottom = (smooth = false) => {
+        const messageContainer = messageContainerRef.current;
         if (messageContainer) {
-            messageContainer.scrollTo({
-                top: messageContainer.scrollHeight,
-                behavior: 'smooth'
-            });
+            const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
+            
+            // 如果用户已经滚动到底部或这是新消息，才自动滚动
+            if (isNearBottom || !userScrolled) {
+                messageContainer.scrollTo({
+                    top: messageContainer.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
+        }
+    };
+
+    const handleScroll = () => {
+        const messageContainer = messageContainerRef.current;
+        if (messageContainer) {
+            const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
+            setUserScrolled(!isNearBottom);
         }
     };
 
@@ -49,7 +64,8 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     }, [conversation]);
 
     useEffect(() => {
-        scrollToBottom();
+        // 当有新消息时，使用平滑滚动
+        scrollToBottom(true);
     }, [messages]);
 
     const loadMessages = async () => {
@@ -73,6 +89,9 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             }));
 
             setMessages(transformedMessages);
+            
+            // 使用非平滑滚动（立即滚动到底部）
+            setTimeout(() => scrollToBottom(false), 50);
         } catch (error) {
             console.error('Error loading messages:', error);
         } finally {
@@ -128,6 +147,9 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     }));
 
                     setMessages(transformedMessages);
+                    
+                    // 使用非平滑滚动立即滚动到底部，因为这是用户自己发送的消息
+                    setTimeout(() => scrollToBottom(false), 50);
                 } catch (error) {
                     console.error('Error refreshing messages:', error);
                 } finally {
@@ -186,7 +208,11 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div 
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+                ref={messageContainerRef}
+                onScroll={handleScroll}
+            >
                 {isFetchingHistory ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4 text-gray-500">
                         <div className="flex items-center space-x-2">
