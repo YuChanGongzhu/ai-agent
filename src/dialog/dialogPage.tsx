@@ -3,6 +3,7 @@ import clsx from 'clsx';
 
 import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
 import { WxAccount, sendChatMessageApi } from '../api/airflow';
+import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
 
 interface DialogPageProps {
@@ -215,7 +216,10 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">
-                                        {message.msgType ? getMessageContent(message.msgType, message.content) : message.content}
+                                        {message.msgType === 3 ? 
+                                            <MessageContent content={message.content} msgType={message.msgType} /> :
+                                            getMessageContent(message.msgType || 0, message.content)
+                                        }
                                     </div>
                                     <div
                                         className={clsx(
