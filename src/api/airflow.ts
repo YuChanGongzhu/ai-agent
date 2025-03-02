@@ -42,9 +42,10 @@ export const getWxAccountListApi = async (): Promise<WxAccount[]> => {
   return JSON.parse(response.value);
 };
 
-export const getAIReplyListApi=async(username:string)=> {
-  return handleRequest(airflowAxios.get(`/variables/${username}_enable_ai_room_ids`));
+export const getAIReplyListApi=async(username:string,wxid:string):Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_${wxid}_enable_ai_room_ids`));
 }
+
 
 interface ChatMessageConf {
   room_id: string;
@@ -69,12 +70,12 @@ export const sendChatMessageApi = async (request: ChatMessageRequest) => {
   return handleRequest(airflowAxios.post('/dags/wx_msg_sender/dagRuns', request));
 };
 
-interface MsgCountResponse {
+interface VariableResponse {
   description: string | null;
   key: string;
   value: string;
 }
 
-export const getUserMsgCountApi = async (username: string): Promise<MsgCountResponse> => {
-  return handleRequest<MsgCountResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
+export const getUserMsgCountApi = async (username: string ): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
 } 
