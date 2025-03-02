@@ -32,9 +32,10 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const scrollToBottom = () => {
         const messageContainer = messagesEndRef.current?.parentElement;
         if (messageContainer) {
-            setTimeout(() => {
-                messageContainer.scrollTop = messageContainer.scrollHeight;
-            }, 100);
+            messageContainer.scrollTo({
+                top: messageContainer.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     };
 
@@ -48,9 +49,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     }, [conversation]);
 
     useEffect(() => {
-        if (messages.length > 0) {
-            scrollToBottom();
-        }
+        scrollToBottom();
     }, [messages]);
 
     const loadMessages = async () => {
