@@ -90,7 +90,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     source_ip: selectedAccount.source_ip,
                     room_id: conversation.room_id
                 },
-                dag_run_id: 'manual_send',
+                dag_run_id: dagRunId,
                 data_interval_end: new Date().toISOString(),
                 data_interval_start: new Date().toISOString(),
                 logical_date: new Date().toISOString(),
