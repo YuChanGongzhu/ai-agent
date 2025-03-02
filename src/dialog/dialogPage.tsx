@@ -27,45 +27,62 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [newMessage, setNewMessage] = useState('');
     const [isAIEnabled, setIsAIEnabled] = useState(true);
     const [isSending, setIsSending] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageContainerRef = useRef<HTMLDivElement>(null);
     const [userScrolled, setUserScrolled] = useState(false);
+    const isFirstRender = useRef(true);
 
     const scrollToBottom = (smooth = false) => {
         const messageContainer = messageContainerRef.current;
-        if (messageContainer) {
-            const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
-            
-            // 如果用户已经滚动到底部或这是新消息，才自动滚动
-            if (isNearBottom || !userScrolled) {
-                messageContainer.scrollTo({
-                    top: messageContainer.scrollHeight,
-                    behavior: smooth ? 'smooth' : 'auto'
-                });
-            }
-        }
+        if (!messageContainer) return;
+        
+        messageContainer.scrollTo({
+            top: messageContainer.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto'
+        });
     };
 
     const handleScroll = () => {
         const messageContainer = messageContainerRef.current;
-        if (messageContainer) {
-            const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
-            setUserScrolled(!isNearBottom);
-        }
+        if (!messageContainer) return;
+        
+        const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
+        setUserScrolled(!isNearBottom);
+    };
+
+    const checkIfShouldScroll = () => {
+        const messageContainer = messageContainerRef.current;
+        if (!messageContainer) return;
+        
+        const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
+        return isNearBottom || !userScrolled;
     };
 
     useEffect(() => {
         if (conversation) {
+            setUserScrolled(false);
+            isFirstRender.current = true;
             loadMessages();
         } else {
             setMessages([]);
         }
-        console.log('Conversation changed:', conversation);
     }, [conversation]);
 
     useEffect(() => {
-        // 当有新消息时，使用平滑滚动
-        scrollToBottom(true);
+        if (messages.length === 0) return;
+        
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            requestAnimationFrame(() => {
+                scrollToBottom(false);
+            });
+            return;
+        }
+        
+        if (checkIfShouldScroll()) {
+            requestAnimationFrame(() => {
+                scrollToBottom(true);
+            });
+        }
     }, [messages]);
 
     const loadMessages = async () => {
@@ -78,7 +95,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 room_id: conversation?.room_id || ''
             });
 
-            // Transform the messages into the required format
             const transformedMessages = response.data.records.reverse().map(msg => ({
                 id: msg.msg_id,
                 content: msg.content || '',
@@ -89,9 +105,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             }));
 
             setMessages(transformedMessages);
-            
-            // 使用非平滑滚动（立即滚动到底部）
-            setTimeout(() => scrollToBottom(false), 50);
         } catch (error) {
             console.error('Error loading messages:', error);
         } finally {
@@ -102,6 +115,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !conversation || !selectedAccount) return;
 
+        setUserScrolled(false);
         setNewMessage('');
         setIsLoading(true);
 
@@ -129,7 +143,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
 
             setIsSending(true);
             
-            // Wait for 1 second then refresh messages
             setTimeout(async () => {
                 try {
                     const response = await getChatMessagesApi({
@@ -147,9 +160,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     }));
 
                     setMessages(transformedMessages);
-                    
-                    // 使用非平滑滚动立即滚动到底部，因为这是用户自己发送的消息
-                    setTimeout(() => scrollToBottom(false), 50);
                 } catch (error) {
                     console.error('Error refreshing messages:', error);
                 } finally {
@@ -301,12 +311,11 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         )}
                     </div>
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t flex items-center space-x-4">
-                <button className="text-gray-400 hover:text-gray-600">
+            <div className="p-4 bg-white border-t flex items-center space-x-4 sticky bottom-0">
+                <button className="text-gray-400 hover:text-gray-600 flex-shrink-0">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -322,7 +331,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         disabled={isLoading || isFetchingHistory}
                     />
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
+                <button className="text-gray-400 hover:text-gray-600 flex-shrink-0">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
@@ -330,7 +339,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 <button
                     onClick={handleSendMessage}
                     className={clsx(
-                        'w-10 h-10 flex items-center justify-center rounded-full focus:outline-none transition-colors',
+                        'w-10 h-10 flex items-center justify-center rounded-full focus:outline-none transition-colors flex-shrink-0',
                         (isLoading || isFetchingHistory) ? 'bg-gray-300 cursor-not-allowed' : 'bg-[rgba(108,93,211,1)] hover:bg-[rgba(98,83,201,1)]'
                     )}
                     disabled={isLoading || isFetchingHistory}
@@ -339,7 +348,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                 </button>
-
             </div>
         </div>
     );
