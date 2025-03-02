@@ -46,6 +46,14 @@ export const getAIReplyListApi=async(username:string,wxid:string):Promise<Variab
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_${wxid}_enable_ai_room_ids`));
 }
 
+export const postAIReplyListApi=async(username:string,wxid:string,room_ids:Array<string>):Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
+    value: JSON.stringify(room_ids),
+    key: `${username}_${wxid}_enable_ai_room_ids`,
+    description: ""
+  }));
+}
+
 
 interface ChatMessageConf {
   room_id: string;

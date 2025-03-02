@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
-import { WxAccount, sendChatMessageApi, getAIReplyListApi } from '../api/airflow';
+import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
 
@@ -30,6 +30,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const messageContainerRef = useRef<HTMLDivElement>(null);
     const [userScrolled, setUserScrolled] = useState(false);
     const isFirstRender = useRef(true);
+    const enabledRoomsRef = useRef<string[]>([]);
 
     const scrollToBottom = (smooth = false) => {
         const messageContainer = messageContainerRef.current;
@@ -85,9 +86,11 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
              const aiResponse = await getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
              try {
                  const enabledRooms = JSON.parse(aiResponse.value);
+                 enabledRoomsRef.current = enabledRooms;
                  setIsAIEnabled(enabledRooms.includes(conversation.room_id));
              } catch (error) {
                  console.error('Error parsing AI enabled rooms:', error);
+                 enabledRoomsRef.current = [];
                  setIsAIEnabled(false);
              }
              
@@ -203,7 +206,40 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">AI</span>
                     <button
-                        onClick={() => setIsAIEnabled(!isAIEnabled)}
+                        onClick={async () => {
+                            const newAIEnabled = !isAIEnabled;
+                            setIsAIEnabled(newAIEnabled);
+                            
+                            // Update the enabled rooms list
+                            try {
+                                const currentRooms = [...enabledRoomsRef.current];
+                                
+                                if (newAIEnabled) {
+                                    // Add current room if not already in the list
+                                    if (!currentRooms.includes(conversation.room_id)) {
+                                        currentRooms.push(conversation.room_id);
+                                    }
+                                } else {
+                                    // Remove current room from the list
+                                    const index = currentRooms.indexOf(conversation.room_id);
+                                    if (index > -1) {
+                                        currentRooms.splice(index, 1);
+                                    }
+                                }
+                                
+                                // Update the ref and send to server
+                                enabledRoomsRef.current = currentRooms;
+                                await postAIReplyListApi(
+                                    selectedAccount?.name || '', 
+                                    selectedAccount?.wxid || '', 
+                                    currentRooms
+                                );
+                            } catch (error) {
+                                console.error('Error updating AI enabled rooms:', error);
+                                // Revert the UI state if there was an error
+                                setIsAIEnabled(!newAIEnabled);
+                            }
+                        }}
                         className={clsx(
                             'w-12 h-6 rounded-full transition-colors duration-200 ease-in-out relative',
                             isAIEnabled ? 'bg-purple-500' : 'bg-gray-200'
