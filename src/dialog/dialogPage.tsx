@@ -26,6 +26,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [isAIEnabled, setIsAIEnabled] = useState(true);
+    const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -101,14 +102,32 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 note: 'manual_send'
             });
 
-            // Add the message to the local state immediately
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                content: newMessage,
-                timestamp: Date.now(),
-                isUser: true,
-                senderName: selectedAccount?.name || 'User'
-            }]);
+            setIsSending(true);
+            
+            // Wait for 1 second then refresh messages
+            setTimeout(async () => {
+                try {
+                    const response = await getChatMessagesApi({
+                        wx_user_id: selectedAccount?.wxid || '',
+                        room_id: conversation?.room_id || ''
+                    });
+
+                    const transformedMessages = response.data.records.reverse().map(msg => ({
+                        id: msg.msg_id,
+                        content: msg.content || '',
+                        timestamp: new Date(msg.msg_datetime).getTime(),
+                        isUser: msg.sender_id === selectedAccount?.wxid,
+                        senderName: msg.sender_name || msg.sender_id,
+                        msgType: msg.msg_type
+                    }));
+
+                    setMessages(transformedMessages);
+                } catch (error) {
+                    console.error('Error refreshing messages:', error);
+                } finally {
+                    setIsSending(false);
+                }
+            }, 1000);
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
@@ -236,16 +255,20 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                 </div>
                             </div>
                         ))}
-                        {isLoading && (
-                            <div className="flex items-center space-x-2 text-gray-500">
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        {(isLoading || isSending) && (
+                            <div className="flex justify-end">
+                                <div className="flex items-center space-x-2 text-gray-500 bg-gray-100 rounded-lg px-4 py-2">
+                                    <span className="text-sm">发送中</span>
+                                    <div className="flex items-center space-x-1">
+                                        <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
