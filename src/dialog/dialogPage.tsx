@@ -127,7 +127,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
         try {
             const currentTime = new Date().toISOString();
             const roomId = conversation.room_id.replace(/@/g, '');
-            const dagRunId = `manual_${selectedAccount?.name || 'unknown'}_${roomId}_${currentTime}`;
+            const dagRunId = `manual_${selectedAccount?.wxid || 'unknown'}_${roomId}_${currentTime}`;
             
             await sendChatMessageApi({
                 conf: {
