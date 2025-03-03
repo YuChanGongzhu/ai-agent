@@ -319,7 +319,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">
-                                        {message.msgType === 3 ? 
+                                        {message.msgType === 3 || message.msgType === 34 ? 
                                             <MessageContent content={message.content} msgType={message.msgType} /> :
                                             getMessageContent(message.msgType || 0, message.content)
                                         }
