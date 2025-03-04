@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { createDocumentByFileApi, defaultDocumentUploadOptions, CreateDocumentByFileData } from '../../api/dify';
 
 interface FileWithPreview extends File {
     preview?: string;
@@ -7,6 +8,9 @@ interface FileWithPreview extends File {
 
 export const MaterialUpload: React.FC = () => {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState<{success: string[], error: {name: string, message: string}[]}>({success: [], error: []});
+    const [datasetId, setDatasetId] = useState<string>('e3044eb3-694c-4c23-82ed-88a8bc9feda1'); // Default dataset ID
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const newFiles = acceptedFiles.map(file => 
@@ -37,6 +41,78 @@ export const MaterialUpload: React.FC = () => {
             });
         };
     }, [files]);
+    
+    const handleUpload = async () => {
+        if (files.length === 0 || !datasetId) return;
+        
+        setIsUploading(true);
+        setUploadStatus({success: [], error: []});
+        
+        const uploadPromises = files.map(async (file) => {
+            try {
+                // Use default options with any necessary overrides
+                const data: CreateDocumentByFileData = {
+                    ...defaultDocumentUploadOptions as CreateDocumentByFileData,
+                    indexing_technique: 'high_quality', // This is now explicitly typed as 'high_quality' | 'economy'
+                    process_rule: {
+                        mode: 'custom',
+                        rules: {
+                            pre_processing_rules: [
+                                { id: 'remove_extra_spaces', enabled: true },
+                                { id: 'remove_urls_emails', enabled: true }
+                            ],
+                            segmentation: {
+                                separator: '\n',
+                                max_tokens: 1000
+                            }
+                        }
+                    }
+                };
+                
+                const result = await createDocumentByFileApi(datasetId, file, data);
+                console.log('Upload success:', result);
+                return { success: true, name: file.name, result };
+            } catch (error) {
+                console.error('Upload error:', error);
+                return { 
+                    success: false, 
+                    name: file.name, 
+                    error: error instanceof Error ? error.message : 'Unknown error' 
+                };
+            }
+        });
+        
+        const results = await Promise.all(uploadPromises);
+        
+        // Update status with results
+        const successFiles = results.filter(r => r.success).map(r => r.name);
+        const errorFiles = results.filter(r => !r.success).map(r => ({ 
+            name: r.name, 
+            message: typeof r.error === 'string' ? r.error : 'Upload failed'
+        }));
+        
+        setUploadStatus({
+            success: successFiles,
+            error: errorFiles
+        });
+        
+        // Clear successfully uploaded files
+        if (successFiles.length > 0) {
+            const successFileNames = new Set(successFiles);
+            setFiles(prevFiles => {
+                const remainingFiles = prevFiles.filter(file => !successFileNames.has(file.name));
+                // Revoke object URLs for removed files
+                prevFiles.forEach(file => {
+                    if (successFileNames.has(file.name) && file.preview) {
+                        URL.revokeObjectURL(file.preview);
+                    }
+                });
+                return remainingFiles;
+            });
+        }
+        
+        setIsUploading(false);
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-6">
@@ -79,46 +155,84 @@ export const MaterialUpload: React.FC = () => {
             </div>
 
             {files.length > 0 && (
-                <div className="mt-6 grid grid-cols-4 gap-4">
-                    {files.map((file, index) => (
-                        <div key={index} className="relative group">
-                            {file.type.startsWith('image/') ? (
-                                <img
-                                    src={file.preview}
-                                    alt={file.name}
-                                    className="w-full h-24 object-cover rounded-lg"
-                                />
-                            ) : (
-                                <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center p-2">
-                                    <div className="text-center">
-                                        <svg className="w-8 h-8 mx-auto mb-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            {file.type === 'application/pdf' ? (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            ) : (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                            )}
-                                        </svg>
-                                        <p className="text-xs text-gray-500 truncate">{file.name}</p>
+                <>
+                    <div className="mt-6 grid grid-cols-4 gap-4">
+                        {files.map((file, index) => (
+                            <div key={index} className="relative group">
+                                {file.type.startsWith('image/') ? (
+                                    <img
+                                        src={file.preview}
+                                        alt={file.name}
+                                        className="w-full h-24 object-cover rounded-lg"
+                                    />
+                                ) : (
+                                    <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center p-2">
+                                        <div className="text-center">
+                                            <svg className="w-8 h-8 mx-auto mb-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                {file.type === 'application/pdf' ? (
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                ) : (
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0112.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                )}
+                                            </svg>
+                                            <p className="text-xs text-gray-500 truncate">{file.name}</p>
+                                        </div>
                                     </div>
+                                )}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFiles(files.filter((_, i) => i !== index));
+                                        if (file.preview) {
+                                            URL.revokeObjectURL(file.preview);
+                                        }
+                                    }}
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-6">
+                        <button 
+                            onClick={handleUpload}
+                            disabled={isUploading}
+                            className={`px-4 py-2 rounded-md text-white ${isUploading ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} transition-colors`}
+                        >
+                            {isUploading ? '上传中...' : '上传到知识库'}
+                        </button>
+                    </div>
+                    
+                    {/* Upload Status Messages */}
+                    {(uploadStatus.success.length > 0 || uploadStatus.error.length > 0) && (
+                        <div className="mt-4">
+                            {uploadStatus.success.length > 0 && (
+                                <div className="mb-2 p-2 bg-green-50 text-green-800 rounded">
+                                    <h4 className="font-medium">成功上传:</h4>
+                                    <ul className="list-disc pl-5 mt-1">
+                                        {uploadStatus.success.map((name, idx) => (
+                                            <li key={idx}>{name}</li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setFiles(files.filter((_, i) => i !== index));
-                                    if (file.preview) {
-                                        URL.revokeObjectURL(file.preview);
-                                    }
-                                }}
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            {uploadStatus.error.length > 0 && (
+                                <div className="p-2 bg-red-50 text-red-800 rounded">
+                                    <h4 className="font-medium">上传失败:</h4>
+                                    <ul className="list-disc pl-5 mt-1">
+                                        {uploadStatus.error.map((err, idx) => (
+                                            <li key={idx}>{err.name}: {err.message}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     );
