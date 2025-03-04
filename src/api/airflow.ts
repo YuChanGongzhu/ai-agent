@@ -99,3 +99,7 @@ export const generateWxChatHistorySummaryApi = async (request: DagRunRequest<WxC
 export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string): Promise<VariableResponse> => {
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${wxid}_${room_id}_chat_summary`));
 }
+
+export const getWxAccountPromptApi = async (wxid: string, name: string): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_ui_input_prompt`));
+}

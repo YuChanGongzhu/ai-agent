@@ -17,10 +17,10 @@ export const EmployeeEdit: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-6">
-                    <EmployeeConfig wxAccount={wxAccount} />
                     <MaterialUpload wxAccount={wxAccount} />
                 </div>
                 <div>
+                <EmployeeConfig wxAccount={wxAccount} />
                     <DialogTest wxAccount={wxAccount} />
                 </div>
             </div>
