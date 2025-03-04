@@ -4,8 +4,17 @@ import { ChatMemory } from './chatMemory';
 import { MaterialBase } from './materialBase';
 import { EmployeeStudy } from './employeeStudy';
 import { useEffect, useState, useRef } from 'react';
-import { getWxAccountListApi, WxAccount,getUserMsgCountApi } from '../api/airflow';
+import { getWxAccountListApi, WxAccount, getUserMsgCountApi, generateWxChatHistorySummaryApi, getWxChatHistorySummaryApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
+
+// 客户信息接口
+interface ApiCustomerInfo {
+    name: string | null;
+    age: string | null;
+    gender: string | null;
+    region: string | null;
+    contact: string | null;
+}
 
 export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
@@ -14,6 +23,7 @@ export const Dialog = () => {
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{[key: string]: boolean}>({});
     const [messageCount, setMessageCount] = useState<string>('');
+    const [customerInfo, setCustomerInfo] = useState<ApiCustomerInfo | undefined>(undefined);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
     const getConversations = async () => {
@@ -88,6 +98,65 @@ export const Dialog = () => {
             }
         }
     }, [messageCount]);
+
+    // Effect for calling generateWxChatHistorySummaryApi when selectedAccount and selectedConversation change
+    useEffect(() => {
+        const fetchChatHistorySummary = async () => {
+            if (selectedAccount && selectedConversation) {
+                try {
+                    // 第一步：生成聊天历史摘要
+                    // const currentDate = new Date().toISOString();
+                    // const request = {
+                    //     conf: {
+                    //         wx_user_id: selectedAccount.wxid,
+                    //         room_id: selectedConversation.room_id
+                    //     },
+                    //     dag_run_id: `summary_${selectedAccount.wxid}_${selectedConversation.room_id}_${Date.now()}`,
+                    //     data_interval_end: currentDate,
+                    //     data_interval_start: currentDate,
+                    //     logical_date: currentDate,
+                    //     note: `Chat history summary for ${selectedConversation.room_name}`
+                    // };
+                    
+                    // const response = await generateWxChatHistorySummaryApi(request);
+                    // console.log('生成聊天历史摘要 API 响应:', response);
+                    
+                    // 第二步：获取生成的聊天摘要
+                    // 等待一段时间，确保摘要已经生成
+                    setTimeout(async () => {
+                        try {
+                            const summaryResponse = await getWxChatHistorySummaryApi(
+                                selectedAccount.wxid,
+                                selectedConversation.room_id
+                            );
+                            console.log('聊天摘要内容:', summaryResponse);
+                            
+                            // 尝试解析 JSON 内容（如果是 JSON 格式）
+                            try {
+                                const parsedSummary = JSON.parse(summaryResponse.value);
+                                console.log('解析后的聊天摘要:', parsedSummary);
+                                
+                                // 提取客户信息并更新状态
+                                if (parsedSummary && parsedSummary.summary_json && parsedSummary.summary_json.customer_info) {
+                                    setCustomerInfo(parsedSummary.summary_json.customer_info);
+                                }
+                            } catch (parseError) {
+                                // 如果不是 JSON 格式，直接显示原始内容
+                                console.log('原始聊天摘要文本:', summaryResponse.value);
+                            }
+                        } catch (summaryError) {
+                            console.error('获取聊天摘要时出错:', summaryError);
+                        }
+                    }, 5000); // 等待 5 秒后获取摘要
+                    
+                } catch (error) {
+                    console.error('生成聊天历史摘要时出错:', error);
+                }
+            }
+        };
+        
+        fetchChatHistorySummary();
+    }, [selectedAccount, selectedConversation]);
 
     return (
         <div className="h-screen p-6 flex flex-col space-y-4">
@@ -174,13 +243,13 @@ export const Dialog = () => {
 
                     {/* Today's Memory */}
                     <div className="flex-shrink-0">
-                        <ChatMemory />
+                        <ChatMemory customerInfo={customerInfo} />
                     </div>
 
                     {/* Employee Study */}
-                    <div className="flex-1">
+                    {/* <div className="flex-1">
                         <EmployeeStudy />
-                    </div>
+                    </div> */}
                 </div>
                 </div>
             </div>

@@ -54,6 +54,14 @@ export const postAIReplyListApi=async(username:string,wxid:string,room_ids:Array
   }));
 }
 
+interface DagRunRequest<T = any> {
+  conf: T;
+  dag_run_id: string;
+  data_interval_end: string;
+  data_interval_start: string;
+  logical_date: string;
+  note: string;
+}
 
 interface ChatMessageConf {
   room_id: string;
@@ -65,16 +73,12 @@ interface ChatMessageConf {
   is_group: boolean;
 }
 
-interface ChatMessageRequest {
-  conf: ChatMessageConf;
-  dag_run_id: string;
-  data_interval_end: string;
-  data_interval_start: string;
-  logical_date: string;
-  note: string;
+interface WxChatHistorySummaryConf {
+  wx_user_id: string;
+  room_id: string;
 }
 
-export const sendChatMessageApi = async (request: ChatMessageRequest) => {
+export const sendChatMessageApi = async (request: DagRunRequest<ChatMessageConf>) => {
   return handleRequest(airflowAxios.post('/dags/wx_msg_sender/dagRuns', request));
 };
 
@@ -87,3 +91,11 @@ interface VariableResponse {
 export const getUserMsgCountApi = async (username: string ): Promise<VariableResponse> => {
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
 } 
+
+export const generateWxChatHistorySummaryApi = async (request: DagRunRequest<WxChatHistorySummaryConf>) => {
+  return handleRequest(airflowAxios.post('/dags/wx_chat_history_summary/dagRuns', request));
+};
+
+export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${wxid}_${room_id}_chat_summary`));
+}
