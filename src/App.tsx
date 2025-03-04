@@ -25,7 +25,7 @@ function App() {
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/employee" element={<EmployeeTable />} />
-                    <Route path="/employee/edit/:name" element={<EmployeeEdit />} />
+                    <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
                     <Route path="/dialog" element={<Dialog />} />
                     <Route path="/task" element={<div>Task Page</div>} />
                     <Route path="/calendar" element={<CalendarComponent />} />

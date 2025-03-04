@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { WxAccount } from '../../api/airflow';
 
 interface EmployeeConfigProps {
     className?: string;
+    wxAccount?: WxAccount;
 }
 
-export const EmployeeConfig: React.FC<EmployeeConfigProps> = ({ className }) => {
+export const EmployeeConfig: React.FC<EmployeeConfigProps> = ({ className, wxAccount }) => {
     const navigate = useNavigate();
 
     const handleReturn = () => {
@@ -26,7 +28,7 @@ export const EmployeeConfig: React.FC<EmployeeConfigProps> = ({ className }) => 
                 </button>
             </div>
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">员工配置</h3>
+                <h3 className="text-lg font-medium text-gray-900">员工配置 - {wxAccount?.name}</h3>
                 <button className="text-purple-600 px-3 py-1 rounded-md hover:bg-purple-50">
                     保存
                 </button>

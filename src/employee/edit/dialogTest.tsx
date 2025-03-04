@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
+import { WxAccount } from '../../api/airflow';
 
-export const DialogTest: React.FC = () => {
+interface DialogTestProps {
+    wxAccount?: WxAccount;
+}
+
+export const DialogTest: React.FC<DialogTestProps> = ({ wxAccount }) => {
     const chatbotUrl=process.env.REACT_APP_DIFY_CHATBOT_ID
     return (
         <div className="bg-white rounded-lg shadow-lg h-[600px] flex flex-col">
             <div className="p-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">效果测试</h3>
+                <h3 className="text-lg font-medium text-gray-900">效果测试 - {wxAccount?.name}</h3>
             </div>
 
             <iframe

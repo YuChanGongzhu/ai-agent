@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { createDocumentByFileApi, defaultDocumentUploadOptions, CreateDocumentByFileData, getDatasetsApi, Dataset } from '../../api/dify';
+import { WxAccount } from '../../api/airflow';
 
 interface FileWithPreview extends File {
     preview?: string;
 }
 
-export const MaterialUpload: React.FC = () => {
+interface MaterialUploadProps {
+    wxAccount?: WxAccount;
+}
+
+export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<{success: string[], error: {name: string, message: string}[]}>({success: [], error: []});
