@@ -18,7 +18,7 @@ const navItems: NavItem[] = [
   { name: '仪表盘', icon: dashboardSVG, url: '/dashboard' },
   { name: '员工', icon: employeeSVG, url: '/employee' },
   { name: '对话', icon: dialogSVG, url: '/dialog' },
-  { name: '任务', icon: taskSVG, url: '/task' },
+  // { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
 ];
 
@@ -88,7 +88,7 @@ const NavBar: React.FC = () => {
                 className="w-8 h-8 rounded-full"
               />
               <div>
-                <div className="text-sm font-medium">昵称</div>
+                <div className="text-sm font-medium">admin</div>
                 <div 
                   className="text-xs text-gray-500 cursor-pointer hover:text-purple-600"
                   onClick={() => setShowLogoutDialog(!showLogoutDialog)}
