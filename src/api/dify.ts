@@ -471,3 +471,32 @@ export async function createDocumentByFileApi(
     throw error;
   }
 }
+
+export interface GetDatasetsParams {
+  page?: string;
+  limit?: string;
+}
+
+export interface GetDatasetsResponse {
+  data: Dataset[];
+  has_more: boolean;
+  limit: number;
+  total: number;
+  page: number;
+}
+
+export async function getDatasetsApi(params?: GetDatasetsParams): Promise<GetDatasetsResponse> {
+  try {
+    const response = await difyDatasetAxios.get('/datasets', {
+      params: {
+        ...(params?.page && { page: params.page }),
+        ...(params?.limit && { limit: params.limit })
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error getting datasets:', error);
+    throw error;
+  }
+}

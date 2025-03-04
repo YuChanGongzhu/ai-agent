@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { createDocumentByFileApi, defaultDocumentUploadOptions, CreateDocumentByFileData } from '../../api/dify';
+import { createDocumentByFileApi, defaultDocumentUploadOptions, CreateDocumentByFileData, getDatasetsApi, Dataset } from '../../api/dify';
 
 interface FileWithPreview extends File {
     preview?: string;
@@ -11,6 +11,33 @@ export const MaterialUpload: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<{success: string[], error: {name: string, message: string}[]}>({success: [], error: []});
     const [datasetId, setDatasetId] = useState<string>('e3044eb3-694c-4c23-82ed-88a8bc9feda1'); // Default dataset ID
+    const [datasets, setDatasets] = useState<Dataset[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const res = await getDatasetsApi({});
+                console.log('知识库', res);
+                setDatasets(res.data);
+                
+                // If we have datasets and no datasetId is selected yet, select the first one
+                if (res.data.length > 0 && !datasetId) {
+                    setDatasetId(res.data[0].id);
+                }
+            } catch (error) {
+                console.error('Failed to fetch datasets:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const handleSelectDataset = (id: string) => {
+        setDatasetId(id);
+    };
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const newFiles = acceptedFiles.map(file => 
@@ -116,6 +143,34 @@ export const MaterialUpload: React.FC = () => {
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-6">
+            {/* Knowledge Base Tabs */}
+            {loading ? (
+                <div className="flex justify-center items-center h-12 mb-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+                </div>
+            ) : (
+                <div className="mb-6 overflow-x-auto">
+                    <div className="flex space-x-2 pb-2">
+                        {datasets.map((dataset) => (
+                            <div
+                                key={dataset.id}
+                                onClick={() => handleSelectDataset(dataset.id)}
+                                className={`
+                                    flex items-center px-4 py-2 rounded-full cursor-pointer transition-all
+                                    ${datasetId === dataset.id 
+                                        ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                                `}
+                            >
+                                <div className="flex items-center">
+                                    <span className="mr-2">{dataset.name}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4">
                 <h3 className="text-lg font-medium text-gray-900">素材库</h3>
             </div>
