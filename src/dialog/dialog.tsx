@@ -99,63 +99,12 @@ export const Dialog = () => {
         }
     }, [messageCount]);
 
-    // Effect for calling generateWxChatHistorySummaryApi when selectedAccount and selectedConversation change
+    // 移除了原来的 fetchChatHistorySummary 函数，改为在 ChatMemory 组件中实现
+    // 现在只需要在 selectedAccount 或 selectedConversation 变化时更新状态即可
     useEffect(() => {
-        const fetchChatHistorySummary = async () => {
-            if (selectedAccount && selectedConversation) {
-                try {
-                    // 第一步：生成聊天历史摘要
-                    // const currentDate = new Date().toISOString();
-                    // const request = {
-                    //     conf: {
-                    //         wx_user_id: selectedAccount.wxid,
-                    //         room_id: selectedConversation.room_id
-                    //     },
-                    //     dag_run_id: `summary_${selectedAccount.wxid}_${selectedConversation.room_id}_${Date.now()}`,
-                    //     data_interval_end: currentDate,
-                    //     data_interval_start: currentDate,
-                    //     logical_date: currentDate,
-                    //     note: `Chat history summary for ${selectedConversation.room_name}`
-                    // };
-                    
-                    // const response = await generateWxChatHistorySummaryApi(request);
-                    // console.log('生成聊天历史摘要 API 响应:', response);
-                    
-                    // 第二步：获取生成的聊天摘要
-                    // 等待一段时间，确保摘要已经生成
-                    setTimeout(async () => {
-                        try {
-                            const summaryResponse = await getWxChatHistorySummaryApi(
-                                selectedAccount.wxid,
-                                selectedConversation.room_id
-                            );
-                            console.log('聊天摘要内容:', summaryResponse);
-                            
-                            // 尝试解析 JSON 内容（如果是 JSON 格式）
-                            try {
-                                const parsedSummary = JSON.parse(summaryResponse.value);
-                                console.log('解析后的聊天摘要:', parsedSummary);
-                                
-                                // 提取客户信息并更新状态
-                                if (parsedSummary && parsedSummary.summary_json && parsedSummary.summary_json.customer_info) {
-                                    setCustomerInfo(parsedSummary.summary_json.customer_info);
-                                }
-                            } catch (parseError) {
-                                // 如果不是 JSON 格式，直接显示原始内容
-                                console.log('原始聊天摘要文本:', summaryResponse.value);
-                            }
-                        } catch (summaryError) {
-                            console.error('获取聊天摘要时出错:', summaryError);
-                        }
-                    }, 5000); // 等待 5 秒后获取摘要
-                    
-                } catch (error) {
-                    console.error('生成聊天历史摘要时出错:', error);
-                }
-            }
-        };
-        
-        fetchChatHistorySummary();
+        // 当选择的账号或对话变化时，可以在这里执行其他必要的操作
+        // 但不再自动调用 fetchChatHistorySummary
+        console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
     }, [selectedAccount, selectedConversation]);
 
     return (
@@ -243,7 +192,12 @@ export const Dialog = () => {
 
                     {/* Today's Memory */}
                     <div className="flex-shrink-0">
-                        <ChatMemory customerInfo={customerInfo} />
+                        <ChatMemory 
+                            customerInfo={customerInfo} 
+                            selectedAccount={selectedAccount}
+                            selectedConversation={selectedConversation}
+                            onCustomerInfoUpdate={setCustomerInfo}
+                        />
                     </div>
 
                     {/* Employee Study */}
