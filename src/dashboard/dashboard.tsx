@@ -14,9 +14,15 @@ export const Dashboard = () => (
             <SalesThread />
         </div> */}
         <iframe
-        src={process.env.REACT_APP_GRAFANA_URL}
-        allow="microphone"
-        style={{ width: '100%', height: '95vh' }}
-    ></iframe>
+            src={`${process.env.REACT_APP_GRAFANA_URL}&kiosk=tv`}
+            allow="microphone"
+            style={{ 
+                width: '100%', 
+                height: '95vh',
+                border: 'none',
+                overflow: 'hidden'
+            }}
+            frameBorder="0"
+        ></iframe>
     </div>
 )
