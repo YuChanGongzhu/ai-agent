@@ -18,7 +18,7 @@ const navItems: NavItem[] = [
   { name: '仪表盘', icon: dashboardSVG, url: '/dashboard' },
   { name: '员工', icon: employeeSVG, url: '/employee' },
   { name: '对话', icon: dialogSVG, url: '/dialog' },
-  // { name: '任务', icon: taskSVG, url: '/task' },
+  { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
 ];
 

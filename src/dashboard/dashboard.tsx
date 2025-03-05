@@ -6,12 +6,17 @@ import { WechatList } from "./wechatList";
 
 export const Dashboard = () => (
     <div className="p-4">
-        <DashboardHeader />
+        {/* <DashboardHeader />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <WechatList />
             <AccountManage />
             <CustomerShow />
             <SalesThread />
-        </div>
+        </div> */}
+        <iframe
+        src={process.env.REACT_APP_GRAFANA_URL}
+        allow="microphone"
+        style={{ width: '100%', height: '95vh' }}
+    ></iframe>
     </div>
 )
