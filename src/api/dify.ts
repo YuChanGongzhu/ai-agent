@@ -181,7 +181,7 @@ export async function getMessagesApi(params: { user: string; conversation_id: st
         ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
       }
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Error getting messages:', error);
@@ -198,7 +198,7 @@ export async function getConversationsApi(params: GetConversationsParams): Promi
         ...(params.limit ? { limit: params.limit.toString() } : { limit: '20' })
       }
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Error getting conversations:', error);
@@ -305,9 +305,9 @@ export async function getDatasetDocumentsApi(datasetId: string, params?: GetDocu
 
 export type IndexingTechnique = 'high_quality' | 'economy';
 export type DocForm = 'text_model' | 'hierarchical_model' | 'qa_model';
-export type DocType = 'book' | 'web_page' | 'paper' | 'social_media_post' | 'wikipedia_entry' | 
-              'personal_document' | 'business_document' | 'im_chat_log' | 'synced_from_notion' | 
-              'synced_from_github' | 'others';
+export type DocType = 'book' | 'web_page' | 'paper' | 'social_media_post' | 'wikipedia_entry' |
+  'personal_document' | 'business_document' | 'im_chat_log' | 'synced_from_notion' |
+  'synced_from_github' | 'others';
 export type ProcessRuleMode = 'automatic' | 'custom';
 export type ParentMode = 'full-doc' | 'paragraph';
 
@@ -454,7 +454,7 @@ export async function createDocumentByFileApi(
     const formData = new FormData();
     formData.append('file', file);
     formData.append('data', JSON.stringify(data));
-    
+
     const response = await difyDatasetAxios.post(
       `/datasets/${datasetId}/document/create-by-file`,
       formData,
@@ -464,7 +464,7 @@ export async function createDocumentByFileApi(
         },
       }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error creating document by file:', error);
@@ -493,10 +493,136 @@ export async function getDatasetsApi(params?: GetDatasetsParams): Promise<GetDat
         ...(params?.limit && { limit: params.limit })
       }
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Error getting datasets:', error);
+    throw error;
+  }
+}
+
+
+export interface ChatMessageRequest {
+  query: string;
+  inputs?: Record<string, any>;
+  response_mode?: 'streaming' | 'blocking';
+  user: string;
+  conversation_id?: string;
+  files?: ChatFile[];
+  auto_generate_name?: boolean;
+}
+
+export interface ChatMessageStreamEvent {
+  event: string;
+  task_id?: string;
+  message_id?: string;
+  conversation_id?: string;
+  answer?: string;
+  created_at?: number;
+  metadata?: {
+    usage?: Usage;
+    retriever_resources?: RetrieverResource[];
+  };
+  audio?: string;
+  status?: number;
+  code?: string;
+  message?: string;
+  id?: string;
+  type?: string;
+  url?: string;
+  belongs_to?: string;
+  workflow_run_id?: string;
+  data?: any;
+}
+
+export interface ChatMessageResponse {
+  message_id: string;
+  conversation_id: string;
+  mode: string;
+  answer: string;
+  metadata: {
+    usage: Usage;
+    retriever_resources: RetrieverResource[];
+  };
+  created_at: number;
+}
+
+export async function sendChatMessageApi(
+  data: ChatMessageRequest,
+  onMessage?: (event: ChatMessageStreamEvent) => void
+): Promise<ChatMessageResponse | void> {
+  try {
+    const requestData: ChatMessageRequest = {
+      ...data,
+      response_mode: data.response_mode || 'blocking',
+      inputs: data.inputs || {},
+    };
+
+    if (requestData.response_mode === 'streaming' && onMessage) {
+      const response = await fetch(`${BASE_URL}/chat-messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is null');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const processStream = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const eventData = JSON.parse(line.substring(6)) as ChatMessageStreamEvent;
+                onMessage(eventData);
+
+                if (eventData.event === 'error') {
+                  return;
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
+              }
+            }
+          }
+        }
+
+        if (buffer && buffer.startsWith('data: ')) {
+          try {
+            const eventData = JSON.parse(buffer.substring(6)) as ChatMessageStreamEvent;
+            onMessage(eventData);
+          } catch (e) {
+            console.error('Error parsing final SSE data:', e);
+          }
+        }
+      };
+
+      processStream();
+      return;
+    } else {
+      const response = await difyAxios.post('/chat-messages', requestData);
+      return response.data as ChatMessageResponse;
+    }
+  } catch (error) {
+    console.error('Error sending chat message:', error);
     throw error;
   }
 }

@@ -103,3 +103,12 @@ export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string):
 export const getWxAccountPromptApi = async (wxid: string, name: string): Promise<VariableResponse> => {
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_ui_input_prompt`));
 }
+
+
+export const updateWxAccountPromptApi = async (wxid: string, name: string, prompt: string): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
+    value: JSON.stringify(prompt),
+    key: `${name}_${wxid}_ui_input_prompt`,
+    description: `${name}-自定义提示词"`
+  }));
+}
