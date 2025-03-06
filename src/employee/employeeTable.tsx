@@ -51,7 +51,7 @@ export const EmployeeTable: React.FC = () => {
                                 <tr key={index} className="border-t border-gray-100">
                                     <td className="py-4 px-4">
                                         <div className="avatar">
-                                            <div className="w-24 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
+                                            <div className="w-16 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
                                         </div>
                                     </td>
                                     <td className="py-4 px-4 text-lg">{wxAccount.name}</td>
