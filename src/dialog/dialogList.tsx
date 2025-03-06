@@ -7,9 +7,10 @@ import { getMessageContent } from '../utils/messageTypes';
 interface DialogListProps {
     dialogs?: RoomListMessage[];
     onSelectDialog?: (dialog: RoomListMessage) => void;
+    isLoading?: boolean;
 }
 
-export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog }) => {
+export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -33,21 +34,20 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
     return (
         <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
-            {/* Header */}
             <div className="p-4 border-b flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+                {/* <div className="flex items-center space-x-2">
                     <h3 className="text-lg font-medium text-gray-900">会话</h3>
                     <span className="bg-purple-500 text-white text-sm px-2 py-0.5 rounded-full">
                         {filteredDialogs.length}
                     </span>
-                </div>
-                <div className="relative">
+                </div> */}
+                <div className="relative w-full">
                     <input
                         type="text"
                         placeholder="搜索"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-auto"
+                        className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
                     />
                     <svg
                         className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
@@ -68,7 +68,12 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
             {/* Dialog List */}
             <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-                {filteredDialogs.length === 0 ? (
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <span className="loading loading-spinner loading-md mb-4"></span>
+                        <p>加载中...</p>
+                    </div>
+                ) : filteredDialogs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
                         <svg
                             className="w-12 h-12 mb-4"
@@ -84,7 +89,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                             />
                         </svg>
-                        <p>没有会话</p>
+                        <p>没有记录</p>
                     </div>
                 ) : (
                     <div className="space-y-1 p-2">

@@ -28,40 +28,16 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isAIEnabled, setIsAIEnabled] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const messageContainerRef = useRef<HTMLDivElement>(null);
-    const [userScrolled, setUserScrolled] = useState(false);
-    const isFirstRender = useRef(true);
     const enabledRoomsRef = useRef<string[]>([]);
 
-    const scrollToBottom = (smooth = false) => {
+    const scrollToBottom = () => {
         const messageContainer = messageContainerRef.current;
         if (!messageContainer) return;
-        
-        messageContainer.scrollTo({
-            top: messageContainer.scrollHeight,
-            behavior: smooth ? 'smooth' : 'auto'
-        });
-    };
-
-    const handleScroll = () => {
-        const messageContainer = messageContainerRef.current;
-        if (!messageContainer) return;
-        
-        const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
-        setUserScrolled(!isNearBottom);
-    };
-
-    const checkIfShouldScroll = () => {
-        const messageContainer = messageContainerRef.current;
-        if (!messageContainer) return;
-        
-        const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 150;
-        return isNearBottom || !userScrolled;
+        messageContainer.scrollTop = messageContainer.scrollHeight;
     };
 
     useEffect(() => {
         if (conversation) {
-            setUserScrolled(false);
-            isFirstRender.current = true;
             loadMessages();
         } else {
             setMessages([]);
@@ -70,11 +46,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
 
     useEffect(() => {
         if (messages.length === 0) return;
-        
-        // Always scroll to bottom when messages change
-        requestAnimationFrame(() => {
-            scrollToBottom(true);
-        });
+        scrollToBottom();
     }, [messages]);
 
     const loadMessages = async () => {
@@ -120,7 +92,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !conversation || !selectedAccount) return;
 
-        setUserScrolled(false);
         setNewMessage('');
         setIsLoading(true);
 
@@ -188,7 +159,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     if (!conversation) {
         return (
             <div className="h-full flex items-center justify-center text-gray-500">
-                请选择一个会话
+                请选择一个聊天
             </div>
         );
     }
@@ -259,7 +230,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             <div 
                 className="flex-1 overflow-y-auto p-4 space-y-4"
                 ref={messageContainerRef}
-                onScroll={handleScroll}
             >
                 {isFetchingHistory ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4 text-gray-500">
