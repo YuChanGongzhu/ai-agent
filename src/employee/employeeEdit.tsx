@@ -19,7 +19,7 @@ export const EmployeeEdit: React.FC = () => {
                 try {
                     const response = await getWxAccountPromptApi(wxAccount.wxid, wxAccount.name);
                     if (response && response.value) {
-                        setPrompt(response.value);
+                        setPrompt(JSON.parse(response.value));
                     }
                 } catch (error) {
                     console.error('Failed to fetch prompt:', error);
@@ -31,10 +31,18 @@ export const EmployeeEdit: React.FC = () => {
     }, [wxAccount]);
 
     return (
-        <div className="p-4">
-            <div className="mb-6">
+        <div className="p-4 m-4">
+            <div className="flex items-center mb-6 space-x-4">
+                <div className="avatar">
+                    <div className="w-16 rounded">
+                        <img
+                            src={wxAccount?.small_head_url}
+                            alt={wxAccount?.name || wxid} />
+                    </div>
+                </div>
                 <h2 className="text-2xl font-semibold text-gray-900">员工编辑 - {wxAccount?.name || wxid}</h2>
             </div>
+
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-6">
                     <MaterialUpload wxAccount={wxAccount} />

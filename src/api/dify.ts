@@ -254,7 +254,7 @@ export async function createDatasetApi(data: CreateDatasetRequest): Promise<Data
   }
 }
 
-interface DocumentItem {
+export interface DocumentItem {
   id: string;
   position: number;
   data_source_type: string;
@@ -299,6 +299,15 @@ export async function getDatasetDocumentsApi(datasetId: string, params?: GetDocu
     return response.data;
   } catch (error) {
     console.error('Error getting dataset documents:', error);
+    throw error;
+  }
+}
+
+export async function deleteDatasetDocumentApi(datasetId: string, documentId: string): Promise<void> {
+  try {
+    await difyDatasetAxios.delete(`/datasets/${datasetId}/documents/${documentId}`);
+  } catch (error) {
+    console.error('Error deleting dataset document:', error);
     throw error;
   }
 }
