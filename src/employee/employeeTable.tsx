@@ -33,17 +33,18 @@ export const EmployeeTable: React.FC = () => {
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-600"></div>
-                    <span className="ml-3 text-xl text-gray-600">加载中...</span>
+                    <span className="ml-3 text-lg text-gray-600">加载中...</span>
                 </div>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="table w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="text-left py-4 px-4 text-gray-600 text-lg font-medium">微信头像</th>
-                                <th className="text-left py-4 px-4 text-gray-600 text-lg font-medium">微信名称</th>
-                                <th className="text-left py-4 px-4 text-gray-600 text-lg font-medium">手机号</th>
-                                <th className="text-left py-4 px-4 text-gray-600 text-lg font-medium">员工编辑</th>
+                                <th className="text-left py-3 px-4 text-gray-600 text-lg font-medium">微信头像</th>
+                                <th className="text-left py-3 px-4 text-gray-600 text-lg font-medium">微信名称</th>
+                                <th className="text-left py-3 px-4 text-gray-600 text-lg font-medium">手机号</th>
+                                <th className="text-left py-3 px-4 text-gray-600 text-lg font-medium">行业</th>
+                                <th className="text-left py-3 px-4 text-gray-600 text-lg font-medium">员工编辑</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,11 +52,13 @@ export const EmployeeTable: React.FC = () => {
                                 <tr key={index} className="border-t border-gray-100">
                                     <td className="py-4 px-4">
                                         <div className="avatar">
-                                            <div className="w-16 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
+                                            <div className="w-12 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
                                         </div>
                                     </td>
-                                    <td className="py-4 px-4 text-lg">{wxAccount.name}</td>
-                                    <td className="py-4 px-4 text-lg">{wxAccount.mobile || '-'}</td>
+
+                                    <td className="py-3 px-4 text-lg">{wxAccount.name}</td>
+                                    <td className="py-3 px-4 text-lg">{wxAccount.mobile || '-'}</td>
+                                    <td className="py-3 px-4 text-lg">医美</td>
                                     <td className="py-4 px-4">
                                         <button
                                             onClick={() => handleEdit(wxAccount)}
