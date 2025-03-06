@@ -12,7 +12,6 @@ export const EmployeeEdit: React.FC = () => {
     const wxAccount = location.state?.wxAccount as WxAccount;
     const [prompt, setPrompt] = useState('');
 
-    // Fetch prompt when wxAccount changes
     useEffect(() => {
         const fetchPrompt = async () => {
             if (wxAccount) {
@@ -31,7 +30,7 @@ export const EmployeeEdit: React.FC = () => {
     }, [wxAccount]);
 
     return (
-        <div className="p-4 m-4">
+        <div className="p-4 mt-4">
             <div className="flex items-center mb-6 space-x-4">
                 <div className="avatar">
                     <div className="w-16 rounded">
@@ -45,10 +44,10 @@ export const EmployeeEdit: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-6">
+                <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} />
                     <MaterialUpload wxAccount={wxAccount} />
                 </div>
                 <div>
-                    <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} />
                     <EffectTest wxAccount={wxAccount} prompt={prompt} />
                 </div>
             </div>

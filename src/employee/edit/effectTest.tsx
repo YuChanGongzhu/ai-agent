@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessageApi, ChatMessageRequest, ChatMessageStreamEvent } from '../../api/dify';
 import clsx from 'clsx';
-import { WxAccount,updateWxAccountPromptApi } from '../../api/airflow';
+import { WxAccount, updateWxAccountPromptApi } from '../../api/airflow';
 
 interface Message {
   id: string;
@@ -25,7 +25,6 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
   const [currentStreamedMessage, setCurrentStreamedMessage] = useState('');
   const currentMessageRef = useRef('');
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messageContainerRef.current) {
       messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
@@ -35,14 +34,13 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
 
-    // Add user message to the chat
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputText,
       isUser: true,
       timestamp: Date.now(),
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
@@ -50,10 +48,8 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
     currentMessageRef.current = '';
 
     try {
-      // Create user ID from wxAccount
       const userId = wxAccount ? `${wxAccount.name}_test_${wxAccount.wxid}` : 'user-123';
-      
-      // Prepare request data
+
       const requestData: ChatMessageRequest = {
         query: inputText,
         response_mode: 'streaming',
@@ -64,33 +60,30 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
         conversation_id: conversationId
       };
 
-      // Handle streaming response
       await sendChatMessageApi(requestData, (event: ChatMessageStreamEvent) => {
-        // console.log('Received event:', event);
-        
+
         if (event.event === 'message') {
-        //   console.log('Message content:', event.answer);
           if (event.answer) {
             currentMessageRef.current += event.answer;
             setCurrentStreamedMessage(currentMessageRef.current);
             // console.log('Updated streamed message:', currentMessageRef.current);
           }
         } else if (event.event === 'message_end') {
-        //   console.log('Message end event received');
+          //   console.log('Message end event received');
           if (event.conversation_id) {
             setConversationId(event.conversation_id);
             // console.log('Set conversation ID:', event.conversation_id);
           }
-          
+
           console.log('Final message content:', currentMessageRef.current);
-          
+
           const assistantMessage: Message = {
             id: event.message_id || Date.now().toString(),
             content: currentMessageRef.current,
             isUser: false,
-            timestamp:  (event.created_at!)*1000 || Date.now(),
+            timestamp: (event.created_at!) * 1000 || Date.now(),
           };
-          
+
           setMessages(prev => [...prev, assistantMessage]);
           setCurrentStreamedMessage('');
           setIsLoading(false);
@@ -112,10 +105,10 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
     }
   };
 
-  const savePrompt=async()=>{
+  const savePrompt = async () => {
     setIsSaving(true);
     try {
-      await updateWxAccountPromptApi(wxAccount!.wxid,wxAccount!.name,prompt)
+      await updateWxAccountPromptApi(wxAccount!.wxid, wxAccount!.name, prompt)
     } catch (error) {
       console.error('Error saving prompt:', error);
     } finally {
@@ -124,30 +117,29 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
   }
 
   return (
-    <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col h-[85vh] w-full bg-white rounded-lg shadow-lg overflow-hidden mt-4">
       <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-lg font-medium text-black">效果测试 {wxAccount?.name}</h2>
+        <h2 className="text-lg font-medium text-black">{wxAccount?.name} 效果测试</h2>
         {isSaving ? (
           <button className="btn btn-square btn-sm">
             <span className="loading loading-spinner"></span>
           </button>
         ) : (
-          <button className='btn btn-primary btn-sm' onClick={savePrompt}>保存</button>
+          <button className='btn btn-primary btn-sm btn-outline' onClick={savePrompt}>保存效果</button>
         )}
       </div>
-      
-      <div 
+
+      <div
         ref={messageContainerRef}
         className="flex-1 p-4 overflow-y-auto"
-        style={{ maxHeight: '500px' }}
       >
         {messages.map((message) => (
-          <div 
+          <div
             key={message.id}
             className={clsx(
               'mb-4 max-w-[80%] rounded-lg p-3',
-              message.isUser 
-                ? 'bg-gray-100 text-gray-800 self-start' 
+              message.isUser
+                ? 'bg-gray-100 text-gray-800 self-start'
                 : 'bg-purple-100 text-gray-800 self-end ml-auto'
             )}
           >
@@ -157,7 +149,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
             </span>
           </div>
         ))}
-        
+
         {currentStreamedMessage && (
           <div className="mb-4 max-w-[80%] rounded-lg p-3 bg-purple-100 text-gray-800 self-end ml-auto">
             <p className="whitespace-pre-wrap break-words">{currentStreamedMessage}</p>
@@ -166,7 +158,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
             </span>
           </div>
         )}
-        
+
         {isLoading && !currentStreamedMessage && (
           <div className="flex justify-center items-center py-2">
             <div className="animate-pulse flex space-x-1">
@@ -177,13 +169,13 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
           </div>
         )}
       </div>
-      
-      <div className="border-t border-gray-200 p-4 flex items-end">
+
+      <div className="border-t border-gray-200 p-4 flex items-end mt-auto">
         <textarea
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="说点什么吧..."
+          placeholder="开始聊天测试..."
           className={clsx(
             'flex-1 resize-none rounded-lg border border-gray-200 bg-white py-2 px-3 text-sm/6 text-gray-900',
             'focus:outline-none focus:ring-2 focus:ring-purple-500'
@@ -200,7 +192,9 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
             (isLoading || !inputText.trim()) && 'opacity-50 cursor-not-allowed'
           )}
         >
-          发送
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+          </svg>
         </button>
       </div>
     </div>
