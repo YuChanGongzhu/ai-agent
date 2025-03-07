@@ -22,8 +22,8 @@ export const MaterialBase: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-4">
+            <div className="flex justify-between items-center mb-2">
                 <h2 className="text-xl font-medium">资料库</h2>
                 <button className="text-gray-400 hover:text-gray-600" onClick={handleMaterialClick}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

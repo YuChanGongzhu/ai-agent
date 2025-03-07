@@ -239,7 +239,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6 relative">
+        <div className="bg-white rounded-lg shadow-lg p-4 relative">
             {/* Success Notification Popup */}
             {notification.show && (
                 <div className="absolute top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded shadow-md z-10 max-w-xs transition-all duration-300 ease-in-out opacity-100">
@@ -290,7 +290,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                 </div>
             )}
 
-            <div className="mb-4">
+            <div className="mb-1">
                 <h3 className="text-xl font-medium text-gray-900">素材库</h3>
             </div>
 
@@ -300,8 +300,8 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                     <span className="ml-3 text-lg text-gray-600">加载中...</span>
                 </div>
             ) : (
-                <div className="mb-6 overflow-x-auto">
-                    <div className="flex flex-nowrap space-x-2 pb-2 min-w-max">
+                <div className="mb-2 overflow-x-auto">
+                    <div className="flex flex-nowrap space-x-2 pb-1 min-w-max">
                         {datasets.map((dataset) => (
                             <div
                                 key={dataset.id}
@@ -324,7 +324,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
 
             {/* Document List Section */}
             {datasetId && (
-                <div className="mb-6 border rounded-lg p-4">
+                <div className="mb-2 border rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                         <h4 className="text-lg font-medium text-gray-900">知识库文档</h4>
                         <button 
@@ -383,7 +383,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
             <div
                 {...getRootProps()}
                 className={`
-                    border-2 border-dashed rounded-lg p-8
+                    border-2 border-dashed rounded-lg p-4
                     ${isDragActive ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}
                     flex flex-col items-center justify-center cursor-pointer
                 `}

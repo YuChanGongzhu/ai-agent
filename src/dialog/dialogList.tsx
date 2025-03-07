@@ -34,7 +34,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
     return (
         <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-2 border-b flex items-center justify-between">
                 {/* <div className="flex items-center space-x-2">
                     <h3 className="text-lg font-medium text-gray-900">会话</h3>
                     <span className="bg-purple-500 text-white text-sm px-2 py-0.5 rounded-full">
@@ -70,7 +70,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
             <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                        <span className="loading loading-spinner loading-md mb-4"></span>
+                        <span className="loading loading-spinner loading-md mb-2"></span>
                         <p>加载中...</p>
                     </div>
                 ) : filteredDialogs.length === 0 ? (
@@ -92,12 +92,12 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                         <p>没有记录</p>
                     </div>
                 ) : (
-                    <div className="space-y-1 p-2">
+                    <div className="space-y-1 p-1">
                         {filteredDialogs.map(dialog => (
                             <div 
                                 key={dialog.msg_id}
                                 className={clsx(
-                                    'flex items-center space-x-4 p-4 rounded-lg cursor-pointer transition-colors',
+                                    'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
                                     selectedId === dialog.msg_id ? 'bg-purple-100' : 'hover:bg-gray-100'
                                 )}
                                 onClick={() => handleDialogClick(dialog)}
@@ -113,7 +113,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                         <h3 className="text-sm font-medium text-gray-900 truncate">
                                             {dialog.room_name || dialog.sender_name || 'Chat'}
                                         </h3>
-                                        <div className="text-sm text-gray-500 truncate">
+                                        <div className="text-xs text-gray-500 truncate">
                                             {dialog.msg_content ? getMessageContent(dialog.msg_type, dialog.msg_content) : '没有消息'}
                                         </div>
                                     </div>

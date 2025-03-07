@@ -71,7 +71,7 @@ const NavBar: React.FC = () => {
   }, []);
 
   return (
-      <div className={`bg-white p-4 ${isCollapsed ? 'w-24' : 'w-56'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-lg`}>
+      <div className={`bg-white p-2 ${isCollapsed ? 'w-[6vw]' : 'w-[12vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base`}>
         {/* Logo Section */}
         <div className="flex items-center space-x-2 mb-8">
           <img src={groupSVG} alt="LUCYAI" className="w-10 h-10" />
@@ -80,7 +80,7 @@ const NavBar: React.FC = () => {
 
         {/* Navigation Items */}
         <div className="flex-1">
-          <div className="flex flex-col items-start space-y-5">
+          <div className="flex flex-col items-start space-y-2">
             {navItems.map((item) => (
               <div
                 key={item.name}
@@ -88,8 +88,8 @@ const NavBar: React.FC = () => {
                   ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
                 onClick={() => handleClick(item.name, item.url)}
               >
-                <img src={item.icon} alt={item.name} className="w-7 h-7" />
-                {!isCollapsed && <span className="text-lg font-medium">{item.name}</span>}
+                <img src={item.icon} alt={item.name} className="w-5 h-5" />
+                {!isCollapsed && <span className="text-base font-medium">{item.name}</span>}
               </div>
             ))}
           </div>
@@ -106,9 +106,9 @@ const NavBar: React.FC = () => {
               />
               {!isCollapsed && (
                 <div>
-                  <div className="text-lg font-medium">admin</div>
+                  <div className="text-sm font-medium">admin</div>
                   <div 
-                    className="text-base text-gray-500 cursor-pointer hover:text-purple-600"
+                    className="text-sm text-gray-500 cursor-pointer hover:text-purple-600"
                     onClick={() => setShowLogoutDialog(!showLogoutDialog)}
                   >
                     账号
@@ -132,15 +132,14 @@ const NavBar: React.FC = () => {
             </button>
           </div>
 
-          {/* 退出登录对话框 */}
           {showLogoutDialog && !isCollapsed && (
             <div 
               ref={dialogRef}
-              className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-lg shadow-lg py-2 border border-gray-200"
+              className="absolute bottom-full left-0 mb-2 w-30 bg-white rounded-lg shadow-lg py-2 border border-gray-200"
             >
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-3 text-left text-lg text-gray-700 hover:bg-gray-100 hover:text-purple-600"
+                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-purple-600"
               >
                 退出登录
               </button>

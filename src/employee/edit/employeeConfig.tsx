@@ -11,10 +11,10 @@ interface EmployeeConfigProps {
 
 export const EmployeeConfig: React.FC<EmployeeConfigProps> = ({ className, wxAccount, prompt, setPrompt }) => {
     return (
-        <div className={clsx('bg-white rounded-lg h-[45vh] shadow-lg p-6 flex flex-col', className)}>
+        <div className={clsx('bg-white rounded-lg h-[40vh] shadow-lg p-4 flex flex-col', className)}>
             <div className="flex items-center">
-                <h3 className="text-lg font-medium text-gray-900">员工配置</h3>
-                <span className='text-purple-800'>&nbsp;（编辑好提示词在右侧调试完成之后，点击“保存效果”按钮即在客服中生效)</span>
+                <h3 className="text-base font-medium text-gray-900">员工配置</h3>
+                <span className='text-purple-800 text-sm'>&nbsp;（编辑好提示词在右侧调试完成之后，点击“保存效果”按钮即在客服中生效)</span>
             </div>
             <textarea
                 className={clsx(

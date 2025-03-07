@@ -95,15 +95,15 @@ export const Dialog = () => {
     }, [selectedAccount, selectedConversation]);
 
     return (
-        <div className="h-screen p-6 flex flex-col space-y-4">
-            <div className="flex space-x-2 mb-4">
+        <div className="h-screen p-2 flex flex-col space-y-4">
+            <div className="flex space-x-2 mb-2 h-[5vh]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-4">
+                    <div className="flex items-center justify-center py-2">
                         <span className="loading loading-spinner loading-md"></span>
                         <span className="ml-2 text-gray-500">加载中...</span>
                     </div>
                 ) : !wxAccountList.length ? (
-                    <div className="flex items-center justify-center py-4">
+                    <div className="flex items-center justify-center py-2">
                         <span className="text-gray-500">暂无微信号</span>
                     </div>
                 ) : (
@@ -154,7 +154,7 @@ export const Dialog = () => {
             </div>
 
             <div className="flex space-x-6 flex-1">
-                <div className="w-[12vw] flex-shrink-0 h-[calc(100vh-100px)]">
+                <div className="w-[13vw] flex-shrink-0 h-[90vh]">
                     <div className="h-full w-full">
                         <DialogList
                             dialogs={conversations}
@@ -164,17 +164,15 @@ export const Dialog = () => {
                     </div>
                 </div>
 
-                <div className="flex-1">
-                    <div className="h-[calc(100vh-120px)] w-[60vw] overflow-y-auto">
-                        <DialogPage
-                            conversation={selectedConversation}
-                            selectedAccount={selectedAccount}
-                        />
-                    </div>
+                <div className="h-[90vh] w-[50vw] overflow-y-auto">
+                    <DialogPage
+                        conversation={selectedConversation}
+                        selectedAccount={selectedAccount}
+                    />
                 </div>
 
                 <div className="flex-1">
-                    <div className="h-full flex flex-col space-y-6">
+                    <div className="h-[80vh] flex flex-col space-y-2">
                         <div className="flex-shrink-0">
                             <MaterialBase />
                         </div>

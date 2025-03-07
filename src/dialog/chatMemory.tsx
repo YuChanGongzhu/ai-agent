@@ -106,10 +106,7 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
             setIsLoading(true);
             const roomId = selectedConversation.room_id.replace(/@/g, '');
 
-            
-            // 先清空当前的客户信息
             if (onCustomerInfoUpdate) {
-                // 创建一个空的客户信息对象
                 const emptyCustomerInfo: ApiCustomerInfo = {
                     name: null,
                     age: null,
@@ -136,10 +133,8 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
                 };
                 
                 const response = await generateWxChatHistorySummaryApi(request);
-                console.log('生成聊天历史摘要 API 响应:', response);
                 
                 // 第二步：获取生成的聊天摘要
-                // 等待一段时间，确保摘要已经生成
                 setTimeout(async () => {
                     try {
                         const summaryResponse = await getWxChatHistorySummaryApi(
@@ -168,7 +163,7 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
                     } finally {
                         setIsLoading(false);
                     }
-                }, 5000); // 等待 5 秒后获取摘要
+                }, 3000); // 等待 5 秒后获取摘要
                 
             } catch (error) {
                 console.error('生成聊天历史摘要时出错:', error);
@@ -181,13 +176,13 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-3xl shadow-lg p-6 h-full flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg p-4 h-full flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-medium">聊天记忆</h2>
                 {isLoading ? (
-                    <button className="btn btn-square">
-                        <span className="loading loading-spinner"></span>
+                    <button className="btn btn-xs">
+                        <span className="loading loading-spinner loading-xs"></span>
                     </button>
                 ) : (
                     <button 

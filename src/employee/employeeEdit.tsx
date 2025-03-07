@@ -37,31 +37,31 @@ export const EmployeeEdit: React.FC = () => {
     }, [wxAccount]);
 
     return (
-        <div className="p-4 mt-4">
-            <div className="flex items-center mb-6 space-x-4">
-            <button
+        <div className="p-2 mt-1 h-[90vh]">
+            <div className="flex items-center space-x-4">
+                <button
                     onClick={handleReturn}
-                    className="text-gray-600 hover:text-gray-800 flex items-center"
+                    className="btn btn-outline btn-sm btn-primary"
                 >
-                    <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     返回
                 </button>
 
                 <div className="avatar">
-                    <div className="w-11 rounded">
+                    <div className="w-8 rounded">
                         <img
                             src={wxAccount?.small_head_url}
                             alt={wxAccount?.name || wxid} />
                     </div>
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-900">{wxAccount?.name || wxid}</h2>
+                <h3 className="text-xl font-semibold text-gray-900">{wxAccount?.name || wxid}</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-6">
-                <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} />
+            <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                    <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} />
                     <MaterialUpload wxAccount={wxAccount} />
                 </div>
                 <div>
