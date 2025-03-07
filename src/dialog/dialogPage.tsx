@@ -51,26 +51,27 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
 
     const loadMessages = async () => {
         if (!conversation) return;
-        
         setIsFetchingHistory(true);
         try {
-             // Then check AI enabled status
-             const aiResponse = await getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
-             try {
-                 const enabledRooms = JSON.parse(aiResponse.value);
-                 enabledRoomsRef.current = enabledRooms;
-                 setIsAIEnabled(enabledRooms.includes(conversation.room_id));
-             } catch (error) {
-                 console.error('Error parsing AI enabled rooms:', error);
-                 enabledRoomsRef.current = [];
-                 setIsAIEnabled(false);
-             }
-             
-            const response = await getChatMessagesApi({
-                wx_user_id: selectedAccount?.wxid || '',
-                room_id: conversation?.room_id || ''
-            });
+            const [aiResponse, response] = await Promise.all([
+                getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || ''),
+                getChatMessagesApi({
+                    wx_user_id: selectedAccount?.wxid || '',
+                    room_id: conversation?.room_id || ''
+                })
+            ]);
 
+            try {
+                const enabledRooms = JSON.parse(aiResponse.value);
+                enabledRoomsRef.current = enabledRooms;
+                setIsAIEnabled(enabledRooms.includes(conversation.room_id));
+            } catch (error) {
+                console.error('Error parsing AI enabled rooms:', error);
+                enabledRoomsRef.current = [];
+                setIsAIEnabled(false);
+            }
+
+            // 处理消息列表
             const transformedMessages = response.data.records.reverse().map(msg => ({
                 id: msg.msg_id,
                 content: msg.content || '',
@@ -80,7 +81,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 msgType: msg.msg_type
             }));
 
-            // Set messages - the useEffect will handle scrolling
             setMessages(transformedMessages);
         } catch (error) {
             console.error('Error loading messages:', error);
