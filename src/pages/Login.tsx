@@ -12,7 +12,7 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // 验证用户名和密码是否匹配环境变量
     if (username === process.env.REACT_APP_USERNAME && password === process.env.REACT_APP_PASSWORD) {
       // 登录成功，将登录状态存储在 localStorage 中
@@ -32,7 +32,8 @@ const Login: React.FC = () => {
             <img src={groupIcon} alt="Lucy AI Icon" className="w-8 h-8" />
             <h1 className="text-primary text-2xl font-medium">LUCY AI</h1>
           </div>
-          <img src={loginImage} alt="Login Illustration" className="w-96" />
+          <img src={loginImage} alt="Login Illustration" className="w-96 mb-8" />
+          <h1 className="text-primary text-3xl font-semibold">LUCY AI</h1>
           <p className="text-gray-600 mt-4">企业成功的关键选择</p>
         </div>
 
@@ -40,7 +41,7 @@ const Login: React.FC = () => {
         <div className="flex-1 p-12">
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-medium text-gray-900 mb-8">欢迎使用LUCY AI</h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
                 <div className="rounded-md bg-red-50 p-4">
@@ -57,7 +58,7 @@ const Login: React.FC = () => {
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <input
                   type="password"
