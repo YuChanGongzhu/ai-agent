@@ -8,6 +8,8 @@ import { Dialog } from './dialog/dialog';
 import { CalendarComponent } from './calendar/calender';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import TaskPage from './task/task';
+import PersonSelector from './task/person';
 
 function App() {
   return (
@@ -27,7 +29,8 @@ function App() {
                     <Route path="/employee" element={<EmployeeTable />} />
                     <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
                     <Route path="/dialog" element={<Dialog />} />
-                    <Route path="/task" element={<div>Task Page</div>} />
+                    <Route path="/task" element={<TaskPage />} />
+                    <Route path="/task/invite" element={<PersonSelector />} />
                     <Route path="/calendar" element={<CalendarComponent />} />
                   </Routes>
                 </div>
