@@ -112,3 +112,19 @@ export const updateWxAccountPromptApi = async (wxid: string, name: string, promp
     description: `${name}-自定义提示词"`
   }));
 }
+
+export const getWxHumanListApi = async (name: string, wxid: string): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_human_room_ids`));
+}
+
+export const updateWxHumanListApi = async (wxid: string, name: string, room_ids: Array<string>): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
+    value: JSON.stringify(room_ids),
+    key: `${name}_${wxid}_human_room_ids`,
+    description: `${name}-转人工列表"`
+  }));
+}
+
+export const getWxCountactHeadListApi = async (name: string, wxid: string): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
+}
