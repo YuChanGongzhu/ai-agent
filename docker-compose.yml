@@ -16,6 +16,11 @@ services:
     command: sh -c "yarn config set registry https://mirrors.cloud.tencent.com/npm/ && yarn install && yarn start"
     stdin_open: true # 为了支持React的交互模式
     tty: true 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
   github_webhook:
     image: python:3.9
