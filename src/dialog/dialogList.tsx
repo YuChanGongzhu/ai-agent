@@ -28,7 +28,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
     const formatTime = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
-        return date.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     };
 
     const handleDialogClick = (dialog: RoomListMessage) => {
