@@ -56,6 +56,8 @@ export const ServerManage: React.FC = () => {
     
     console.log(`尝试连接到服务器: ${serverToConnect.ip}`);
     
+    let connectionId: string | null = null;
+    
     try {
       // 检查Guacamole URL是否已配置
       const guacamoleUrl = process.env.REACT_APP_GUACAMOLE_URL;
@@ -77,7 +79,7 @@ export const ServerManage: React.FC = () => {
       
       // 获取或创建连接，传入密码
       console.log(`尝试获取服务器连接ID: ${serverToConnect.name} (${serverToConnect.ip})`);
-      const connectionId = await guacamoleService.getConnectionForServer(
+      connectionId = await guacamoleService.getConnectionForServer(
         serverToConnect.ip, 
         serverToConnect.name,
         password
@@ -108,7 +110,10 @@ export const ServerManage: React.FC = () => {
       const errorMessage = err instanceof Error ? err.message : '连接失败，请稍后重试';
       setConnectionError(errorMessage);
       
-      // 如果错误信息包含"密码错误"，显示密码输入对话框
+      // 如果已经创建了连接但连接失败，不需要在这里删除连接
+      // 因为在GuacamoleService.getConnectionForServer中已经实现了自动删除和重建连接的功能
+      
+      // 如果错误信息包含"密码错误"或"未能创建"，显示密码输入对话框
       if (errorMessage.includes('密码错误') || errorMessage.includes('未能创建')) {
         // 延迟一点显示密码对话框，让用户先看到错误信息
         setTimeout(() => {
@@ -121,6 +126,31 @@ export const ServerManage: React.FC = () => {
   };
 
   const closeConnection = () => {
+    // 如果有选中的服务器，尝试删除对应的连接
+    if (selectedServer) {
+      const server = servers.find(s => s.ip === selectedServer);
+      if (server) {
+        // 异步删除连接，不阻塞UI
+        (async () => {
+          try {
+            console.log(`断开连接，尝试删除服务器 ${server.name} 的连接`);
+            // 查找连接ID
+            const connectionId = await guacamoleService.findConnectionByName(server.name);
+            if (connectionId) {
+              console.log(`找到连接ID: ${connectionId}，准备删除`);
+              const deleted = await guacamoleService.deleteConnection(connectionId);
+              console.log(`删除连接结果: ${deleted ? '成功' : '失败'}`);
+            } else {
+              console.log(`未找到名为 ${server.name} 的连接，无需删除`);
+            }
+          } catch (error) {
+            console.error('删除连接时出错:', error);
+          }
+        })();
+      }
+    }
+    
+    // 重置状态
     setSelectedServer(null);
     setConnectionUrl(null);
     setConnectionError(null);

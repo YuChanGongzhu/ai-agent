@@ -220,13 +220,43 @@ class GuacamoleService {
       const connectionId = await this.findConnectionByName(serverName);
       console.log(`查找结果: ${connectionId}`);
       
-      if (connectionId) {
-        console.log(`找到连接ID: ${connectionId}`);
+      // 如果找到现有连接且提供了密码，先删除旧连接再创建新连接
+      if (connectionId && password) {
+        console.log(`找到现有连接ID: ${connectionId}，准备删除并重新创建`);
+        const deleted = await this.deleteConnection(connectionId);
+        console.log(`删除旧连接结果: ${deleted ? '成功' : '失败'}`);
+        
+        // 如果删除失败，仍然返回现有连接ID
+        if (!deleted) {
+          console.log(`删除失败，返回现有连接ID: ${connectionId}`);
+          return connectionId;
+        }
+        
+        // 删除成功后，创建新连接
+        console.log(`删除成功，创建新连接`);
+        const newConnectionId = await this.createConnection({
+          name: serverName,
+          hostname: serverIp,
+          password: password
+        });
+        
+        if (newConnectionId) {
+          console.log(`成功创建新连接，ID: ${newConnectionId}`);
+          return newConnectionId;
+        } else {
+          console.error(`创建新连接失败`);
+          return null;
+        }
+      }
+      
+      // 如果找到现有连接且没有提供密码，直接返回
+      if (connectionId && !password) {
+        console.log(`找到现有连接ID: ${connectionId}，但未提供密码，直接返回`);
         return connectionId;
       }
       
       // 如果找不到现有连接，且提供了密码，尝试创建新连接
-      if (password) {
+      if (!connectionId && password) {
         console.log(`未找到现有连接，尝试创建新连接`);
         const newConnectionId = await this.createConnection({
           name: serverName,
@@ -238,7 +268,7 @@ class GuacamoleService {
           console.log(`成功创建新连接，ID: ${newConnectionId}`);
           return newConnectionId;
         }
-      } else {
+      } else if (!password) {
         console.log(`未提供密码，无法创建连接`);
       }
       
@@ -247,6 +277,45 @@ class GuacamoleService {
     } catch (error) {
       console.error('获取服务器连接过程中发生错误:', error);
       return null;
+    }
+  }
+
+  /**
+   * 删除指定的连接
+   */
+  async deleteConnection(connectionId: string): Promise<boolean> {
+    if (!this.authToken) {
+      const authenticated = await this.authenticate();
+      if (!authenticated) {
+        console.error('删除连接前认证失败');
+        return false;
+      }
+    }
+
+    try {
+      console.log(`尝试删除连接ID: ${connectionId}`);
+      
+      // 发送API请求删除连接
+      const response = await fetch(
+        `${this.baseUrl}/api/session/data/${this.dataSource}/connections/${connectionId}?token=${this.authToken}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('删除连接失败:', await response.text());
+        return false;
+      }
+      
+      console.log(`成功删除连接ID: ${connectionId}`);
+      return true;
+    } catch (error) {
+      console.error('删除连接过程中发生错误:', error);
+      return false;
     }
   }
 
