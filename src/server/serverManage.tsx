@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { guacamoleService } from '../utils/guacamoleService';
-import MockRdpClient from './MockRdpClient';
 
 interface WindowsServer {
   ip: string;
@@ -15,7 +14,6 @@ export const ServerManage: React.FC = () => {
   const [connecting, setConnecting] = useState<boolean>(false);
   const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [useMockClient, setUseMockClient] = useState<boolean>(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
   const [password, setPassword] = useState<string>('');
   const [serverToConnect, setServerToConnect] = useState<WindowsServer | null>(null);
@@ -55,7 +53,6 @@ export const ServerManage: React.FC = () => {
     setConnecting(true);
     setConnectionError(null);
     setConnectionUrl(null);
-    setUseMockClient(false);
     
     console.log(`尝试连接到服务器: ${serverToConnect.ip}`);
     
@@ -65,11 +62,8 @@ export const ServerManage: React.FC = () => {
       console.log(`Guacamole URL: ${guacamoleUrl}`);
       
       if (!guacamoleUrl) {
-        // 没有配置Guacamole，使用模拟客户端
-        console.log('未配置Guacamole URL，使用模拟客户端');
-        setUseMockClient(true);
-        setConnecting(false);
-        return;
+        // 没有配置Guacamole，抛出错误
+        throw new Error('未配置Guacamole URL，无法连接到远程服务器');
       }
       
       // 验证Guacamole认证
@@ -130,15 +124,8 @@ export const ServerManage: React.FC = () => {
     setSelectedServer(null);
     setConnectionUrl(null);
     setConnectionError(null);
-    setUseMockClient(false);
     setServerToConnect(null);
     setPassword('');
-    setShowPasswordDialog(false);
-  };
-
-  const retryWithMock = () => {
-    setUseMockClient(true);
-    setConnectionError(null);
     setShowPasswordDialog(false);
   };
 
@@ -259,20 +246,8 @@ export const ServerManage: React.FC = () => {
                   >
                     重试连接
                   </button>
-                  <button
-                    onClick={retryWithMock}
-                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded"
-                  >
-                    使用模拟模式
-                  </button>
                 </div>
               </div>
-            ) : useMockClient ? (
-              <MockRdpClient
-                serverIp={selectedServer}
-                serverName={servers.find(s => s.ip === selectedServer)?.name || selectedServer}
-                onDisconnect={closeConnection}
-              />
             ) : connectionUrl ? (
               <div className="relative h-full w-full">
                 <div className="mb-2 p-2 bg-blue-100 rounded">
