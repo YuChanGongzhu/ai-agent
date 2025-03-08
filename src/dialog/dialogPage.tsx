@@ -6,9 +6,17 @@ import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi } 
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
 
+interface AvatarData {
+    wxid: string;
+    smallHeadImgUrl: string;
+    bigHeadImgUrl: string;
+    update_time: string;
+}
+
 interface DialogPageProps {
     conversation: RoomListMessage | null;
     selectedAccount: WxAccount | null;
+    avatarList?: AvatarData[];
 }
 
 interface Message {
@@ -18,9 +26,10 @@ interface Message {
     isUser: boolean;
     senderName: string;
     msgType?: number;
+    senderId?: string;
 }
 
-export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount }) => {
+export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount, avatarList = [] }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -78,7 +87,8 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 timestamp: new Date(msg.msg_datetime).getTime(),
                 isUser: msg.sender_id === selectedAccount?.wxid,
                 senderName: msg.sender_name || msg.sender_id,
-                msgType: msg.msg_type
+                msgType: msg.msg_type,
+                senderId: msg.sender_id
             }));
 
             setMessages(transformedMessages);
@@ -269,15 +279,42 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                 )}
                             >
                                 {/* Avatar */}
-                                <div
-                                    className={clsx(
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white',
-                                        message.isUser ? 'bg-purple-500' : 'bg-gray-400'
-                                    )}
-                                    title={message.senderName}
-                                >
-                                    {message.senderName.charAt(0).toUpperCase()}
-                                </div>
+                                {avatarList.find(avatar => avatar.wxid === message.senderId) ? (
+                                    <div
+                                        className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+                                        title={message.senderName}
+                                    >
+                                        <img 
+                                            src={avatarList.find(avatar => avatar.wxid === message.senderId)?.smallHeadImgUrl} 
+                                            alt={message.senderName} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = null;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    parent.classList.add(
+                                                        'flex', 'items-center', 'justify-center', 
+                                                        'text-sm', 'font-medium', 'text-white',
+                                                        message.isUser ? 'bg-purple-500' : 'bg-gray-400'
+                                                    );
+                                                    parent.textContent = message.senderName.charAt(0).toUpperCase();
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div
+                                        className={clsx(
+                                            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white',
+                                            message.isUser ? 'bg-purple-500' : 'bg-gray-400'
+                                        )}
+                                        title={message.senderName}
+                                    >
+                                        {message.senderName.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
 
                                 {/* Message Content */}
                                 <div

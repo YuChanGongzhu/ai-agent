@@ -3,19 +3,26 @@ import { DialogPage } from './dialogPage';
 import { MaterialBase } from './materialBase';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
-import { getWxAccountListApi, WxAccount, getUserMsgCountApi } from '../api/airflow';
+import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxHumanListApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 
 
 
+interface AvatarData {
+    wxid: string;
+    smallHeadImgUrl: string;
+    bigHeadImgUrl: string;
+    update_time: string;
+}
+
 export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
+    const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
-
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -84,9 +91,23 @@ export const Dialog = () => {
         }
     }, [messageCount])
 
+    // useEffect(() => {
+    //     console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
+    // }, [selectedAccount, selectedConversation]);
+
+    const getHeadList=async()=>{
+        try {
+            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const avatarData = JSON.parse(res.value);
+            const avatarArray: AvatarData[] = Object.values(avatarData);
+            setAvatarList(avatarArray);
+        } catch (error) {
+            console.error('Failed to fetch wx accounts:', error);
+        } 
+    }
     useEffect(() => {
-        console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
-    }, [selectedAccount, selectedConversation]);
+        if(selectedAccount) getHeadList();
+    }, [selectedAccount]);
 
     return (
         <div className="h-screen p-2 flex flex-col space-y-4">
@@ -154,6 +175,7 @@ export const Dialog = () => {
                             dialogs={conversations}
                             onSelectDialog={setSelectedConversation}
                             isLoading={isLoadingConversations}
+                            avatarList={avatarList}
                         />
                     </div>
                 </div>
@@ -162,6 +184,7 @@ export const Dialog = () => {
                     <DialogPage
                         conversation={selectedConversation}
                         selectedAccount={selectedAccount}
+                        avatarList={avatarList}
                     />
                 </div>
 

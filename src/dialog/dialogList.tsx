@@ -4,13 +4,21 @@ import clsx from 'clsx';
 import { RoomListMessage } from '../api/mysql';
 import { getMessageContent } from '../utils/messageTypes';
 
+interface AvatarData {
+    wxid: string;
+    smallHeadImgUrl: string;
+    bigHeadImgUrl: string;
+    update_time: string;
+}
+
 interface DialogListProps {
     dialogs?: RoomListMessage[];
     onSelectDialog?: (dialog: RoomListMessage) => void;
     isLoading?: boolean;
+    avatarList?: AvatarData[];
 }
 
-export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false }) => {
+export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false, avatarList = [] }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -103,9 +111,29 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                 onClick={() => handleDialogClick(dialog)}
                             >
                                 {/* Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                                    {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
-                                </div>
+                                {avatarList.find(avatar => avatar.wxid === dialog.room_id) ? (
+                                    <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden">
+                                        <img 
+                                            src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl} 
+                                            alt={dialog.room_name || dialog.sender_name || 'Chat'} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = null;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    parent.classList.add('bg-purple-500', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold');
+                                                    parent.textContent = getAvatarText(dialog.room_name || dialog.sender_name || 'Chat');
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                        {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
+                                    </div>
+                                )}
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0 flex flex-col">
