@@ -7,6 +7,7 @@ import dialogSVG from '../img/nav/dialog.svg';
 import taskSVG from '../img/nav/task.svg';
 import dashboardSVG from '../img/nav/dashboard.svg';
 import groupSVG from '../img/nav/group.svg';
+import serverSVG from '../img/nav/server.svg';
 
 interface NavItem {
   name: string;
@@ -20,6 +21,7 @@ const navItems: NavItem[] = [
   { name: '对话', icon: dialogSVG, url: '/dialog' },
   { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
+  { name: '服务器', icon: serverSVG, url: '/server' },
 ];
 
 const NavBar: React.FC = () => {

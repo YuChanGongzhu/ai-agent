@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
+import ServerManage from './server/serverManage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                     <Route path="/task" element={<TaskPage />} />
                     <Route path="/task/invite" element={<PersonSelector />} />
                     <Route path="/calendar" element={<CalendarComponent />} />
+                    <Route path="/server" element={<ServerManage />} />
                   </Routes>
                 </div>
               </div>
