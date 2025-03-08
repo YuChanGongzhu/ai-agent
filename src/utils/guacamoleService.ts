@@ -31,7 +31,7 @@ class GuacamoleService {
   private dataSource: string | null = null;
   
   constructor() {
-    this.baseUrl = process.env.REACT_APP_GUACAMOLE_URL || '';
+    this.baseUrl = process.env.GUACAMOLE_URL || '';
     console.log('Guacamole baseUrl:', this.baseUrl); // 添加日志
   }
 
@@ -40,8 +40,8 @@ class GuacamoleService {
    */
   async authenticate(): Promise<boolean> {
     try {
-      const username = process.env.REACT_APP_GUACAMOLE_USERNAME || '';
-      const password = process.env.REACT_APP_GUACAMOLE_PASSWORD || '';
+      const username = process.env.GUACAMOLE_ADMIN_USERNAME || '';
+      const password = process.env.GUACAMOLE_ADMIN_PASSWORD || '';
       
       if (!username || !password) {
         console.error('Guacamole认证信息未配置');
