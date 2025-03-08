@@ -58,11 +58,9 @@ export const ServerManage: React.FC = () => {
     
     try {
       // 检查Guacamole URL是否已配置
-      const guacamoleUrl = process.env.GUACAMOLE_URL;
-      console.log(process.env);
+      const guacamoleUrl = process.env.REACT_APP_GUACAMOLE_URL;
       console.log(`Guacamole URL: ${guacamoleUrl}`);
 
-      
       if (!guacamoleUrl) {
         // 没有配置Guacamole，抛出错误
         throw new Error('未配置Guacamole URL，无法连接到远程服务器');
