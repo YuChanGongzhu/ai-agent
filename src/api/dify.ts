@@ -1,13 +1,25 @@
 import axios from 'axios';
 
 const BASE_URL = process.env.REACT_APP_DIFY_BASE_URL;
-const API_KEY = process.env.REACT_APP_DIFY_API_KEY;
 const DATASET_API_KEY = process.env.REACT_APP_DIFY_DATASET_API_KEY;
 
-const difyAxios = axios.create({
+export const getApiKey = (config?: string) => {
+  switch(config) {
+    case 'config1':
+      return process.env.REACT_APP_DIFY_API_KEY1;
+    case 'config2':
+      return process.env.REACT_APP_DIFY_API_KEY2;
+    case 'config3':
+      return process.env.REACT_APP_DIFY_API_KEY3;
+    default:
+      return process.env.REACT_APP_DIFY_API_KEY3;
+  }
+};
+
+const createDifyAxios = (config?: string) => axios.create({
   baseURL: BASE_URL,
   headers: {
-    'Authorization': `Bearer ${API_KEY}`,
+    'Authorization': `Bearer ${getApiKey(config)}`,
     'Content-Type': 'application/json'
   }
 });
@@ -173,7 +185,7 @@ interface BlockingChatResponse {
 
 export async function getMessagesApi(params: { user: string; conversation_id: string; last_id?: string; limit?: number }): Promise<MessagesResponse> {
   try {
-    const response = await difyAxios.get('/messages', {
+    const response = await createDifyAxios('').get('/messages', {
       params: {
         user: params.user,
         conversation_id: params.conversation_id,
@@ -191,7 +203,7 @@ export async function getMessagesApi(params: { user: string; conversation_id: st
 
 export async function getConversationsApi(params: GetConversationsParams): Promise<ConversationsResponse> {
   try {
-    const response = await difyAxios.get('/conversations', {
+    const response = await createDifyAxios('').get('/conversations', {
       params: {
         user: params.user,
         ...(params.last_id ? { last_id: params.last_id } : {}),
@@ -558,7 +570,8 @@ export interface ChatMessageResponse {
 
 export async function sendChatMessageApi(
   data: ChatMessageRequest,
-  onMessage?: (event: ChatMessageStreamEvent) => void
+  onMessage?: (event: ChatMessageStreamEvent) => void,
+  config?: string
 ): Promise<ChatMessageResponse | void> {
   try {
     const requestData: ChatMessageRequest = {
@@ -572,7 +585,7 @@ export async function sendChatMessageApi(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          'Authorization': `Bearer ${getApiKey(config)}`,
         },
         body: JSON.stringify(requestData),
       });
@@ -627,7 +640,7 @@ export async function sendChatMessageApi(
       processStream();
       return;
     } else {
-      const response = await difyAxios.post('/chat-messages', requestData);
+      const response = await createDifyAxios(config).post('/chat-messages', requestData);
       return response.data as ChatMessageResponse;
     }
   } catch (error) {

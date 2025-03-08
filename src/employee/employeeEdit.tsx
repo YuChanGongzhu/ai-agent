@@ -6,6 +6,7 @@ import { WxAccount } from '../api/airflow';
 import EffectTest from './edit/effectTest';
 import { getWxAccountPromptApi } from '../api/airflow';
 import { useNavigate } from 'react-router-dom';
+import { EmployeeChoice } from './edit/employeeChoice';
 
 
 export const EmployeeEdit: React.FC = () => {
@@ -13,6 +14,7 @@ export const EmployeeEdit: React.FC = () => {
     const location = useLocation();
     const wxAccount = location.state?.wxAccount as WxAccount;
     const [prompt, setPrompt] = useState('');
+    const [selectedConfig, setSelectedConfig] = useState<string>();
 
     const navigate = useNavigate();
     const handleReturn = () => {
@@ -61,11 +63,12 @@ export const EmployeeEdit: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
-                    <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} />
+                    <EmployeeChoice wxAccount={wxAccount} selectedConfig={selectedConfig} setSelectedConfig={setSelectedConfig}/>
+                    {/* <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} /> */}
                     <MaterialUpload wxAccount={wxAccount} />
                 </div>
                 <div>
-                    <EffectTest wxAccount={wxAccount} prompt={prompt} />
+                    <EffectTest wxAccount={wxAccount} prompt={prompt} selectedConfig={selectedConfig} />
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessageApi, ChatMessageRequest, ChatMessageStreamEvent } from '../../api/dify';
 import clsx from 'clsx';
-import { WxAccount, updateWxAccountPromptApi } from '../../api/airflow';
+import { WxAccount, updateWxAccountPromptApi, updateWxDifyReplyApi } from '../../api/airflow';
 
 interface Message {
   id: string;
@@ -13,9 +13,10 @@ interface Message {
 interface EffectTestProps {
   wxAccount?: WxAccount;
   prompt: string;
+  selectedConfig?: string;
 }
 
-export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => {
+export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selectedConfig }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +25,13 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const [currentStreamedMessage, setCurrentStreamedMessage] = useState('');
   const currentMessageRef = useRef('');
+
+  useEffect(()=>{
+    console.log('Config changed:', selectedConfig);
+    // Reset conversation when config changes
+    setConversationId(undefined);
+    setMessages([]);
+  },[selectedConfig])
 
   useEffect(() => {
     if (messageContainerRef.current) {
@@ -49,18 +57,22 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
 
     try {
       const userId = wxAccount ? `${wxAccount.name}_test_${wxAccount.wxid}` : 'user-123';
+      console.log('Using config:', selectedConfig);
 
       const requestData: ChatMessageRequest = {
         query: inputText,
         response_mode: 'streaming',
         user: userId,
         inputs: {
-          ui_input_prompt: prompt
+          // ui_input_prompt: prompt
         },
-        conversation_id: conversationId
+        // Only include conversation_id if we haven't changed config
+        ...(conversationId && { conversation_id: conversationId })
       };
 
       await sendChatMessageApi(requestData, (event: ChatMessageStreamEvent) => {
+        // console.log('Using config:', selectedConfig);
+        // console.log('Using config:', selectedConfig);
 
         if (event.event === 'message') {
           if (event.answer) {
@@ -91,7 +103,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
           console.error('Error from API:', event.message);
           setIsLoading(false);
         }
-      });
+      }, selectedConfig);
     } catch (error) {
       console.error('Failed to send message:', error);
       setIsLoading(false);
@@ -108,7 +120,8 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt }) => 
   const savePrompt = async () => {
     setIsSaving(true);
     try {
-      await updateWxAccountPromptApi(wxAccount!.wxid, wxAccount!.name, prompt)
+      // await updateWxAccountPromptApi(wxAccount!.wxid, wxAccount!.name, prompt)
+      await updateWxDifyReplyApi(wxAccount!.wxid, wxAccount!.name, selectedConfig)
     } catch (error) {
       console.error('Error saving prompt:', error);
     } finally {
