@@ -61,7 +61,7 @@ export const ServerManage: React.FC = () => {
     
     try {
       // 检查Guacamole URL是否已配置
-      const guacamoleUrl = process.env.REACT_APP_GUACAMOLE_URL;
+      const guacamoleUrl = process.env.GUACAMOLE_URL;
       console.log(`Guacamole URL: ${guacamoleUrl}`);
       
       if (!guacamoleUrl) {
