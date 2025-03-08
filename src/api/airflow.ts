@@ -142,6 +142,6 @@ export const updateWxDifyReplyApi = async (wxid: string, name: string, config?: 
   return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
     value: config ? keyMap[config as ConfigKey] : keyMap['config3'],
     key: `${name}_${wxid}_dify_api_key`,
-    description: `${name}-自定义回复"`
+    description: `${name}-自定义回复key"`
   }));
 }
