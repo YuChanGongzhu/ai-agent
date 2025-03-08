@@ -1,18 +1,12 @@
 import { DialogList } from './dialogList';
 import { DialogPage } from './dialogPage';
-import { ChatMemory } from './chatMemory';
 import { MaterialBase } from './materialBase';
+import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
 import { getWxAccountListApi, WxAccount, getUserMsgCountApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 
-interface ApiCustomerInfo {
-    name: string | null;
-    age: string | null;
-    gender: string | null;
-    region: string | null;
-    contact: string | null;
-}
+
 
 export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
@@ -21,7 +15,7 @@ export const Dialog = () => {
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
-    const [customerInfo, setCustomerInfo] = useState<ApiCustomerInfo | undefined>(undefined);
+
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -173,16 +167,14 @@ export const Dialog = () => {
 
                 <div className="flex-1">
                     <div className="h-[80vh] flex flex-col space-y-2">
-                        <div className="flex-shrink-0">
+                        {/* <div className="flex-shrink-0">
                             <MaterialBase />
-                        </div>
+                        </div> */}
 
                         <div className="flex-shrink-0">
-                            <ChatMemory
-                                customerInfo={customerInfo}
+                            <Memory
                                 selectedAccount={selectedAccount}
                                 selectedConversation={selectedConversation}
-                                onCustomerInfoUpdate={setCustomerInfo}
                             />
                         </div>
                     </div>

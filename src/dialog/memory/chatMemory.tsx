@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import clsx from 'clsx';
-import { generateWxChatHistorySummaryApi, getWxChatHistorySummaryApi } from '../api/airflow';
 
 interface ApiCustomerInfo {
     name: string | null;
@@ -15,66 +14,18 @@ interface ChatMemoryProps {
     selectedAccount?: { wxid: string; name: string } | null;
     selectedConversation?: { room_id: string; room_name: string } | null;
     onCustomerInfoUpdate?: (info: ApiCustomerInfo) => void;
+    isLoading?: boolean;
+    onUpdateMemory?: () => void;
 }
 
-export const ChatMemory: React.FC<ChatMemoryProps> = ({ 
+const ChatMemory: React.FC<ChatMemoryProps> = ({ 
     customerInfo, 
     selectedAccount, 
     selectedConversation,
-    onCustomerInfoUpdate 
+    onCustomerInfoUpdate,
+    isLoading = false,
+    onUpdateMemory
 }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    
-    // 当 selectedAccount 和 selectedConversation 变化时，先清空聊天记忆，然后获取新的摘要
-    useEffect(() => {
-        // 先清空当前的客户信息
-        if (onCustomerInfoUpdate) {
-            // 创建一个空的客户信息对象
-            const emptyCustomerInfo: ApiCustomerInfo = {
-                name: null,
-                age: null,
-                gender: null,
-                region: null,
-                contact: null
-            };
-            onCustomerInfoUpdate(emptyCustomerInfo);
-        }
-        
-        // 然后获取新的聊天历史摘要
-        const fetchInitialSummary = async () => {
-            // 确保 selectedAccount 和 selectedConversation 都不为 null 且具有必要的属性
-            if (selectedAccount && selectedConversation && selectedAccount.wxid && selectedConversation.room_id) {
-                try {
-                    const summaryResponse = await getWxChatHistorySummaryApi(
-                        selectedAccount.wxid,
-                        selectedConversation.room_id
-                    );
-                    console.log('初始聊天摘要内容:', summaryResponse);
-                    
-                    // 尝试解析 JSON 内容（如果是 JSON 格式）
-                    try {
-                        const parsedSummary = JSON.parse(summaryResponse.value);
-                        console.log('解析后的初始聊天摘要:', parsedSummary);
-                        
-                        // 提取客户信息并更新状态
-                        if (parsedSummary && parsedSummary.summary_json && parsedSummary.summary_json.customer_info) {
-                            if (onCustomerInfoUpdate) {
-                                onCustomerInfoUpdate(parsedSummary.summary_json.customer_info);
-                            }
-                        }
-                    } catch (parseError) {
-                        // 如果不是 JSON 格式，直接显示原始内容
-                        console.log('原始初始聊天摘要文本:', summaryResponse.value);
-                    }
-                } catch (error) {
-                    console.error('获取初始聊天摘要时出错:', error);
-                    // 如果获取失败，不做特殊处理，用户仍然可以通过点击按钮手动获取
-                }
-            }
-        };
-        
-        fetchInitialSummary();
-    }, [selectedAccount, selectedConversation, onCustomerInfoUpdate]);
 
     // 默认客户信息，当 API 返回的信息不可用时使用
     const defaultCustomerInfo = {
@@ -99,84 +50,10 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
         }
     });
 
-    // 获取聊天历史摘要的函数
-    const fetchChatHistorySummary = async () => {
-        // 确保 selectedAccount 和 selectedConversation 都不为 null 且具有必要的属性
-        if (selectedAccount && selectedConversation && selectedAccount.wxid && selectedConversation.room_id) {
-            setIsLoading(true);
-            const roomId = selectedConversation.room_id.replace(/@/g, '');
 
-            if (onCustomerInfoUpdate) {
-                const emptyCustomerInfo: ApiCustomerInfo = {
-                    name: null,
-                    age: null,
-                    gender: null,
-                    region: null,
-                    contact: null
-                };
-                onCustomerInfoUpdate(emptyCustomerInfo);
-            }
-            
-            try {
-                // 第一步：生成聊天历史摘要
-                const currentDate = new Date().toISOString();
-                const request = {
-                    conf: {
-                        wx_user_id: selectedAccount.wxid,
-                        room_id: selectedConversation.room_id
-                    },
-                    dag_run_id: `summary_${selectedAccount.wxid}_${roomId}_${Date.now()}`,
-                    data_interval_end: currentDate,
-                    data_interval_start: currentDate,
-                    logical_date: currentDate,
-                    note: `Chat history summary for ${selectedConversation.room_name || 'Unknown Room'}`
-                };
-                
-                const response = await generateWxChatHistorySummaryApi(request);
-                
-                // 第二步：获取生成的聊天摘要
-                setTimeout(async () => {
-                    try {
-                        const summaryResponse = await getWxChatHistorySummaryApi(
-                            selectedAccount.wxid,
-                            selectedConversation.room_id
-                        );
-                        console.log('聊天摘要内容:', summaryResponse);
-                        
-                        // 尝试解析 JSON 内容（如果是 JSON 格式）
-                        try {
-                            const parsedSummary = JSON.parse(summaryResponse.value);
-                            console.log('解析后的聊天摘要:', parsedSummary);
-                            
-                            // 提取客户信息并更新状态
-                            if (parsedSummary && parsedSummary.summary_json && parsedSummary.summary_json.customer_info) {
-                                if (onCustomerInfoUpdate) {
-                                    onCustomerInfoUpdate(parsedSummary.summary_json.customer_info);
-                                }
-                            }
-                        } catch (parseError) {
-                            // 如果不是 JSON 格式，直接显示原始内容
-                            console.log('原始聊天摘要文本:', summaryResponse.value);
-                        }
-                    } catch (summaryError) {
-                        console.error('获取聊天摘要时出错:', summaryError);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                }, 3000); // 等待 5 秒后获取摘要
-                
-            } catch (error) {
-                console.error('生成聊天历史摘要时出错:', error);
-                setIsLoading(false);
-            }
-        } else {
-            console.warn('未选择账号或对话，无法生成聊天历史摘要');
-            setIsLoading(false);
-        }
-    };
 
     return (
-        <div className="bg-white rounded-xl shadow-lg p-4 h-full flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg p-4 h-[30vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-medium">聊天记忆</h2>
@@ -187,7 +64,7 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
                 ) : (
                     <button 
                         className="btn btn-xs btn-outline btn-primary"
-                        onClick={fetchChatHistorySummary}
+                        onClick={onUpdateMemory}
                         disabled={!selectedAccount || !selectedConversation || !selectedAccount?.wxid || !selectedConversation?.room_id}
                     >
                         更新记忆
@@ -286,3 +163,4 @@ export const ChatMemory: React.FC<ChatMemoryProps> = ({
         </div>
     );
 };
+export default ChatMemory;

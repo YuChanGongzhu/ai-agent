@@ -38,8 +38,6 @@ export const EmployeeChoice: React.FC<EmployeeChoiceProps> = ({ className, wxAcc
 
     const handleCardClick = (cardId: ConfigKey) => {
         setSelectedConfig(cardId);
-        console.log('Selected config:', cardId);
-        console.log(wxAccount);
     };
 
     return (
