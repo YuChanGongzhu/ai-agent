@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { guacamoleService } from '../utils/guacamoleService';
+import { getUserServers, assignServerToUser, removeServerFromUser } from '../api/nacos';
 
 interface WindowsServer {
+  id: string;
   ip: string;
   name: string;
+  description?: string;
 }
 
 export const ServerManage: React.FC = () => {
+  const navigate = useNavigate();
   const [servers, setServers] = useState<WindowsServer[]>([]);
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -17,25 +22,76 @@ export const ServerManage: React.FC = () => {
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
   const [password, setPassword] = useState<string>('');
   const [serverToConnect, setServerToConnect] = useState<WindowsServer | null>(null);
+  // 添加表单相关状态
+  const [showAddServerForm, setShowAddServerForm] = useState<boolean>(false);
+  const [newServerName, setNewServerName] = useState<string>('');
+  const [newServerIp, setNewServerIp] = useState<string>('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>(''); // 当前用户名，从登录信息获取
 
   useEffect(() => {
-    // 从环境变量获取服务器列表和凭据
-    const serverIPs = process.env.REACT_APP_WINDOWS_SERVER_IPS?.split(',') || [];
-    const serverNames = process.env.REACT_APP_WINDOWS_SERVER_NAMES?.split(',') || [];
+    // 检查用户是否已登录
+    const userStr = localStorage.getItem('user');
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
     
-    // 创建服务器列表
-    const serverList: WindowsServer[] = serverIPs.map((ip, index) => ({
-      ip: ip.trim(),
-      name: (serverNames[index] || `服务器 ${index + 1}`).trim()
-    }));
-
-    setServers(serverList);
-    setLoading(false);
-
-    if (serverList.length === 0) {
-      setError('未找到服务器配置。请检查环境变量设置。');
+    if (!userStr || !isAuthenticated) {
+      // 用户未登录，重定向到登录页面
+      navigate('/login', { state: { message: '请先登录以访问服务器管理页面' } });
+      return;
     }
-  }, []);
+    
+    // 获取当前用户名
+    try {
+      const userData = JSON.parse(userStr);
+      const currentUser = userData.username;
+      
+      if (!currentUser) {
+        // 无效的用户数据，重定向到登录页面
+        navigate('/login', { state: { message: '无效的用户信息，请重新登录' } });
+        return;
+      }
+      
+      setUsername(currentUser);
+      loadServers(currentUser);
+    } catch (e) {
+      console.error('解析用户数据失败:', e);
+      navigate('/login', { state: { message: '用户会话无效，请重新登录' } });
+    }
+  }, [navigate]);
+
+  const loadServers = async (currentUser: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // 从配置中心获取服务器列表
+      const userServers = await getUserServers(currentUser);
+      
+      if (userServers && userServers.length > 0) {
+        setServers(userServers);
+      } else {
+        // 如果配置中心没有数据，尝试从环境变量获取（保持向后兼容）
+        const serverIPs = process.env.REACT_APP_WINDOWS_SERVER_IPS?.split(',') || [];
+        const serverNames = process.env.REACT_APP_WINDOWS_SERVER_NAMES?.split(',') || [];
+        
+        // 创建服务器列表
+        const serverList: WindowsServer[] = serverIPs.map((ip, index) => ({
+          id: `server-${index + 1}`,
+          ip: ip.trim(),
+          name: (serverNames[index] || `服务器 ${index + 1}`).trim(),
+          description: `Windows服务器 ${index + 1}`
+        }));
+
+        setServers(serverList);
+      }
+    } catch (err) {
+      console.error('加载服务器列表时出错:', err);
+      setError('无法加载服务器列表，请稍后重试。');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const initiateConnection = (ip: string) => {
     const server = servers.find(s => s.ip === ip);
@@ -165,6 +221,90 @@ export const ServerManage: React.FC = () => {
     setPassword('');
   };
 
+  // 添加服务器
+  const handleAddServer = async () => {
+    // 验证表单
+    if (!newServerName.trim()) {
+      setFormError('服务器名称不能为空');
+      return;
+    }
+    
+    if (!newServerIp.trim()) {
+      setFormError('服务器IP不能为空');
+      return;
+    }
+    
+    // 验证IP格式
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipPattern.test(newServerIp.trim())) {
+      setFormError('请输入有效的IP地址');
+      return;
+    }
+    
+    // 检查IP是否已存在
+    if (servers.some(server => server.ip === newServerIp.trim())) {
+      setFormError('该IP地址已存在');
+      return;
+    }
+    
+    setUpdating(true);
+    setFormError(null);
+    
+    try {
+      // 创建新服务器对象
+      const newServer: WindowsServer = {
+        id: `server-${Date.now()}`, // 生成唯一ID
+        name: newServerName.trim(),
+        ip: newServerIp.trim(),
+        description: `Windows服务器 - ${newServerName.trim()}`
+      };
+      
+      // 添加到配置中心
+      const success = await assignServerToUser(username, newServer);
+      
+      if (success) {
+        // 更新本地状态
+        setServers(prevServers => [...prevServers, newServer]);
+        setShowAddServerForm(false);
+        setNewServerName('');
+        setNewServerIp('');
+      } else {
+        setFormError('更新配置失败，请稍后重试');
+      }
+    } catch (err) {
+      console.error('添加服务器时出错:', err);
+      setFormError('添加服务器时出错，请稍后重试');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // 删除服务器
+  const handleDeleteServer = async (serverId: string) => {
+    if (!window.confirm('确定要删除此服务器吗？')) {
+      return;
+    }
+    
+    setUpdating(true);
+    
+    try {
+      // 从配置中心删除
+      const success = await removeServerFromUser(username, serverId);
+      
+      if (success) {
+        // 更新本地状态
+        setServers(prevServers => prevServers.filter(server => server.id !== serverId));
+      } else {
+        setError('删除服务器失败，请稍后重试');
+      }
+    } catch (err) {
+      console.error('删除服务器时出错:', err);
+      setError('删除服务器时出错，请稍后重试');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -229,9 +369,87 @@ export const ServerManage: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Windows 云服务器管理</h1>
-        <p className="text-gray-600">选择一台服务器进行远程桌面连接</p>
+      {/* 添加服务器表单对话框 */}
+      {showAddServerForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-96">
+            <h3 className="text-xl font-semibold mb-4">添加Windows服务器</h3>
+            
+            {formError && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <p className="text-sm">{formError}</p>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="serverName">
+                服务器名称
+              </label>
+              <input
+                id="serverName"
+                type="text"
+                value={newServerName}
+                onChange={(e) => setNewServerName(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="输入服务器名称"
+                autoFocus
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="serverIp">
+                服务器IP地址
+              </label>
+              <input
+                id="serverIp"
+                type="text"
+                value={newServerIp}
+                onChange={(e) => setNewServerIp(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="例如: 192.168.1.100"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowAddServerForm(false);
+                  setNewServerName('');
+                  setNewServerIp('');
+                  setFormError(null);
+                }}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleAddServer}
+                disabled={updating}
+                className={`font-bold py-2 px-4 rounded ${
+                  updating ? 'bg-purple-300 text-gray-100 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
+              >
+                {updating ? '添加中...' : '添加服务器'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Windows 云服务器管理</h1>
+          <p className="text-gray-600">选择一台服务器进行远程桌面连接</p>
+        </div>
+        <button
+          onClick={() => setShowAddServerForm(true)}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+          添加服务器
+        </button>
       </div>
 
       {error && (
@@ -302,30 +520,58 @@ export const ServerManage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {servers.map((server) => (
-            <div
-              key={server.ip}
-              className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => initiateConnection(server.ip)}
-            >
-              <div className="flex items-center mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-14z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
-              </div>
-              <p className="text-gray-600">{server.ip}</p>
-              <button
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  initiateConnection(server.ip);
-                }}
+          {servers.length > 0 ? (
+            servers.map((server) => (
+              <div
+                key={server.ip}
+                className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => initiateConnection(server.ip)}
               >
-                连接
+                <div className="flex items-center mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-14z" />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
+                </div>
+                <p className="text-gray-600">{server.ip}</p>
+                <div className="mt-4 flex space-x-2">
+                  <button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      initiateConnection(server.ip);
+                    }}
+                  >
+                    连接
+                  </button>
+                  <button
+                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteServer(server.id);
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 bg-gray-100 rounded-lg p-8 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <p className="text-xl text-gray-600 mt-4">还没有添加服务器</p>
+              <button
+                onClick={() => setShowAddServerForm(true)}
+                className="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              >
+                添加服务器
               </button>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

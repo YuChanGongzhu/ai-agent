@@ -7,6 +7,9 @@ import { EmployeeEdit } from './employee/employeeEdit';
 import { Dialog } from './dialog/dialog';
 import { CalendarComponent } from './calendar/calender';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import InviteCodes from './pages/InviteCodes';
+import UserManagement from './pages/UserManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
@@ -17,6 +20,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route
           path="/*"
           element={
@@ -34,6 +38,8 @@ function App() {
                     <Route path="/task/invite" element={<PersonSelector />} />
                     <Route path="/calendar" element={<CalendarComponent />} />
                     <Route path="/server" element={<ServerManage />} />
+                    <Route path="/invite-codes" element={<InviteCodes />} />
+                    <Route path="/users" element={<UserManagement />} />
                   </Routes>
                 </div>
               </div>

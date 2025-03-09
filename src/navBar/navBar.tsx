@@ -8,11 +8,13 @@ import taskSVG from '../img/nav/task.svg';
 import dashboardSVG from '../img/nav/dashboard.svg';
 import groupSVG from '../img/nav/group.svg';
 import serverSVG from '../img/nav/server.svg';
+import usersSVG from '../img/nav/group.svg';
 
 interface NavItem {
   name: string;
   icon: string;
   url: string;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -22,6 +24,8 @@ const navItems: NavItem[] = [
   { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
   { name: '服务器', icon: serverSVG, url: '/server' },
+  { name: '邀请码', icon: groupSVG, url: '/invite-codes', adminOnly: true },
+  { name: '用户管理', icon: usersSVG, url: '/users', adminOnly: true },
 ];
 
 const NavBar: React.FC = () => {
@@ -39,6 +43,20 @@ const NavBar: React.FC = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
+
+  useEffect(() => {
+    // 获取用户角色
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setUserRole(userData.role || 'user');
+      } catch (e) {
+        console.error('解析用户数据失败:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setSelected(findSelectedNavItem(location.pathname));
@@ -51,11 +69,26 @@ const NavBar: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  // 获取用户名
+  const getUserName = (): string => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        return userData.username || 'user';
+      } catch (e) {
+        console.error('解析用户数据失败:', e);
+      }
+    }
+    return 'user';
   };
 
   // 点击外部关闭对话框
@@ -72,6 +105,9 @@ const NavBar: React.FC = () => {
     };
   }, []);
 
+  // 过滤导航项
+  const filteredNavItems = navItems.filter(item => !item.adminOnly || userRole === 'admin');
+
   return (
       <div className={`bg-white p-2 ${isCollapsed ? 'w-[6vw]' : 'w-[12vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base`}>
         {/* Logo Section */}
@@ -83,7 +119,7 @@ const NavBar: React.FC = () => {
         {/* Navigation Items */}
         <div className="flex-1">
           <div className="flex flex-col items-start space-y-2">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <div
                 key={item.name}
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
@@ -108,7 +144,7 @@ const NavBar: React.FC = () => {
               />
               {!isCollapsed && (
                 <div>
-                  <div className="text-sm font-medium">admin</div>
+                  <div className="text-sm font-medium">{getUserName()}</div>
                   <div 
                     className="text-sm text-gray-500 cursor-pointer hover:text-purple-600"
                     onClick={() => setShowLogoutDialog(!showLogoutDialog)}
