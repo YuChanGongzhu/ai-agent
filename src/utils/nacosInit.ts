@@ -11,6 +11,27 @@ const ensureConfigExists = async (dataId: string, initialValue: any): Promise<bo
     // 如果配置不存在，创建初始配置
     if (config === null) {
       console.log(`配置 ${dataId} 不存在，正在创建初始配置...`);
+      
+      // 处理特殊情况：users配置为空时添加管理员账号
+      if (dataId === 'users') {
+        // 检查必要的环境变量是否存在
+        if (!process.env.REACT_APP_NACOS_USERNAME || !process.env.REACT_APP_NACOS_PASSWORD) {
+          throw new Error('环境变量 REACT_APP_NACOS_USERNAME 或 REACT_APP_NACOS_PASSWORD 未设置');
+        }
+        
+        const adminUser = {
+          username: process.env.REACT_APP_NACOS_USERNAME,
+          password: process.env.REACT_APP_NACOS_PASSWORD,
+          email: "lucy@lucyai.ai",
+          phone: "",
+          createdAt: new Date().toISOString(),
+          role: "admin",
+          inviteCode: "lucyai"
+        };
+        initialValue = [adminUser];
+        console.log(`正在添加管理员账号: ${adminUser.username}`);
+      }
+      
       const success = await publishNacosConfig(dataId, initialValue);
       if (success) {
         console.log(`成功创建配置 ${dataId}`);
