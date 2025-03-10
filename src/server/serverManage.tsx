@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { guacamoleService } from '../utils/guacamoleService';
-import { getUserServers, assignServerToUser, removeServerFromUser } from '../api/nacos';
+import { getUserServers, assignServerToUser, removeServerFromUser, getUserByUsername, getUsers } from '../api/nacos';
 
 interface WindowsServer {
   id: string;
@@ -29,6 +29,8 @@ export const ServerManage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<boolean>(false);
   const [username, setUsername] = useState<string>(''); // 当前用户名，从登录信息获取
+  const [isAdmin, setIsAdmin] = useState<boolean>(false); // 是否为管理员
+  const [allUsersServers, setAllUsersServers] = useState<{[username: string]: WindowsServer[]}>({});
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -53,12 +55,56 @@ export const ServerManage: React.FC = () => {
       }
       
       setUsername(currentUser);
+      
+      // 检查用户是否为管理员
+      checkUserRole(currentUser);
+      
+      // 加载服务器列表
       loadServers(currentUser);
     } catch (e) {
       console.error('解析用户数据失败:', e);
       navigate('/login', { state: { message: '用户会话无效，请重新登录' } });
     }
   }, [navigate]);
+
+  // 检查用户角色
+  const checkUserRole = async (username: string) => {
+    try {
+      const user = await getUserByUsername(username);
+      const isUserAdmin = user?.role === 'admin';
+      setIsAdmin(isUserAdmin);
+      
+      // 如果是管理员，提前获取所有用户的服务器列表
+      if (isUserAdmin) {
+        loadAllUsersServers();
+      }
+    } catch (error) {
+      console.error('检查用户角色失败:', error);
+      setIsAdmin(false);
+    }
+  };
+  
+  // 获取所有用户的服务器列表
+  const loadAllUsersServers = async () => {
+    try {
+      const users = await getUsers();
+      const allServers: {[username: string]: WindowsServer[]} = {};
+      
+      // 为每个用户获取服务器列表
+      for (const user of users) {
+        if (user.username !== username) { // 排除当前管理员自己
+          const userServers = await getUserServers(user.username);
+          if (userServers && userServers.length > 0) {
+            allServers[user.username] = userServers;
+          }
+        }
+      }
+      
+      setAllUsersServers(allServers);
+    } catch (error) {
+      console.error('获取所有用户服务器列表失败:', error);
+    }
+  };
 
   const loadServers = async (currentUser: string) => {
     setLoading(true);
@@ -71,23 +117,13 @@ export const ServerManage: React.FC = () => {
       if (userServers && userServers.length > 0) {
         setServers(userServers);
       } else {
-        // 如果配置中心没有数据，尝试从环境变量获取（保持向后兼容）
-        const serverIPs = process.env.REACT_APP_WINDOWS_SERVER_IPS?.split(',') || [];
-        const serverNames = process.env.REACT_APP_WINDOWS_SERVER_NAMES?.split(',') || [];
-        
-        // 创建服务器列表
-        const serverList: WindowsServer[] = serverIPs.map((ip, index) => ({
-          id: `server-${index + 1}`,
-          ip: ip.trim(),
-          name: (serverNames[index] || `服务器 ${index + 1}`).trim(),
-          description: `Windows服务器 ${index + 1}`
-        }));
-
-        setServers(serverList);
+        // 如果配置中心没有数据，设置空列表
+        setServers([]);
       }
-    } catch (err) {
-      console.error('加载服务器列表时出错:', err);
-      setError('无法加载服务器列表，请稍后重试。');
+    } catch (error) {
+      console.error('获取服务器列表失败:', error);
+      setError('无法从配置中心获取服务器列表，请稍后重试');
+      setServers([]);
     } finally {
       setLoading(false);
     }
@@ -519,60 +555,86 @@ export const ServerManage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {servers.length > 0 ? (
-            servers.map((server) => (
-              <div
-                key={server.ip}
-                className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => initiateConnection(server.ip)}
-              >
-                <div className="flex items-center mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-14z" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
+        <>
+          {/* 当前用户的服务器列表 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {servers.length > 0 ? (
+              servers.map((server) => (
+                <div
+                  key={server.id}
+                  className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-xl font-semibold text-gray-800">{server.name}</h3>
+                      <button
+                        onClick={() => handleDeleteServer(server.id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="删除服务器"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-gray-600 mt-2">{server.ip}</p>
+                    {server.description && (
+                      <p className="text-gray-500 text-sm mt-1">{server.description}</p>
+                    )}
+                    <button
+                      onClick={() => initiateConnection(server.ip)}
+                      className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      连接
+                    </button>
+                  </div>
                 </div>
-                <p className="text-gray-600">{server.ip}</p>
-                <div className="mt-4 flex space-x-2">
-                  <button
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      initiateConnection(server.ip);
-                    }}
-                  >
-                    连接
-                  </button>
-                  <button
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteServer(server.id);
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full bg-white rounded-lg shadow p-6 text-center">
+                <p className="text-gray-500">您还没有添加任何服务器。点击右上角"添加服务器"按钮开始添加。</p>
               </div>
-            ))
-          ) : (
-            <div className="col-span-3 bg-gray-100 rounded-lg p-8 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <p className="text-xl text-gray-600 mt-4">还没有添加服务器</p>
-              <button
-                onClick={() => setShowAddServerForm(true)}
-                className="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-              >
-                添加服务器
-              </button>
+            )}
+          </div>
+          
+          {/* 管理员查看所有用户的服务器列表 */}
+          {isAdmin && Object.keys(allUsersServers).length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">所有用户的服务器列表</h2>
+              
+              {Object.entries(allUsersServers).map(([userName, userServers]) => (
+                <div key={userName} className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                    用户: {userName} ({userServers.length} 台服务器)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {userServers.map((server) => (
+                      <div
+                        key={`${userName}-${server.id}`}
+                        className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border-l-4 border-blue-500"
+                      >
+                        <div className="p-6">
+                          <h3 className="text-xl font-semibold text-gray-800">{server.name}</h3>
+                          <p className="text-gray-600 mt-2">{server.ip}</p>
+                          {server.description && (
+                            <p className="text-gray-500 text-sm mt-1">{server.description}</p>
+                          )}
+                          <button
+                            onClick={() => initiateConnection(server.ip)}
+                            className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                          >
+                            连接
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
