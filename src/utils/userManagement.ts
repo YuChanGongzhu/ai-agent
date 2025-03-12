@@ -102,8 +102,19 @@ export const getUserInfo = async (uid?: string): Promise<UserInfo | null> => {
 export const updateUserInfo = async (uid: string, userData: Partial<UserInfo>): Promise<void> => {
   try {
     const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, { ...userData });
+    
+    // 先检查文档是否存在
+    const docSnap = await getDoc(userRef);
+    
+    if (docSnap.exists()) {
+      // 如果文档存在，使用 updateDoc 更新字段
+      await updateDoc(userRef, { ...userData });
+    } else {
+      // 如果文档不存在，抛出错误
+      throw new Error(`用户文档不存在: ${uid}，请先创建文档`);
+    }
   } catch (error) {
+    console.error('更新用户信息失败:', error);
     throw error;
   }
 };
