@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { auth } from '../utils/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { logoutUser } from '../utils/authService';
 
 import calenderSVG from '../img/nav/calender.svg';
 import employeeSVG from '../img/nav/employee.svg';
@@ -39,19 +42,47 @@ const NavBar: React.FC = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userData, setUserData] = useState<{displayName: string | null; email: string | null}>({
+    displayName: null,
+    email: null
+  });
 
   useEffect(() => {
     setSelected(findSelectedNavItem(location.pathname));
   }, [location.pathname]);
+
+  // 监听用户认证状态变化
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserData({
+          displayName: user.displayName,
+          email: user.email
+        });
+      } else {
+        setUserData({
+          displayName: null,
+          email: null
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleClick = (itemName: string, url: string) => {
     setSelected(itemName);
     navigate(url);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  // 处理用户退出登录
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/login');
+    } catch (error) {
+      console.error('退出登录失败:', error);
+    }
   };
 
   const toggleCollapse = () => {
@@ -102,18 +133,20 @@ const NavBar: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.displayName || userData.email || 'User'}`}
                 alt="User"
                 className="w-10 h-10 rounded-full"
               />
               {!isCollapsed && (
                 <div>
-                  <div className="text-sm font-medium">admin</div>
+                  <div className="text-sm font-medium">
+                    {userData.displayName || userData.email?.split('@')[0] || '用户'}
+                  </div>
                   <div 
                     className="text-sm text-gray-500 cursor-pointer hover:text-purple-600"
                     onClick={() => setShowLogoutDialog(!showLogoutDialog)}
                   >
-                    账号
+                    {userData.email || '账号'}
                   </div>
                 </div>
               )}
