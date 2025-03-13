@@ -23,7 +23,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [showHumanDialog, setShowHumanDialog] = useState(false);
-    
+
     // Format the human list with required fields
     const formattedHumanList = humanList.map(wxid => {
         // Find the corresponding conversation for this wxid
@@ -69,11 +69,14 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
                         />
-                        <button 
-                            className="ml-2 px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
+                        <button
+                            className="btn-xs btn-primary"
                             onClick={() => setShowHumanDialog(true)}
                         >
-                            人工
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
+                            </svg>
+
                         </button>
                         <svg
                             className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
@@ -120,7 +123,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                     ) : (
                         <div className="space-y-1 p-1">
                             {filteredDialogs.map(dialog => (
-                                <div 
+                                <div
                                     key={dialog.msg_id}
                                     className={clsx(
                                         'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
@@ -131,9 +134,9 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                     {/* Avatar */}
                                     {avatarList.find(avatar => avatar.wxid === dialog.room_id) ? (
                                         <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden">
-                                            <img 
-                                                src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl} 
-                                                alt={dialog.room_name || dialog.sender_name || 'Chat'} 
+                                            <img
+                                                src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl}
+                                                alt={dialog.room_name || dialog.sender_name || 'Chat'}
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
@@ -182,7 +185,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                     <div className="bg-white rounded-lg shadow-xl w-96 max-h-[80vh] overflow-hidden">
                         <div className="p-4 border-b flex justify-between items-center">
                             <h3 className="text-lg font-medium">需要人工处理的对话</h3>
-                            <button 
+                            <button
                                 onClick={() => setShowHumanDialog(false)}
                                 className="text-gray-500 hover:text-gray-700"
                             >
@@ -212,14 +215,14 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                             <div className="flex-1">
                                                 <h4 className="font-medium">{human.name}</h4>
                                                 <p className="text-sm text-gray-500 truncate">
-                                                    {human.content 
-                                                        ? human.content.length > 12 
-                                                            ? `${human.content.substring(0, 12)}...` 
-                                                            : human.content 
+                                                    {human.content
+                                                        ? human.content.length > 12
+                                                            ? `${human.content.substring(0, 12)}...`
+                                                            : human.content
                                                         : '没有消息'}
                                                 </p>
                                             </div>
-                                            <button 
+                                            <button
                                                 className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
                                                 onClick={() => {
                                                     // Find the dialog with this wxid and select it
@@ -238,7 +241,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                             )}
                         </div>
                         <div className="p-4 border-t flex justify-end">
-                            <button 
+                            <button
                                 onClick={() => setShowHumanDialog(false)}
                                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                             >

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { auth } from '../utils/firebaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
+import { supabase } from '../utils/supabaseConfig';
 import { logoutUser } from '../utils/authService';
 
 import calenderSVG from '../img/nav/calender.svg';
@@ -53,11 +52,13 @@ const NavBar: React.FC = () => {
 
   // 监听用户认证状态变化
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // 获取当前用户
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserData({
-          displayName: user.displayName,
-          email: user.email
+          displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
+          email: user.email || null
         });
       } else {
         setUserData({
@@ -65,9 +66,31 @@ const NavBar: React.FC = () => {
           email: null
         });
       }
-    });
+    };
 
-    return () => unsubscribe();
+    getCurrentUser();
+
+    // 订阅认证状态变化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_, session) => {
+        if (session?.user) {
+          const user = session.user;
+          setUserData({
+            displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
+            email: user.email || null
+          });
+        } else {
+          setUserData({
+            displayName: null,
+            email: null
+          });
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleClick = (itemName: string, url: string) => {
