@@ -122,7 +122,7 @@ export const updateWxAccountPromptApi = async (wxid: string, name: string, promp
 }
 
 export const getWxHumanListApi = async (name: string, wxid: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_human_room_ids`));
 }
 
 export const updateWxHumanListApi = async (wxid: string, name: string, room_ids: Array<string>): Promise<VariableResponse> => {

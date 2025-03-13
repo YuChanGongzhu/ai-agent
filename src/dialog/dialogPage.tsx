@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
-import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi } from '../api/airflow';
+import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, updateWxHumanListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
 
@@ -17,6 +17,8 @@ interface DialogPageProps {
     conversation: RoomListMessage | null;
     selectedAccount: WxAccount | null;
     avatarList?: AvatarData[];
+    refreshHumanList?: () => void;
+    humanList?: string[];
 }
 
 interface Message {
@@ -29,7 +31,7 @@ interface Message {
     senderId?: string;
 }
 
-export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount, avatarList = [] }) => {
+export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount, avatarList = [], refreshHumanList, humanList = [] }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -38,11 +40,26 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isSending, setIsSending] = useState(false);
     const messageContainerRef = useRef<HTMLDivElement>(null);
     const enabledRoomsRef = useRef<string[]>([]);
+    const [notification, setNotification] = useState<{show: boolean, message: string, type: 'success' | 'error'}>({show: false, message: '', type: 'success'});
 
     const scrollToBottom = () => {
         const messageContainer = messageContainerRef.current;
         if (!messageContainer) return;
         messageContainer.scrollTop = messageContainer.scrollHeight;
+    };
+    
+    // Function to show notification
+    const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+        setNotification({
+            show: true,
+            message,
+            type
+        });
+        
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => {
+            setNotification({show: false, message: '', type: 'success'});
+        }, 3000);
     };
 
     useEffect(() => {
@@ -173,9 +190,26 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             </div>
         );
     }
-
+    
     return (
         <div className="bg-white rounded-3xl shadow-lg h-full flex flex-col relative overflow-hidden">
+            {/* Notification */}
+            {notification.show && (
+                <div className={`absolute top-4 right-4 border-l-4 p-3 rounded shadow-md z-10 max-w-xs transition-all duration-300 ease-in-out opacity-100 ${notification.type === 'success' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-red-100 border-red-500 text-red-700'}`}>
+                    <div className="flex items-center">
+                        {notification.type === 'success' ? (
+                            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        ) : (
+                            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        )}
+                        <p className="text-base">{notification.message}</p>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
@@ -185,30 +219,47 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
                 </div>
                 <div className="flex items-center space-x-2">
+                    {/* Only show the "解除人工" button when the conversation is in the humanList */}
+                    {humanList.includes(conversation.room_id) && (
+                        <button 
+                            className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
+                            onClick={async () => {
+                                if (!selectedAccount) return;
+                                
+                                try {
+                                    const updatedHumanList = humanList.filter(id => id !== conversation.room_id);
+                                    await updateWxHumanListApi(selectedAccount.wxid, selectedAccount.name, updatedHumanList);
+                                    showNotification('已解除人工处理', 'success');
+                                    refreshHumanList?.();
+                                } catch (error) {
+                                    console.error('解除人工处理失败:', error);
+                                    showNotification('解除人工处理失败', 'error');
+                                }
+                            }}
+                        >
+                            解除人工
+                        </button>
+                    )}
                     <span className="text-sm text-gray-600">AI</span>
                     <button
                         onClick={async () => {
                             const newAIEnabled = !isAIEnabled;
                             setIsAIEnabled(newAIEnabled);
                             
-                            // Update the enabled rooms list
                             try {
                                 const currentRooms = [...enabledRoomsRef.current];
                                 
                                 if (newAIEnabled) {
-                                    // Add current room if not already in the list
                                     if (!currentRooms.includes(conversation.room_id)) {
                                         currentRooms.push(conversation.room_id);
                                     }
                                 } else {
-                                    // Remove current room from the list
                                     const index = currentRooms.indexOf(conversation.room_id);
                                     if (index > -1) {
                                         currentRooms.splice(index, 1);
                                     }
                                 }
                                 
-                                // Update the ref and send to server
                                 enabledRoomsRef.current = currentRooms;
                                 await postAIReplyListApi(
                                     selectedAccount?.name || '', 
@@ -217,7 +268,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                 );
                             } catch (error) {
                                 console.error('Error updating AI enabled rooms:', error);
-                                // Revert the UI state if there was an error
                                 setIsAIEnabled(!newAIEnabled);
                             }
                         }}

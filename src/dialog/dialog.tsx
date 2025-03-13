@@ -3,7 +3,7 @@ import { DialogPage } from './dialogPage';
 import { MaterialBase } from './materialBase';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
-import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxHumanListApi } from '../api/airflow';
+import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 
 
@@ -18,6 +18,7 @@ interface AvatarData {
 export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
     const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
+    const [humanList, setHumanList] = useState<string[]>([]);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
@@ -31,10 +32,15 @@ export const Dialog = () => {
         if (!selectedAccount) return;
 
         try {
+            // Add a 2-second delay before fetching conversations
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             const res = await getRoomListMessagesApi({
                 wx_user_id: selectedAccount.wxid
             });
             setConversations(res.data);
+            
+            await getHumanList();
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {
@@ -97,7 +103,7 @@ export const Dialog = () => {
 
     const getHeadList=async()=>{
         try {
-            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const res = await getWxCountactHeadListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
             const avatarData = JSON.parse(res.value);
             const avatarArray: AvatarData[] = Object.values(avatarData);
             setAvatarList(avatarArray);
@@ -105,8 +111,28 @@ export const Dialog = () => {
             console.error('Failed to fetch wx accounts:', error);
         } 
     }
+    const getHumanList=async()=>{
+        try {
+            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const humanData = JSON.parse(res.value);
+            const humanArray: string[] = Object.values(humanData);
+            setHumanList(humanArray);
+        } catch (error) {
+            console.error('Failed to fetch wx human list:', error);
+        } 
+    }
+    
+    // Function to refresh the human list - can be passed to child components
+    const refreshHumanList = () => {
+        if (selectedAccount) {
+            getHumanList();
+        }
+    }
+
     useEffect(() => {
-        if(selectedAccount) getHeadList();
+        if(selectedAccount) {
+            getHeadList();
+        }
     }, [selectedAccount]);
 
     return (
@@ -176,6 +202,7 @@ export const Dialog = () => {
                             onSelectDialog={setSelectedConversation}
                             isLoading={isLoadingConversations}
                             avatarList={avatarList}
+                            humanList={humanList}
                         />
                     </div>
                 </div>
@@ -185,6 +212,8 @@ export const Dialog = () => {
                         conversation={selectedConversation}
                         selectedAccount={selectedAccount}
                         avatarList={avatarList}
+                        refreshHumanList={refreshHumanList}
+                        humanList={humanList}
                     />
                 </div>
 
