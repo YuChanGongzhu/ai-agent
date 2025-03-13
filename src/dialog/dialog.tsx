@@ -4,7 +4,7 @@ import { MaterialBase } from './materialBase';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
 import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';
-import { getRoomListMessagesApi, RoomListMessage, getRoomMpListMessagesApi } from '../api/mysql';
+import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 
 
 
@@ -28,25 +28,19 @@ export const Dialog = () => {
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
-        const getConversations = async () => {
+    const getConversations = async () => {
         if (!selectedAccount) return;
 
         try {
-            // 并行请求 getRoomListMessagesApi 和 getRoomMpListMessagesApi
-            const [response1, response2] = await Promise.all([
-                getRoomListMessagesApi({
-                    wx_user_id: selectedAccount.wxid
-                }),
-                getRoomMpListMessagesApi({
-                    wx_user_id: selectedAccount.wxid
-                })
-            ]);
-
-            // 合并数据去重
-            const allConversations = [...response1.data, ...response2.data]
-                .sort((a, b) => new Date(b.msg_datetime).getTime() - new Date(a.msg_datetime).getTime());
-
-            setConversations(allConversations);
+            // Add a 2-second delay before fetching conversations
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const res = await getRoomListMessagesApi({
+                wx_user_id: selectedAccount.wxid
+            });
+            setConversations(res.data);
+            
+            await getHumanList();
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {
