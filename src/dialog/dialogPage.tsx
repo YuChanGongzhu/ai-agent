@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
-import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
+import { RoomListMessage, getChatMessagesApi, ChatMessage, getChatMpMessagesApi } from '../api/mysql';
 import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, updateWxHumanListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
@@ -97,8 +97,23 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 setIsAIEnabled(false);
             }
 
+                        // 同时调用 getChatMessagesApi 和 getChatMpMessagesApi
+            const [response1, response2] = await Promise.all([
+                getChatMessagesApi({
+                    wx_user_id: selectedAccount?.wxid || '',
+                    room_id: conversation?.room_id || ''
+                }),
+                getChatMpMessagesApi({
+                    wx_user_id: selectedAccount?.wxid || '',
+                    room_id: conversation?.room_id || ''
+                })
+            ]);
+
+            // 合并消息并去重
+            const allMessages = [...response1.data.records, ...response2.data.records]
+                .sort((a, b) => new Date(a.msg_datetime).getTime() - new Date(b.msg_datetime).getTime());
             // 处理消息列表
-            const transformedMessages = response.data.records.reverse().map(msg => ({
+            const transformedMessages = allMessages.map(msg => ({
                 id: msg.msg_id,
                 content: msg.content || '',
                 timestamp: new Date(msg.msg_datetime).getTime(),
@@ -147,13 +162,23 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             setIsSending(true);
             
             setTimeout(async () => {
-                try {
-                    const response = await getChatMessagesApi({
-                        wx_user_id: selectedAccount?.wxid || '',
-                        room_id: conversation?.room_id || ''
-                    });
+try {
+                    const [response1, response2] = await Promise.all([
+                        getChatMessagesApi({
+                            wx_user_id: selectedAccount?.wxid || '',
+                            room_id: conversation?.room_id || ''
+                        }),
+                        getChatMpMessagesApi({
+                            wx_user_id: selectedAccount?.wxid || '',
+                            room_id: conversation?.room_id || ''
+                        })
+                    ]);
 
-                    const transformedMessages = response.data.records.reverse().map(msg => ({
+                    // 合并消息并去重
+                    const allMessages = [...response1.data.records, ...response2.data.records]
+                        .sort((a, b) => new Date(a.msg_datetime).getTime() - new Date(b.msg_datetime).getTime());
+
+                    const transformedMessages = allMessages.map(msg => ({
                         id: msg.msg_id,
                         content: msg.content || '',
                         timestamp: new Date(msg.msg_datetime).getTime(),
