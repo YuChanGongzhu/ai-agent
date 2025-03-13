@@ -11,7 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
 import ServerManage from './server/serverManage';
-import UserManagement from './users/UserManagement';
+import UserManagement from './userManagement/UserManagement';
 
 function App() {
   return (
