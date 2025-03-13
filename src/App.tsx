@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
 import ServerManage from './server/serverManage';
+import UserManagement from './users/UserManagement';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                     <Route path="/task/invite" element={<PersonSelector />} />
                     <Route path="/calendar" element={<CalendarComponent />} />
                     <Route path="/server" element={<ServerManage />} />
+                    <Route path="/users" element={<UserManagement />} />
                   </Routes>
                 </div>
               </div>

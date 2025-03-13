@@ -10,6 +10,7 @@ import taskSVG from '../img/nav/task.svg';
 import dashboardSVG from '../img/nav/dashboard.svg';
 import groupSVG from '../img/nav/group.svg';
 import serverSVG from '../img/nav/server.svg';
+import usersSVG from '../img/nav/employee.svg'; // 暂时复用员工图标
 
 interface NavItem {
   name: string;
@@ -24,6 +25,7 @@ const navItems: NavItem[] = [
   { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
   { name: '服务器', icon: serverSVG, url: '/server' },
+  { name: '用户管理', icon: usersSVG, url: '/users' },
 ];
 
 const NavBar: React.FC = () => {
