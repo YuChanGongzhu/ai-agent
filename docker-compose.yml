@@ -34,29 +34,6 @@ services:
     command: sh -c "pip install flask && python webhook_server.py"
     restart: always
     
-  # 使用 oznu/guacamole 一键部署版本
-  guacamole:
-    image: oznu/guacamole:latest
-    container_name: guacamole
-    restart: always
-    volumes:
-      - guacamole_data:/config
-      
-  # 添加Nginx服务作为CORS代理
-  nginx:
-    image: nginx:latest
-    container_name: nginx-cors-proxy
-    restart: always
-    volumes:
-      - ./nginx:/etc/nginx/conf.d
-    ports:
-      - "8088:8088"  # 使用8088端口
-    depends_on:
-      - guacamole
-
 networks:
   default:
     driver: bridge
-
-volumes:
-  guacamole_data:
