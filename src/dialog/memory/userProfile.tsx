@@ -17,18 +17,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ tags, className = '' }) => {
       </div>
       
       <div className="flex flex-wrap gap-2">
-        {tags.length > 0 ? (
-          tags.map((tag, index) => (
-            <div
-              key={index}
-              className="px-3 py-1 rounded-full border border-purple-500 text-purple-500 text-sm"
-            >
-              {tag.text}
-            </div>
-          ))
-        ) : (
-          <div className="text-gray-500 text-sm">暂无用户标签</div>
-        )}
+        {(() => {
+          // Filter out tags with value "未知"
+          const validTags = tags.filter(tag => tag.text !== "未知");
+          
+          if (validTags.length > 0) {
+            return validTags.map((tag, index) => (
+              <div
+                key={index}
+                className="px-3 py-1 rounded-full border border-purple-500 text-purple-500 text-sm"
+              >
+                {tag.text}
+              </div>
+            ));
+          } else {
+            return <div className="text-gray-500 text-sm">暂无标签</div>;
+          }
+        })()
+        }
       </div>
     </div>
   );

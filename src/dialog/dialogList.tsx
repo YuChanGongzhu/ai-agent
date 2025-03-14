@@ -23,6 +23,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [showHumanDialog, setShowHumanDialog] = useState(false);
+    const [showSearchInput, setShowSearchInput] = useState(false);
 
     // Format the human list with required fields
     const formattedHumanList = humanList.map(wxid => {
@@ -61,37 +62,69 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
         <>
             <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
                 <div className="p-2 border-b flex items-center justify-between">
-                    <div className="relative w-full">
-                        <input
-                            type="text"
-                            placeholder="搜索"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
-                        />
-                        <button
-                            className="btn-xs btn-primary"
-                            onClick={() => setShowHumanDialog(true)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
-                            </svg>
-
-                        </button>
-                        <svg
-                            className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                        </svg>
+                    <div className="relative w-full flex items-center">
+                        {showSearchInput ? (
+                            <div className="mr-1">
+                                <input
+                                    type="text"
+                                    placeholder="搜索"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
+                                    autoFocus
+                                    onBlur={() => {
+                                        // Only hide if the search query is empty
+                                        if (!searchQuery) {
+                                            setShowSearchInput(false);
+                                        }
+                                    }}
+                                />
+                                <svg
+                                    className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                </svg>
+                            </div>
+                        ) : (
+                            <button
+                                className="btn btn-sm btn-soft"
+                                onClick={() => setShowSearchInput(true)}
+                            >
+                                <svg
+                                    className="w-4 h-4 text-gray-500"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                </svg>
+                            </button>
+                        )}
+                        <div className="ml-auto">
+                            <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => setShowHumanDialog(true)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -223,9 +256,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                                 </p>
                                             </div>
                                             <button
-                                                className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
-                                                onClick={() => {
-                                                    // Find the dialog with this wxid and select it
+                                                className="btn btn-outline btn-error"                                                onClick={() => {
                                                     const dialog = dialogs.find(d => d.room_id === human.wxid);
                                                     if (dialog) {
                                                         handleDialogClick(dialog);
@@ -233,7 +264,9 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                                     }
                                                 }}
                                             >
-                                                处理
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-6">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
+                                                </svg>
                                             </button>
                                         </div>
                                     ))}

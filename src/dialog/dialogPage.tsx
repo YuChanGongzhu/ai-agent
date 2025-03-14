@@ -195,7 +195,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
         <div className="bg-white rounded-3xl shadow-lg h-full flex flex-col relative overflow-hidden">
             {/* Notification */}
             {notification.show && (
-                <div className={`absolute top-4 right-4 border-l-4 p-3 rounded shadow-md z-10 max-w-xs transition-all duration-300 ease-in-out opacity-100 ${notification.type === 'success' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-red-100 border-red-500 text-red-700'}`}>
+                <div className={`absolute top-3 right-20 border-l-4 p-3 rounded shadow-md z-10 max-w-xs transition-all duration-300 ease-in-out opacity-100 ${notification.type === 'success' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-red-100 border-red-500 text-red-700'}`}>
                     <div className="flex items-center">
                         {notification.type === 'success' ? (
                             <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,7 +219,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
                 </div>
                 <div className="flex items-center space-x-2">
-                    {/* Only show the "解除人工" button when the conversation is in the humanList */}
                     {humanList.includes(conversation.room_id) && (
                         <button 
                             className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
