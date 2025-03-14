@@ -16,6 +16,7 @@ interface NavItem {
   name: string;
   icon: string;
   url: string;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -25,7 +26,7 @@ const navItems: NavItem[] = [
   { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
   { name: '服务器', icon: serverSVG, url: '/server' },
-  { name: '用户管理', icon: usersSVG, url: '/users' },
+  { name: '用户管理', icon: usersSVG, url: '/users', adminOnly: true },
 ];
 
 const NavBar: React.FC = () => {
@@ -43,6 +44,7 @@ const NavBar: React.FC = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userData, setUserData] = useState<{displayName: string | null; email: string | null}>({
     displayName: null,
     email: null
@@ -51,6 +53,33 @@ const NavBar: React.FC = () => {
   useEffect(() => {
     setSelected(findSelectedNavItem(location.pathname));
   }, [location.pathname]);
+
+  // 检查用户是否为管理员
+  const checkIfUserIsAdmin = async (userId: string) => {
+    if (!userId) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) {
+        console.error('获取用户角色失败:', error);
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(data?.role === 'admin');
+    } catch (err) {
+      console.error('检查管理员状态失败:', err);
+      setIsAdmin(false);
+    }
+  };
 
   // 监听用户认证状态变化
   useEffect(() => {
@@ -62,11 +91,15 @@ const NavBar: React.FC = () => {
           displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
           email: user.email || null
         });
+        
+        // 检查用户是否为管理员
+        await checkIfUserIsAdmin(user.id);
       } else {
         setUserData({
           displayName: null,
           email: null
         });
+        setIsAdmin(false);
       }
     };
 
@@ -74,18 +107,22 @@ const NavBar: React.FC = () => {
 
     // 订阅认证状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_, session) => {
+      async (_, session) => {
         if (session?.user) {
           const user = session.user;
           setUserData({
             displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
             email: user.email || null
           });
+          
+          // 检查用户是否为管理员
+          await checkIfUserIsAdmin(user.id);
         } else {
           setUserData({
             displayName: null,
             email: null
           });
+          setIsAdmin(false);
         }
       }
     );
@@ -139,17 +176,19 @@ const NavBar: React.FC = () => {
         {/* Navigation Items */}
         <div className="flex-1">
           <div className="flex flex-col items-start space-y-2">
-            {navItems.map((item) => (
-              <div
-                key={item.name}
-                className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
-                  ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                onClick={() => handleClick(item.name, item.url)}
-              >
-                <img src={item.icon} alt={item.name} className="w-5 h-5" />
-                {!isCollapsed && <span className="text-base font-medium">{item.name}</span>}
-              </div>
-            ))}
+            {navItems
+              .filter(item => !item.adminOnly || (item.adminOnly && isAdmin))
+              .map((item) => (
+                <div
+                  key={item.name}
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
+                    ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                  onClick={() => handleClick(item.name, item.url)}
+                >
+                  <img src={item.icon} alt={item.name} className="w-5 h-5" />
+                  {!isCollapsed && <span className="text-base font-medium">{item.name}</span>}
+                </div>
+              ))}
           </div>
         </div>
 
@@ -163,12 +202,13 @@ const NavBar: React.FC = () => {
                 className="w-10 h-10 rounded-full"
               />
               {!isCollapsed && (
-                <div>
-                  <div className="text-sm font-medium">
+                <div className="max-w-[8vw] overflow-hidden">
+                  <div className="text-sm font-medium truncate">
                     {userData.displayName || userData.email?.split('@')[0] || '用户'}
                   </div>
                   <div 
-                    className="text-sm text-gray-500 cursor-pointer hover:text-purple-600"
+                    className="text-sm text-gray-500 cursor-pointer hover:text-purple-600 truncate"
+                    title={userData.email || '账号'}
                     onClick={() => setShowLogoutDialog(!showLogoutDialog)}
                   >
                     {userData.email || '账号'}

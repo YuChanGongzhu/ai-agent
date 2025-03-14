@@ -15,6 +15,7 @@ export interface UserProfile {
   mobile_devices?: any[]; // 用户关联的手机设备列表
   servers?: any[]; // 用户关联的服务器列表
   role?: string; // 用户角色
+  material_list?: string[]; // 用户能访问的素材库ID列表
 }
 
 export class UserProfileService {
@@ -75,6 +76,53 @@ export class UserProfileService {
     }
     
     return data;
+  }
+  
+  /**
+   * 更新用户的素材库访问列表
+   */
+  static async updateUserMaterialList(userId: string, materialList: string[]): Promise<UserProfile> {
+    return this.updateUserProfile(userId, { material_list: materialList });
+  }
+  
+  /**
+   * 向用户的素材库访问列表添加素材ID
+   */
+  static async addMaterialToUserList(userId: string, materialId: string): Promise<UserProfile> {
+    // 先获取用户当前的素材列表
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      throw new Error('用户配置不存在');
+    }
+    
+    // 确保material_list是一个数组
+    const currentList = profile.material_list || [];
+    
+    // 确保不添加重复的素材ID
+    if (!currentList.includes(materialId)) {
+      const updatedList = [...currentList, materialId];
+      return this.updateUserProfile(userId, { material_list: updatedList });
+    }
+    
+    return profile;
+  }
+  
+  /**
+   * 从用户的素材库访问列表移除素材ID
+   */
+  static async removeMaterialFromUserList(userId: string, materialId: string): Promise<UserProfile> {
+    // 先获取用户当前的素材列表
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      throw new Error('用户配置不存在');
+    }
+    
+    // 确保material_list是一个数组
+    const currentList = profile.material_list || [];
+    
+    // 过滤掉要移除的素材ID
+    const updatedList = currentList.filter(id => id !== materialId);
+    return this.updateUserProfile(userId, { material_list: updatedList });
   }
 
   /**

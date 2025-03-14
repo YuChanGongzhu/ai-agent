@@ -359,44 +359,44 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                 </div>
             )}
 
-            <div className="mb-1">
-                <h3 className="text-xl font-medium text-gray-900">素材库</h3>
-            </div>
-
-            {loading ? (
-                <div className="flex justify-center items-center m-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
-                    <span className="ml-3 text-lg text-gray-600">加载中...</span>
-                </div>
-            ) : datasets.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-                    <p className="text-gray-500 mb-2">没有可用的数据集</p>
-                    {!isAdmin && (
-                        <p className="text-sm text-gray-400">请联系管理员获取素材库访问权限</p>
-                    )}
-                </div>
-            ) : (
-                <div className="mb-2 overflow-x-auto">
-                    <div className="flex flex-nowrap space-x-2 pb-1 min-w-max">
-                        {datasets.map((dataset) => (
-                            <div
-                                key={dataset.id}
-                                onClick={() => handleSelectDataset(dataset.id)}
-                                className={`
-                                    flex items-center px-4 py-2 rounded-full cursor-pointer transition-all whitespace-nowrap
-                                    ${datasetId === dataset.id
-                                        ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                                `}
-                            >
-                                <div className="flex items-center">
-                                    <span className="text-base">{dataset.name}</span>
-                                </div>
-                            </div>
-                        ))}
+            <div className="mb-4">
+                <h3 className="text-xl font-medium text-gray-900 mb-3">素材库</h3>
+                
+                {loading ? (
+                    <div className="flex justify-center items-center py-6">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+                        <span className="ml-3 text-lg text-gray-600">加载中...</span>
                     </div>
-                </div>
-            )}
+                ) : datasets.length === 0 ? (
+                    <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+                        <p className="text-gray-500 mb-2">没有可用的数据集</p>
+                        {!isAdmin && (
+                            <p className="text-sm text-gray-400">请联系管理员获取素材库访问权限</p>
+                        )}
+                    </div>
+                ) : (
+                    <div className="border-b border-gray-200">
+                        <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
+                            {datasets.map((dataset) => (
+                                <li key={dataset.id} className="mr-2">
+                                    <button
+                                        onClick={() => handleSelectDataset(dataset.id)}
+                                        className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group
+                                            ${datasetId === dataset.id 
+                                                ? 'text-purple-600 border-purple-600 active' 
+                                                : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300'}`}
+                                    >
+                                        <svg className="w-4 h-4 mr-2 text-gray-400 group-hover:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 0C4.612 0 0 5.336 0 7c0 1.742 3.546 7 10 7 6.454 0 10-5.258 10-7 0-1.664-4.612-7-10-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/>
+                                        </svg>
+                                        {dataset.name}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
 
             {/* Document List Section */}
             {datasetId && (

@@ -3,6 +3,7 @@ import { supabase } from '../utils/supabaseConfig';
 import { UserProfileService, UserProfile } from './userProfileService';
 import { UserData } from './types';
 import { useNavigate } from 'react-router-dom';
+import { getDatasetsApi, Dataset } from '../api/dify';
 
 // 集成用户编辑组件到用户管理页面
 const UserManagement: React.FC = () => {
@@ -27,6 +28,11 @@ const UserManagement: React.FC = () => {
   const [editModeActive, setEditModeActive] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   
+  // 素材管理相关状态
+  const [materialInput, setMaterialInput] = useState('');
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [datasetsLoading, setDatasetsLoading] = useState(false);
+  
   // 编辑表单状态
   const [formData, setFormData] = useState<any>({
     display_name: '',
@@ -37,6 +43,7 @@ const UserManagement: React.FC = () => {
     is_active: true,
     mobile_devices: [],
     servers: [],
+    material_list: [],
     role: 'user'
   });
   
@@ -116,9 +123,25 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // 仅当用户是管理员时，才加载用户列表
+  // 获取素材库数据
+  const fetchDatasets = async () => {
+    try {
+      setDatasetsLoading(true);
+      const response = await getDatasetsApi({});
+      setDatasets(response.data);
+    } catch (error) {
+      console.error('获取素材库列表失败:', error);
+    } finally {
+      setDatasetsLoading(false);
+    }
+  };
+
+  // 仅当用户是管理员时，才加载用户列表和素材库
   useEffect(() => {
     if (!isAdmin || isAdminChecking) return;
+    
+    // 加载素材库数据
+    fetchDatasets();
     
     async function fetchUsers() {
       try {
@@ -238,6 +261,7 @@ const UserManagement: React.FC = () => {
       is_active: user.profile?.is_active !== undefined ? user.profile.is_active : true,
       mobile_devices: user.profile?.mobile_devices || [],
       servers: user.profile?.servers || [],
+      material_list: user.profile?.material_list || [],
       role: user.profile?.role || 'user'
     });
   };
@@ -311,6 +335,57 @@ const UserManagement: React.FC = () => {
       servers: formData.servers.filter((server: any) => server.id !== serverId)
     });
   };
+  
+  // 添加素材ID (保留兼容旧代码)
+  const handleAddMaterial = () => {
+    if (!materialInput.trim()) return;
+    
+    // 确保不添加重复的素材ID
+    if (!formData.material_list.includes(materialInput)) {
+      setFormData({
+        ...formData,
+        material_list: [...formData.material_list, materialInput]
+      });
+    }
+    
+    setMaterialInput('');
+  };
+  
+  // 添加所有素材库
+  const handleAddAllMaterials = () => {
+    if (!datasets.length) return;
+    
+    const allDatasetIds = datasets.map(dataset => dataset.id);
+    // 使用Array.from和Set来去重，避免TypeScript的降级迭代错误
+    const uniqueList = Array.from(new Set([...formData.material_list, ...allDatasetIds]));
+    
+    setFormData({
+      ...formData,
+      material_list: uniqueList
+    });
+  };
+  
+  // 清空所有选择
+  const handleClearAllMaterials = () => {
+    setFormData({
+      ...formData,
+      material_list: []
+    });
+  };
+  
+  // 获取数据集名称
+  const getDatasetNameById = (id: string): string => {
+    const dataset = datasets.find(ds => ds.id === id);
+    return dataset ? dataset.name : id;
+  };
+  
+  // 移除素材ID
+  const handleRemoveMaterial = (materialId: string) => {
+    setFormData({
+      ...formData,
+      material_list: formData.material_list.filter((id: string) => id !== materialId)
+    });
+  };
 
   // 保存用户表单
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -331,6 +406,7 @@ const UserManagement: React.FC = () => {
         is_active: formData.is_active === true || formData.is_active === 'true',
         mobile_devices: formData.mobile_devices,
         servers: formData.servers,
+        material_list: formData.material_list,
         role: formData.role
       };
 
@@ -796,6 +872,109 @@ const UserManagement: React.FC = () => {
                 ) : (
                   <p className="text-sm text-gray-500">未添加任何服务器</p>
                 )}
+              </div>
+              
+              {/* 素材库管理 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  可访问素材库
+                </label>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    选择素材库
+                  </label>
+                  <div className="bg-gray-50 p-3 rounded-md border border-gray-300 max-h-60 overflow-y-auto">
+                    {datasetsLoading ? (
+                      <div className="text-center py-2">加载中...</div>
+                    ) : datasets.length === 0 ? (
+                      <div className="text-center py-2">暂无可用素材库</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {datasets.map(dataset => {
+                          const isSelected = formData.material_list.includes(dataset.id);
+                          return (
+                            <div 
+                              key={dataset.id} 
+                              className={`p-2 rounded-md cursor-pointer border flex items-center ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                              onClick={() => {
+                                // 如果已选中，则移除
+                                if (isSelected) {
+                                  handleRemoveMaterial(dataset.id);
+                                } else {
+                                  // 否则添加到选中列表
+                                  setFormData({
+                                    ...formData,
+                                    material_list: [...formData.material_list, dataset.id]
+                                  });
+                                }
+                              }}
+                            >
+                              <div className={`w-5 h-5 rounded border mr-2 flex-shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                                {isSelected && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="flex-grow">
+                                <div className="font-medium">{dataset.name}</div>
+                                <div className="text-xs text-gray-500">{dataset.id}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">已选素材库 ({formData.material_list.length})</span>
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleAddAllMaterials}
+                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        disabled={datasetsLoading}
+                      >
+                        全选
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearAllMaterials}
+                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        disabled={formData.material_list.length === 0}
+                      >
+                        清空
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {datasetsLoading ? (
+                    <p className="text-sm text-gray-500">加载素材库中...</p>
+                  ) : formData.material_list.length > 0 ? (
+                    <ul className="border border-gray-300 rounded-md divide-y divide-gray-300 max-h-40 overflow-y-auto">
+                      {formData.material_list.map((materialId: string) => (
+                        <li key={materialId} className="px-3 py-2 flex justify-between items-center">
+                          <span>
+                            {getDatasetNameById(materialId)}
+                            <span className="text-xs text-gray-500 ml-2">{materialId}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMaterial(materialId)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            删除
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">未添加任何素材库</p>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end space-x-3">
