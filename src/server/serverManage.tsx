@@ -1,168 +1,200 @@
 import React, { useState, useEffect } from 'react';
-import { guacamoleService } from '../utils/guacamoleService';
+import { tencentCloudService, LighthouseInstance, SUPPORTED_REGIONS, RegionInfo } from '../api/tencent_cloud';
+import { supabase } from '../utils/supabaseConfig';
+import { UserProfile, UserProfileService } from '../userManagement/userProfileService';
 
 interface WindowsServer {
   ip: string;
   name: string;
+  instanceId?: string;
+  osName?: string;
+  status?: string;
+  region?: string;
 }
 
 export const ServerManage: React.FC = () => {
-  const [servers, setServers] = useState<WindowsServer[]>([]);
+  const [regionServers, setRegionServers] = useState<Map<string, WindowsServer[]>>(new Map());
+  const [filteredRegionServers, setFilteredRegionServers] = useState<Map<string, WindowsServer[]>>(new Map());
+  const [selectedRegion, setSelectedRegion] = useState<string>(SUPPORTED_REGIONS[0].id);
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<boolean>(false);
   const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
-  const [password, setPassword] = useState<string>('');
   const [serverToConnect, setServerToConnect] = useState<WindowsServer | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
 
-  useEffect(() => {
-    // 从环境变量获取服务器列表和凭据
-    const serverIPs = process.env.REACT_APP_WINDOWS_SERVER_IPS?.split(',') || [];
-    const serverNames = process.env.REACT_APP_WINDOWS_SERVER_NAMES?.split(',') || [];
-    
-    // 创建服务器列表
-    const serverList: WindowsServer[] = serverIPs.map((ip, index) => ({
-      ip: ip.trim(),
-      name: (serverNames[index] || `服务器 ${index + 1}`).trim()
-    }));
-
-    setServers(serverList);
-    setLoading(false);
-
-    if (serverList.length === 0) {
-      setError('未找到服务器配置。请检查环境变量设置。');
-    }
-  }, []);
-
-  const initiateConnection = (ip: string) => {
-    const server = servers.find(s => s.ip === ip);
-    if (server) {
-      setServerToConnect(server);
-      setShowPasswordDialog(true);
+  // 获取当前用户的配置信息及角色
+  const fetchUserProfileAndCheckAdmin = async (userId: string) => {
+    try {
+      const profile = await UserProfileService.getUserProfile(userId);
+      setUserProfile(profile);
+      
+      // 从配置信息中获取用户角色
+      const isUserAdmin = profile?.role === 'admin';
+      setIsAdmin(isUserAdmin);
+      
+      return { profile, isUserAdmin };
+    } catch (error) {
+      console.error('获取用户配置失败:', error);
+      setIsAdmin(false);
+      return { profile: null, isUserAdmin: false };
     }
   };
 
-  const connectToServerWithPassword = async () => {
-    if (!serverToConnect) return;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // 获取当前用户信息
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.error('未登录用户');
+          setLoading(false);
+          return;
+        }
+
+        // 保存用户邮箱
+        if (user.email) {
+          setUserEmail(user.email);
+        }
+        
+        // 获取用户配置并检查管理员角色
+        await fetchUserProfileAndCheckAdmin(user.id);
+        
+        // 获取所有地域的服务器列表
+        console.log('正在从腾讯云API获取所有地域的服务器列表...');
+        await fetchAllRegionInstances();
+      } catch (err) {
+        console.error('获取服务器列表时出错:', err);
+        setError(err instanceof Error ? err.message : '获取服务器列表失败，请稍后重试');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // 根据用户权限过滤服务器列表
+  useEffect(() => {
+    if (regionServers.size === 0) return;
+
+    const newFilteredServers = new Map<string, WindowsServer[]>();
     
-    setShowPasswordDialog(false);
-    setSelectedServer(serverToConnect.ip);
+    regionServers.forEach((servers, regionId) => {
+      if (isAdmin) {
+        // 管理员可以看到所有服务器
+        newFilteredServers.set(regionId, servers);
+      } else if (userEmail) {
+        // 普通用户只能看到名称包含其邮箱的服务器
+        const userEmailParts = userEmail.split('@')[0].toLowerCase();
+        const filteredServers = servers.filter(server => 
+          server.name.toLowerCase().includes(userEmailParts)
+        );
+        newFilteredServers.set(regionId, filteredServers);
+      } else {
+        // 没有邮箱的用户不能看到任何服务器
+        newFilteredServers.set(regionId, []);
+      }
+    });
+    
+    setFilteredRegionServers(newFilteredServers);
+    
+  }, [regionServers, isAdmin, userEmail]);
+
+  const fetchAllRegionInstances = async () => {
+    try {
+      const instancesByRegion = await tencentCloudService.getAllRegionInstances();
+      const serversByRegion = new Map<string, WindowsServer[]>();
+      
+      instancesByRegion.forEach((instances, regionId) => {
+        const servers: WindowsServer[] = instances.map((instance: LighthouseInstance) => ({
+          ip: instance.PublicAddresses[0] || instance.PrivateAddresses[0] || '',
+          name: instance.InstanceName,
+          instanceId: instance.InstanceId,
+          osName: instance.OsName,
+          status: instance.InstanceState,
+          region: instance.Region
+        }));
+        
+        serversByRegion.set(regionId, servers);
+      });
+      
+      setRegionServers(serversByRegion);
+      
+      let totalCount = 0;
+      serversByRegion.forEach(servers => {
+        totalCount += servers.length;
+      });
+      
+      console.log(`成功获取 ${totalCount} 台腾讯云服务器实例，分布在 ${serversByRegion.size} 个地域`);
+    } catch (error) {
+      console.error('获取腾讯云服务器列表失败:', error);
+      throw error;
+    }
+  };
+
+  const connectToVnc = async (server: WindowsServer) => {
+    if (!server.instanceId) {
+      setConnectionError('无法连接VNC，缺少实例ID');
+      return;
+    }
+    
+    if (server.status !== 'RUNNING') {
+      setConnectionError(`无法连接VNC，实例当前状态为: ${server.status || '未知'}`);
+      return;
+    }
+    
+    if (!server.region) {
+      setConnectionError('无法连接VNC，缺少实例所在地域信息');
+      return;
+    }
+    
+    setSelectedServer(server.ip);
+    setServerToConnect(server);
     setConnecting(true);
     setConnectionError(null);
     setConnectionUrl(null);
     
-    console.log(`尝试连接到服务器: ${serverToConnect.ip}`);
-    
-    let connectionId: string | null = null;
+    console.log(`尝试连接到地域 ${server.region} 实例 ${server.instanceId} 的VNC终端`);
     
     try {
-      // 检查Guacamole URL是否已配置
-      const guacamoleUrl = process.env.REACT_APP_GUACAMOLE_URL;
-      console.log(`Guacamole URL: ${guacamoleUrl}`);
-
-      if (!guacamoleUrl) {
-        // 没有配置Guacamole，抛出错误
-        throw new Error('未配置Guacamole URL，无法连接到远程服务器');
-      }
-      
-      // 验证Guacamole认证
-      console.log('开始Guacamole认证...');
-      const authenticated = await guacamoleService.authenticate();
-      console.log(`Guacamole认证结果: ${authenticated}`);
-      
-      if (!authenticated) {
-        throw new Error('连接到Guacamole服务器失败，无法进行认证');
-      }
-      
-      // 获取或创建连接，传入密码
-      console.log(`尝试获取服务器连接ID: ${serverToConnect.name} (${serverToConnect.ip})`);
-      connectionId = await guacamoleService.getConnectionForServer(
-        serverToConnect.ip, 
-        serverToConnect.name,
-        password
-      );
-      console.log(`获取到连接ID: ${connectionId}`);
-      
-      if (!connectionId) {
-        // 如果没有获取到连接ID，可能是密码错误
-        throw new Error(`未能创建到服务器 ${serverToConnect.name} 的连接，可能是密码错误`);
-      }
-      
-      // 测试连接是否可用（这里可以添加一个简单的测试，但我们先跳过）
-      
-      // 获取连接URL
-      console.log(`生成客户端URL，连接ID: ${connectionId}`);
-      const url = guacamoleService.getClientUrl(connectionId);
-      console.log(`生成的客户端URL: ${url}`);
-      
-      if (!url) {
-        throw new Error('生成连接URL失败');
-      }
-      
-      setConnectionUrl(url);
-      // 清除密码
-      setPassword('');
-    } catch (err) {
-      console.error('连接到Windows服务器时出错:', err);
-      const errorMessage = err instanceof Error ? err.message : '连接失败，请稍后重试';
+      const vncUrl = await tencentCloudService.getInstanceVncUrl(server.instanceId, server.region);
+      console.log(`获取到VNC URL: ${vncUrl}`);
+      setConnectionUrl(vncUrl);
+    } catch (error) {
+      console.error('连接VNC终端失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '连接VNC终端失败，请稍后重试';
       setConnectionError(errorMessage);
-      
-      // 如果已经创建了连接但连接失败，不需要在这里删除连接
-      // 因为在GuacamoleService.getConnectionForServer中已经实现了自动删除和重建连接的功能
-      
-      // 如果错误信息包含"密码错误"或"未能创建"，显示密码输入对话框
-      if (errorMessage.includes('密码错误') || errorMessage.includes('未能创建')) {
-        // 延迟一点显示密码对话框，让用户先看到错误信息
-        setTimeout(() => {
-          setShowPasswordDialog(true);
-        }, 1500);
-      }
     } finally {
       setConnecting(false);
     }
   };
 
   const closeConnection = () => {
-    // 如果有选中的服务器，尝试删除对应的连接
-    if (selectedServer) {
-      const server = servers.find(s => s.ip === selectedServer);
-      if (server) {
-        // 异步删除连接，不阻塞UI
-        (async () => {
-          try {
-            console.log(`断开连接，尝试删除服务器 ${server.name} 的连接`);
-            // 查找连接ID
-            const connectionId = await guacamoleService.findConnectionByName(server.name);
-            if (connectionId) {
-              console.log(`找到连接ID: ${connectionId}，准备删除`);
-              const deleted = await guacamoleService.deleteConnection(connectionId);
-              console.log(`删除连接结果: ${deleted ? '成功' : '失败'}`);
-            } else {
-              console.log(`未找到名为 ${server.name} 的连接，无需删除`);
-            }
-          } catch (error) {
-            console.error('删除连接时出错:', error);
-          }
-        })();
-      }
-    }
-    
-    // 重置状态
     setSelectedServer(null);
     setConnectionUrl(null);
     setConnectionError(null);
     setServerToConnect(null);
-    setPassword('');
-    setShowPasswordDialog(false);
   };
 
-  const cancelPasswordDialog = () => {
-    setShowPasswordDialog(false);
-    setServerToConnect(null);
-    setPassword('');
+  const getServersForSelectedRegion = (): WindowsServer[] => {
+    return filteredRegionServers.get(selectedRegion) || [];
+  };
+
+  const getRegionName = (regionId: string): string => {
+    const region = SUPPORTED_REGIONS.find(r => r.id === regionId);
+    return region ? region.name : regionId;
+  };
+
+  // 获取各地域过滤后的服务器数量
+  const getRegionServerCount = (regionId: string): number => {
+    return filteredRegionServers.get(regionId)?.length || 0;
   };
 
   if (loading) {
@@ -175,63 +207,13 @@ export const ServerManage: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* 密码输入对话框 */}
-      {showPasswordDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96">
-            <h3 className="text-xl font-semibold mb-4">输入Windows密码</h3>
-            <p className="text-gray-600 mb-4">
-              请输入服务器 {serverToConnect?.name} ({serverToConnect?.ip}) 的Administrator密码
-            </p>
-            {connectionError && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                <p className="text-sm">上次连接失败: {connectionError}</p>
-                <p className="text-sm mt-1">请重新输入密码尝试</p>
-              </div>
-            )}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-                密码
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="输入密码"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && password) {
-                    connectToServerWithPassword();
-                  }
-                }}
-              />
-            </div>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={cancelPasswordDialog}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
-              >
-                取消
-              </button>
-              <button
-                onClick={connectToServerWithPassword}
-                disabled={!password}
-                className={`font-bold py-2 px-4 rounded ${
-                  password ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-300 text-gray-100 cursor-not-allowed'
-                }`}
-              >
-                连接
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Windows 云服务器管理</h1>
-        <p className="text-gray-600">选择一台服务器进行远程桌面连接</p>
+        <h1 className="text-2xl font-bold text-gray-800">服务器管理</h1>
+        <p className="text-gray-600">
+          {isAdmin 
+            ? '管理员模式：显示所有服务器' 
+            : `普通用户模式：仅显示与您账号 (${userEmail}) 相关的服务器`}
+        </p>
       </div>
 
       {error && (
@@ -244,7 +226,12 @@ export const ServerManage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg p-4 h-[80vh]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              远程桌面 - {servers.find(s => s.ip === selectedServer)?.name || selectedServer}
+              VNC终端 - {serverToConnect?.name || selectedServer}
+              {serverToConnect?.region && (
+                <span className="ml-2 text-sm text-gray-500">
+                  ({getRegionName(serverToConnect.region)})
+                </span>
+              )}
             </h2>
             <button
               onClick={closeConnection}
@@ -259,7 +246,7 @@ export const ServerManage: React.FC = () => {
               <div className="flex items-center justify-center h-full">
                 <div>
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">正在连接到Windows服务器...</p>
+                  <p className="mt-4 text-gray-600">正在连接到服务器VNC终端...</p>
                 </div>
               </div>
             ) : connectionError ? (
@@ -271,7 +258,11 @@ export const ServerManage: React.FC = () => {
                 <p className="text-gray-600 mt-2 text-center">{connectionError}</p>
                 <div className="mt-6 flex space-x-4">
                   <button
-                    onClick={() => initiateConnection(selectedServer)}
+                    onClick={() => {
+                      if (serverToConnect) {
+                        connectToVnc(serverToConnect);
+                      }
+                    }}
                     className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded"
                   >
                     重试连接
@@ -280,13 +271,10 @@ export const ServerManage: React.FC = () => {
               </div>
             ) : connectionUrl ? (
               <div className="relative h-full w-full">
-                <div className="mb-2 p-2 bg-blue-100 rounded">
-                  <p className="text-sm text-blue-800">连接URL: {connectionUrl}</p>
-                </div>
                 <iframe
                   src={connectionUrl}
-                  className="w-full h-[90%]"
-                  title="Remote Desktop"
+                  className="w-full h-full"
+                  title="VNC Terminal"
                   allow="clipboard-read; clipboard-write"
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
                   onLoad={() => console.log('iframe 加载完成')}
@@ -295,37 +283,92 @@ export const ServerManage: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">
-                <p className="text-gray-600">正在准备连接...</p>
+                <p className="text-gray-600">正在准备VNC终端连接...</p>
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {servers.map((server) => (
-            <div
-              key={server.ip}
-              className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => initiateConnection(server.ip)}
-            >
-              <div className="flex items-center mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-14z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
-              </div>
-              <p className="text-gray-600">{server.ip}</p>
+        <div>
+          <div className="mb-6 flex border-b border-gray-200">
+            {SUPPORTED_REGIONS.map((region) => (
               <button
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  initiateConnection(server.ip);
-                }}
+                key={region.id}
+                className={`py-2 px-4 mr-2 font-medium text-sm focus:outline-none ${
+                  selectedRegion === region.id
+                    ? 'border-b-2 border-purple-500 text-purple-600'
+                    : 'text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedRegion(region.id)}
+                disabled={region.disabled}
               >
-                连接
+                {region.name}
+                <span className="ml-2 bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">
+                  {getRegionServerCount(region.id)}
+                </span>
               </button>
-            </div>
-          ))}
+            ))}
+            <button
+              className="ml-auto text-sm text-blue-600 hover:text-blue-800"
+              onClick={fetchAllRegionInstances}
+            >
+              刷新列表
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getServersForSelectedRegion().length === 0 ? (
+              <div className="col-span-3 py-8 text-center text-gray-500">
+                {isAdmin 
+                  ? `当前地域 ${getRegionName(selectedRegion)} 未发现服务器实例` 
+                  : `当前地域 ${getRegionName(selectedRegion)} 未发现与您关联的服务器实例`}
+              </div>
+            ) : (
+              getServersForSelectedRegion().map((server) => (
+                <div
+                  key={server.ip}
+                  className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-14z" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
+                  </div>
+                  <p className="text-gray-600">{server.ip}</p>
+                  
+                  {server.osName && (
+                    <p className="text-gray-600 text-sm mt-1">{server.osName}</p>
+                  )}
+                  
+                  {server.status && (
+                    <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      server.status === 'RUNNING' ? 'bg-green-100 text-green-800' : 
+                      server.status === 'STOPPED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {server.status === 'RUNNING' ? '运行中' : 
+                      server.status === 'STOPPED' ? '已停止' : server.status}
+                    </div>
+                  )}
+                  
+                  <div className="mt-4">
+                    <button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+                      onClick={() => connectToVnc(server)}
+                      disabled={!server.instanceId || server.status !== 'RUNNING'}
+                    >
+                      VNC终端连接
+                    </button>
+                    {(!server.instanceId || server.status !== 'RUNNING') && (
+                      <p className="text-xs text-gray-500 mt-1 text-center">
+                        {!server.instanceId ? '此服务器无法使用VNC' : '服务器必须处于运行状态才能连接'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

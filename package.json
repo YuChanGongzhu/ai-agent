@@ -16,6 +16,7 @@
     "@types/react-dom": "^19.0.0",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "firebase": "^10.10.0",
     "react": "^19.0.0",
@@ -53,9 +54,11 @@
     ]
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.1",
     "@types/react-big-calendar": "^1.16.1",
     "autoprefixer": "^10.4.20",
     "daisyui": "^4.12.23",
+    "http-proxy-middleware": "^3.0.0",
     "postcss": "^8.5.2",
     "tailwindcss": "3"
   }
