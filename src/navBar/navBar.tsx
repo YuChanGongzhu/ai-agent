@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../utils/supabaseConfig';
 import { logoutUser } from '../utils/authService';
+import { useUser } from '../context/UserContext';
 
 import calenderSVG from '../img/nav/calender.svg';
 import employeeSVG from '../img/nav/employee.svg';
@@ -44,7 +45,8 @@ const NavBar: React.FC = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  // 使用UserContext获取用户信息和管理员状态
+  const { userProfile, isAdmin } = useUser();
   const [userData, setUserData] = useState<{displayName: string | null; email: string | null}>({
     displayName: null,
     email: null
@@ -54,83 +56,58 @@ const NavBar: React.FC = () => {
     setSelected(findSelectedNavItem(location.pathname));
   }, [location.pathname]);
 
-  // 检查用户是否为管理员
-  const checkIfUserIsAdmin = async (userId: string) => {
-    if (!userId) {
-      setIsAdmin(false);
-      return;
-    }
+  // 不再需要嗅探用户是否为管理员，现在从上下文中获取
 
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) {
-        console.error('获取用户角色失败:', error);
-        setIsAdmin(false);
-        return;
-      }
-
-      setIsAdmin(data?.role === 'admin');
-    } catch (err) {
-      console.error('检查管理员状态失败:', err);
-      setIsAdmin(false);
-    }
-  };
-
-  // 监听用户认证状态变化
+  // 结合认证状态和用户上下文
   useEffect(() => {
-    // 获取当前用户
-    const getCurrentUser = async () => {
+    // 订阅认证状态变化（仅用于基本登录信息）
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = session.user;
+          setUserData({
+            displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
+            email: user.email || null
+          });
+        } else if (event === 'SIGNED_OUT') {
+          setUserData({
+            displayName: null,
+            email: null
+          });
+        }
+      }
+    );
+
+    // 初始化当前用户的基本信息（仅在上下文加载之前使用）
+    const initBasicUserInfo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserData({
           displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
           email: user.email || null
         });
-        
-        // 检查用户是否为管理员
-        await checkIfUserIsAdmin(user.id);
-      } else {
-        setUserData({
-          displayName: null,
-          email: null
-        });
-        setIsAdmin(false);
       }
     };
 
-    getCurrentUser();
-
-    // 订阅认证状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_, session) => {
-        if (session?.user) {
-          const user = session.user;
-          setUserData({
-            displayName: user.user_metadata?.name || user.email?.split('@')[0] || null,
-            email: user.email || null
-          });
-          
-          // 检查用户是否为管理员
-          await checkIfUserIsAdmin(user.id);
-        } else {
-          setUserData({
-            displayName: null,
-            email: null
-          });
-          setIsAdmin(false);
-        }
-      }
-    );
+    initBasicUserInfo();
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // 使用UserContext中的用户配置信息
+  useEffect(() => {
+    if (userProfile) {
+      // 当用户配置信息加载完成后，优先使用用户配置中的显示名称
+      setUserData(prev => ({
+        ...prev,
+        displayName: userProfile.display_name || prev.displayName
+      }));
+      
+      console.log('NavBar: 从UserContext获取用户配置信息', userProfile.display_name);
+    }
+  }, [userProfile]);
 
   const handleClick = (itemName: string, url: string) => {
     setSelected(itemName);

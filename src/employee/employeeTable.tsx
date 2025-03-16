@@ -2,38 +2,23 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from "react";
 import { WxAccount, getWxAccountListApi } from '../api/airflow';
-import { supabase } from '../utils/supabaseConfig';
-import { UserProfile, UserProfileService } from '../userManagement/userProfileService';
+import { useUser } from '../context/UserContext';
+import { UserProfile } from '../userManagement/userProfileService';
 
 export const EmployeeTable: React.FC = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
     const [filteredWxAccountList, setFilteredWxAccountList] = useState<WxAccount[]>([]);
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    
+    // 使用上下文获取用户配置和管理员状态
+    const { userProfile, isAdmin, isLoading: userLoading } = useUser();
 
     const handleEdit = (wxAccount: WxAccount) => {
         navigate(`/employee/edit/${wxAccount.wxid}`, { state: { wxAccount } });
     };
 
-    // 获取当前用户的配置信息及角色
-    const fetchUserProfileAndCheckAdmin = async (userId: string) => {
-        try {
-            const profile = await UserProfileService.getUserProfile(userId);
-            setUserProfile(profile);
-            
-            // 从配置信息中获取用户角色
-            const isUserAdmin = profile?.role === 'admin';
-            setIsAdmin(isUserAdmin);
-            
-            return { profile, isUserAdmin };
-        } catch (error) {
-            console.error('获取用户配置失败:', error);
-            setIsAdmin(false);
-            return { profile: null, isUserAdmin: false };
-        }
-    };
+    // 不再需要获取用户配置和管理员状态的方法，现在从上下文中获取
 
     // 过滤微信账号列表
     const filterWxAccounts = (accounts: WxAccount[], profile: UserProfile | null, isUserAdmin: boolean) => {
@@ -59,36 +44,30 @@ export const EmployeeTable: React.FC = () => {
     };
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchWxAccounts = async () => {
             try {
                 setIsLoading(true);
                 
-                // 获取当前用户信息
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    console.error('未登录用户');
-                    setIsLoading(false);
-                    return;
-                }
-                
-                // 获取用户配置并检查管理员角色
-                const { profile, isUserAdmin } = await fetchUserProfileAndCheckAdmin(user.id);                
                 // 获取微信账号列表
                 const accounts = await getWxAccountListApi();
                 setWxAccountList(accounts);
                 
-                // 过滤微信账号列表
-                const filtered = filterWxAccounts(accounts, profile, isUserAdmin);
+                // 根据用户权限和设备过滤账号
+                // 使用上下文中的userProfile和isAdmin
+                const filtered = filterWxAccounts(accounts, userProfile, isAdmin);
                 setFilteredWxAccountList(filtered);
             } catch (error) {
-                console.error('获取数据失败:', error);
+                console.error('获取微信账号失败:', error);
             } finally {
                 setIsLoading(false);
             }
         };
         
-        fetchData();
-    }, []);
+        // 只有当用户配置加载完成后才加载微信账号
+        if (!userLoading) {
+            fetchWxAccounts();
+        }
+    }, [userProfile, isAdmin, userLoading]); // 依赖于用户上下文中的数据
 
     return (
         <div className="bg-white rounded-lg shadow-lg text p-2 m-2">

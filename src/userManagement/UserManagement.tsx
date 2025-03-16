@@ -4,6 +4,7 @@ import { UserProfileService, UserProfile } from './userProfileService';
 import { UserData } from './types';
 import { useNavigate } from 'react-router-dom';
 import { getDatasetsApi, Dataset } from '../api/dify';
+import { useUser } from '../context/UserContext';
 
 // 集成用户编辑组件到用户管理页面
 const UserManagement: React.FC = () => {
@@ -52,44 +53,31 @@ const UserManagement: React.FC = () => {
   const [saveLoading, setSaveLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // 验证当前用户是否为管理员
+  // 使用UserContext获取用户信息和管理员状态
+  const { userProfile, isAdmin: contextIsAdmin, isLoading: userContextLoading } = useUser();
+  
+  // 验证当前用户是否为管理员（使用上下文）
   useEffect(() => {
     async function checkAdminPermission() {
       try {
         setIsAdminChecking(true);
         
-        // 获取当前用户
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
-          throw new Error('未登录或获取用户信息失败');
+        // 从用户上下文获取管理员状态
+        if (userContextLoading) {
+          // 如果上下文还在加载，等待
+          return;
         }
         
-        // 获取用户配置信息
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        // 调试输出用户信息
-        console.log('User profile:', profile);
-        
-        // 正确地获取用户角色，优先检查profile.role
-        const userRole = profile?.role || user.user_metadata?.role || 'user';
-        console.log('User role determined as:', userRole);
-        
-        // 大小写不敏感的比较，允许'Admin'、'ADMIN'、'admin'等
-        if (typeof userRole === 'string' && userRole.toLowerCase() === 'admin') {
+        // 使用上下文中的管理员状态
+        if (contextIsAdmin) {
           setIsAdmin(true);
           setError(null);
-          console.log('用户是管理员');
+          console.log('用户是管理员（从上下文获取）');
         } else {
           // 不是管理员，设置状态但不重定向
           setIsAdmin(false);
           setError('您没有访问用户管理页面的权限');
-          console.log('用户不是管理员，role =', userRole);
-          return;
+          console.log('用户不是管理员（从上下文获取）');
         }
       } catch (err) {
         console.error('验证管理员权限失败:', err);
@@ -101,7 +89,7 @@ const UserManagement: React.FC = () => {
     }
     
     checkAdminPermission();
-  }, []);
+  }, [contextIsAdmin, userContextLoading]); // 依赖于上下文中的数据，当上下文更新时重新检查
 
   // 搜索功能
   useEffect(() => {

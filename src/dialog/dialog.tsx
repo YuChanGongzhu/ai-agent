@@ -5,6 +5,8 @@ import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
 import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
+import { useUser } from '../context/UserContext';
+import { UserProfile } from '../userManagement/userProfileService';
 
 
 
@@ -20,6 +22,7 @@ export const Dialog = () => {
     const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
     const [humanList, setHumanList] = useState<string[]>([]);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
+    const [filteredWxAccountList, setFilteredWxAccountList] = useState<WxAccount[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
@@ -27,6 +30,9 @@ export const Dialog = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+    
+    // 使用用户上下文获取用户信息和管理员状态
+    const { userProfile, isAdmin, isLoading: userLoading } = useUser();
 
     const getConversations = async () => {
         if (!selectedAccount) return;
@@ -48,12 +54,41 @@ export const Dialog = () => {
         }
     };
 
+    // 过滤微信账号列表，与 employeeTable.tsx 中的逻辑相同
+    const filterWxAccounts = (accounts: WxAccount[], profile: UserProfile | null, isUserAdmin: boolean) => {
+        if (isUserAdmin) {
+            // 管理员可以看到所有账号
+            return accounts;
+        }
+        
+        if (!profile || !profile.mobile_devices || profile.mobile_devices.length === 0) {
+            // 如果用户没有关联设备，则不显示任何账号
+            return [];
+        }
+        
+        // 只显示用户关联设备中包含的手机号对应的微信账号
+        const mobileDevices = profile.mobile_devices || [];
+        // mobile_devices 是对象数组，需要比较 device.name 与 account.mobile
+        return accounts.filter(account => 
+            account.mobile && mobileDevices.some(device => 
+                // 处理不同的设备格式
+                (typeof device === 'string' ? device === account.mobile : device.name === account.mobile)
+            )
+        );
+    };
+
     useEffect(() => {
         const fetchWxAccounts = async () => {
             setIsLoading(true);
             try {
                 const accounts = await getWxAccountListApi();
                 setWxAccountList(accounts);
+                
+                // 根据用户权限和设备过滤账号
+                if (!userLoading) {
+                    const filtered = filterWxAccounts(accounts, userProfile, isAdmin);
+                    setFilteredWxAccountList(filtered);
+                }
             } catch (error) {
                 console.error('Failed to fetch wx accounts:', error);
             } finally {
@@ -61,7 +96,7 @@ export const Dialog = () => {
             }
         };
         fetchWxAccounts();
-    }, [])
+    }, [userProfile, isAdmin, userLoading])
 
     useEffect(() => {
         const pollMessageCount = async () => {
@@ -143,12 +178,15 @@ export const Dialog = () => {
                         <span className="loading loading-spinner loading-md"></span>
                         <span className="ml-2 text-gray-500">加载中...</span>
                     </div>
-                ) : !wxAccountList.length ? (
-                    <div className="flex items-center justify-center py-2">
-                        <span className="text-gray-500">暂无微信号</span>
+                ) : !filteredWxAccountList.length ? (
+                    <div className="flex items-center justify-center w-full py-4 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                            <span className="text-gray-500 block mb-1">暂无可用的微信账号</span>
+                            <span className="text-xs text-gray-400">请联系管理员获取微信账号访问权限</span>
+                        </div>
                     </div>
                 ) : (
-                    wxAccountList.map((account) => (
+                    filteredWxAccountList.map((account) => (
                         <div key={account.wxid} className="relative">
                             <button
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
