@@ -37,6 +37,7 @@ const UserManagement: React.FC = () => {
   // 编辑表单状态
   const [formData, setFormData] = useState<any>({
     display_name: '',
+    email: '',
     phone: '',
     department: '',
     position: '',
@@ -98,7 +99,8 @@ const UserManagement: React.FC = () => {
     const results = users.filter(user => 
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.display_name && user.display_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase()))
+      (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.last_sign_in_at && user.last_sign_in_at.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     
     setFilteredUsers(results);
@@ -157,19 +159,28 @@ const UserManagement: React.FC = () => {
           const formattedUsers = profilesData.map(profile => {
             return {
               id: profile.user_id,
-              email: profile.display_name?.includes('@') ? profile.display_name : `${profile.display_name || 'user'}@example.com`,
-              last_sign_in_at: null, // 这个信息可能无法直接获取
+              email: profile.email || '从未登录',
+              last_sign_in_at: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '从未登录',
               created_at: profile.created_at || '',
               is_active: profile.is_active !== undefined ? profile.is_active : true,
-              role: profile.role || 'user', // 使用profile中的role
+              role: profile.role || 'user',
               display_name: profile.display_name || '',
               profile: profile
             };
           });
           
-          setUsers(formattedUsers);
-          setFilteredUsers(formattedUsers);
-          setTotalPages(Math.ceil(formattedUsers.length / itemsPerPage));
+          // 按最后登录时间排序，最新登录的显示在最上面
+          const sortedUsers = formattedUsers.sort((a, b) => {
+            // 如果没有profile或updated_at，则排在最后
+            if (!a.profile?.updated_at) return 1;
+            if (!b.profile?.updated_at) return -1;
+            // 降序排序，最新的在前面
+            return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
+          });
+          
+          setUsers(sortedUsers);
+          setFilteredUsers(sortedUsers);
+          setTotalPages(Math.ceil(sortedUsers.length / itemsPerPage));
           setError(null);
         } else {
           // 如果没有用户数据，显示空列表
@@ -213,8 +224,8 @@ const UserManagement: React.FC = () => {
         const formattedUsers = profilesData.map(profile => {
           return {
             id: profile.user_id,
-            email: profile.display_name?.includes('@') ? profile.display_name : `${profile.display_name || 'user'}@example.com`,
-            last_sign_in_at: null,
+            email: profile.email || '从未登录',
+            last_sign_in_at: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '从未登录',
             created_at: profile.created_at || '',
             is_active: profile.is_active !== undefined ? profile.is_active : true,
             role: profile.role || 'user',
@@ -223,13 +234,23 @@ const UserManagement: React.FC = () => {
           };
         });
         
-        setUsers(formattedUsers);
-        setFilteredUsers(formattedUsers.filter(user => 
+        // 按最后登录时间排序，最新登录的显示在最上面
+        const sortedUsers = formattedUsers.sort((a, b) => {
+          // 如果没有profile或updated_at，则排在最后
+          if (!a.profile?.updated_at) return 1;
+          if (!b.profile?.updated_at) return -1;
+          // 降序排序，最新的在前面
+          return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
+        });
+        
+        setUsers(sortedUsers);
+        setFilteredUsers(sortedUsers.filter(user => 
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (user.display_name && user.display_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase()))
+          (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (user.last_sign_in_at && user.last_sign_in_at.toLowerCase().includes(searchTerm.toLowerCase()))
         ));
-        setTotalPages(Math.ceil(formattedUsers.length / itemsPerPage));
+        setTotalPages(Math.ceil(sortedUsers.length / itemsPerPage));
         setError(null);
       } else {
         setUsers([]);
@@ -250,6 +271,7 @@ const UserManagement: React.FC = () => {
     setEditModeActive(true);
     setFormData({
       display_name: user.display_name || '',
+      email: user.profile?.email || '',
       phone: user.profile?.phone || '',
       department: user.profile?.department || '',
       position: user.profile?.position || '',
@@ -395,6 +417,7 @@ const UserManagement: React.FC = () => {
       // 准备用户配置数据
       const profileData: Partial<UserProfile> = {
         display_name: formData.display_name,
+        email: formData.email,
         phone: formData.phone,
         department: formData.department,
         position: formData.position,
@@ -416,6 +439,7 @@ const UserManagement: React.FC = () => {
       const updatedUser = {
         ...selectedUser,
         display_name: formData.display_name,
+        email: formData.email,
         is_active: formData.is_active === true || formData.is_active === 'true',
         role: formData.role,
         profile: updatedProfile
@@ -426,11 +450,21 @@ const UserManagement: React.FC = () => {
         user.id === updatedUser.id ? updatedUser : user
       );
       
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedUsers.filter(user => 
+      // 按最后登录时间排序
+      const sortedUsers = updatedUsers.sort((a, b) => {
+        // 如果没有profile或updated_at，则排在最后
+        if (!a.profile?.updated_at) return 1;
+        if (!b.profile?.updated_at) return -1;
+        // 降序排序，最新的在前面
+        return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
+      });
+      
+      setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers.filter(user => 
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (user.display_name && user.display_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase()))
+        (user.profile?.department && user.profile.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.last_sign_in_at && user.last_sign_in_at.toLowerCase().includes(searchTerm.toLowerCase()))
       ));
       
       // 显示成功提示
@@ -548,7 +582,7 @@ const UserManagement: React.FC = () => {
         <div className="relative">
           <input
             type="text"
-            placeholder="搜索用户（邮箱、名称或部门）"
+            placeholder="搜索用户（邮箱、名称、部门或登录时间）"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary pl-10"
@@ -582,6 +616,9 @@ const UserManagement: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       部门 / 职位
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      最后登录时间
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       角色
@@ -629,6 +666,11 @@ const UserManagement: React.FC = () => {
                         </div>
                         <div className="text-sm text-gray-500">
                           {user.profile?.position || '未设置职位'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.last_sign_in_at}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -689,6 +731,20 @@ const UserManagement: React.FC = () => {
                     value={selectedUser.email || selectedUser.id}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    电子邮箱
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                    placeholder="user@example.com"
                   />
                 </div>
                 

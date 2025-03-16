@@ -13,6 +13,44 @@ export const loginUser = async (email: string, password: string): Promise<{ user
     
     if (error) throw error;
     
+    // 登录成功后更新用户资料中的updated_at字段以及email字段
+    if (data.user) {
+      try {
+        const now = new Date().toISOString();
+        
+        // 1. 首先检查用户资料是否存在
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          if (profileError.code === 'PGRST116') { // PGRST116 是"没有找到记录"的错误
+            console.error('用户资料不存在:', data.user.id);
+          } else {
+            console.error('查询用户资料失败:', profileError);
+          }
+        } else if (profileData) {
+          // 2. 如果用户资料存在，更新它
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ 
+              updated_at: now,
+              email: data.user.email
+            })
+            .eq('user_id', data.user.id);
+          
+          if (updateError) {
+            console.error('更新用户最后登录时间和邮箱失败:', updateError);
+          }
+        }
+      } catch (profileUpdateError) {
+        // 确保即使资料更新失败，也不会影响登录过程
+        console.error('用户资料更新过程中发生错误:', profileUpdateError);
+      }
+    }
+    
     return data;
   } catch (error) {
     throw error;

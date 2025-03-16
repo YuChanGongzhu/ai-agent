@@ -4,6 +4,7 @@ export interface UserProfile {
   id?: string;
   user_id: string;
   display_name?: string;
+  email?: string;
   phone?: string;
   department?: string;
   position?: string;
@@ -24,17 +25,35 @@ export class UserProfileService {
   private static currentUserProfile: UserProfile | null = null;
   private static lastFetchTime: number = 0;
   private static CACHE_TTL = 60000; // 缓存有效期1分钟
+  
+  // 添加一个工具方法，用于统一管理缓存有效性检查
+  private static isCacheValid(userId?: string): boolean {
+    const now = Date.now();
+    if (!this.currentUserProfile || (now - this.lastFetchTime >= this.CACHE_TTL)) {
+      return false;
+    }
+    
+    // 如果提供了用户ID，则检查缓存的用户ID是否匹配
+    if (userId && this.currentUserProfile.user_id !== userId) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // 添加统一的缓存更新方法
+  private static updateCache(profile: UserProfile | null): void {
+    this.currentUserProfile = profile;
+    this.lastFetchTime = Date.now();
+  }
 
   /**
    * 获取用户配置信息
    */
   static async getUserProfile(userId: string): Promise<UserProfile | null> {
-    // 如果已有缓存并且用户ID匹配，直接返回缓存
-    if (this.currentUserProfile && this.currentUserProfile.user_id === userId) {
-      const now = Date.now();
-      if (now - this.lastFetchTime < this.CACHE_TTL) {
-        return this.currentUserProfile;
-      }
+    // 检查缓存有效性
+    if (this.isCacheValid(userId)) {
+      return this.currentUserProfile;
     }
 
     const { data, error } = await supabase
@@ -46,7 +65,7 @@ export class UserProfileService {
     if (error) {
       // PGRST116是"找不到记录"错误
       if (error.code === 'PGRST116') {
-        this.currentUserProfile = null;
+        this.updateCache(null);
         return null;
       }
       console.error('获取用户配置失败:', error);
@@ -54,9 +73,8 @@ export class UserProfileService {
     }
     
     // 更新缓存
-    this.currentUserProfile = data;
-    this.lastFetchTime = Date.now();
-    return data;
+    this.updateCache(data as UserProfile);
+    return data as UserProfile;
   }
 
   /**
@@ -75,19 +93,42 @@ export class UserProfileService {
     }
     
     // 更新缓存
-    this.currentUserProfile = data;
-    this.lastFetchTime = Date.now();
+    this.updateCache(data as UserProfile);
     
-    return data;
+    return data as UserProfile;
   }
 
   /**
    * 更新用户配置
    */
   static async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+    // 检查缓存，看是否有必要进行更新
+    let needsUpdate = true;
+    
+    if (this.isCacheValid(userId)) {
+      // 检查是否有实际的变更
+      needsUpdate = false;
+      for (const key in updates) {
+        // 如果值不同，则需要更新
+        if (JSON.stringify((this.currentUserProfile as any)[key]) !== JSON.stringify((updates as any)[key])) {
+          needsUpdate = true;
+          break;
+        }
+      }
+      
+      // 如果没有变更，直接返回缓存的配置
+      if (!needsUpdate) {
+        return this.currentUserProfile!;
+      }
+    }
+    
+    // 如果需要更新或没有有效缓存，则更新数据库
     const { data, error } = await supabase
       .from('user_profiles')
-      .update(updates)
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
       .eq('user_id', userId)
       .select()
       .single();
@@ -98,10 +139,9 @@ export class UserProfileService {
     }
     
     // 更新缓存
-    this.currentUserProfile = data;
-    this.lastFetchTime = Date.now();
+    this.updateCache(data as UserProfile);
     
-    return data;
+    return data as UserProfile;
   }
   
   /**
@@ -112,61 +152,41 @@ export class UserProfileService {
   }
   
   /**
-   * 向用户的素材库访问列表添加素材ID
-   */
-  static async addMaterialToUserList(userId: string, materialId: string): Promise<UserProfile> {
-    // 先获取用户当前的素材列表
-    const profile = await this.getUserProfile(userId);
-    if (!profile) {
-      throw new Error('用户配置不存在');
-    }
-    
-    // 确保material_list是一个数组
-    const currentList = profile.material_list || [];
-    
-    // 确保不添加重复的素材ID
-    if (!currentList.includes(materialId)) {
-      const updatedList = [...currentList, materialId];
-      return this.updateUserProfile(userId, { material_list: updatedList });
-    }
-    
-    return profile;
-  }
-  
-  /**
-   * 从用户的素材库访问列表移除素材ID
-   */
-  static async removeMaterialFromUserList(userId: string, materialId: string): Promise<UserProfile> {
-    // 先获取用户当前的素材列表
-    const profile = await this.getUserProfile(userId);
-    if (!profile) {
-      throw new Error('用户配置不存在');
-    }
-    
-    // 确保material_list是一个数组
-    const currentList = profile.material_list || [];
-    
-    // 过滤掉要移除的素材ID
-    const updatedList = currentList.filter(id => id !== materialId);
-    return this.updateUserProfile(userId, { material_list: updatedList });
-  }
-
-  /**
    * 获取或创建用户配置
    * 如果用户配置不存在，则创建一个新的
    */
   static async getOrCreateUserProfile(userId: string, defaultProfile: Partial<UserProfile> = {}): Promise<UserProfile> {
     try {
-      const profile = await this.getUserProfile(userId);
-      if (profile) {
-        return profile;
+      // 检查缓存中是否有数据
+      if (this.isCacheValid(userId)) {
+        return this.currentUserProfile!;
+      }
+
+      // 使用upsert操作，一次性完成获取或创建
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: userId,
+          ...defaultProfile,
+          // 确保只在插入时设置created_at
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('获取或创建用户配置失败:', error);
+        throw error;
       }
       
-      // 如果没有找到配置，创建一个新的
-      return await this.createUserProfile({
-        user_id: userId,
-        ...defaultProfile
-      });
+      // 更新缓存
+      this.updateCache(data as UserProfile);
+      
+      return data as UserProfile;
     } catch (error) {
       console.error('获取或创建用户配置失败:', error);
       throw error;
@@ -198,18 +218,69 @@ export class UserProfileService {
     try {
       // 检查是否有缓存的用户数据，且缓存未过期
       const now = Date.now();
-      if (this.currentUser && this.currentUserProfile && (now - this.lastFetchTime < this.CACHE_TTL)) {
-        return {
-          success: true,
-          userId: this.currentUser.id,
-          email: this.currentUser.email,
-          profile: this.currentUserProfile,
-          isAdmin: this.currentUserProfile?.role === 'admin',
-          fromCache: true
-        };
+      // 增强判断：只要有currentUser就优先使用，避免不必要的auth.getUser()调用
+      if (this.currentUser) {
+        // 如果有用户但没有配置，或者配置已过期，仅获取配置信息
+        if (!this.currentUserProfile || (now - this.lastFetchTime >= this.CACHE_TTL)) {
+          // 获取用户配置信息（不调用auth.getUser）
+          const userId = this.currentUser.id;
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          if (profileError) {
+            if (profileError.code !== 'PGRST116') {
+              console.error('获取用户配置失败:', profileError);
+              return {
+                success: false,
+                user: this.currentUser,
+                message: '获取用户配置失败',
+                error: profileError
+              };
+            }
+            
+            // 用户配置不存在，返回成功但没有配置
+            this.updateCache(null);
+            
+            return {
+              success: true,
+              userId: this.currentUser.id,
+              email: this.currentUser.email,
+              profile: null,
+              isAdmin: false
+            };
+          }
+          
+          // 更新缓存
+          this.updateCache(profile as UserProfile);
+          
+          // 检查用户角色
+          const isAdmin = profile?.role === 'admin';
+          
+          return {
+            success: true,
+            userId: this.currentUser.id,
+            email: this.currentUser.email,
+            profile,
+            isAdmin
+          };
+        } else {
+          // 用户和配置的缓存都有效
+          return {
+            success: true,
+            userId: this.currentUser.id,
+            email: this.currentUser.email,
+            profile: this.currentUserProfile,
+            isAdmin: this.currentUserProfile?.role === 'admin',
+            fromCache: true
+          };
+        }
       }
 
-      // 获取当前用户认证信息
+      // 如果没有缓存用户，才调用auth.getUser()
+      console.log('缓存中没有用户数据，调用auth.getUser()获取认证信息');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
@@ -227,29 +298,62 @@ export class UserProfileService {
       // 更新用户缓存
       this.currentUser = user;
       
-      // 获取用户配置信息 - 使用缓存机制的getUserProfile
-      try {
-        const profile = await this.getUserProfile(user.id);
+      // 尝试从缓存获取用户配置（虽然前面检查过，但updateCache可能被其他方法调用过）
+      if (this.isCacheValid(user.id)) {
+        const isAdmin = this.currentUserProfile?.role === 'admin';
+        return {
+          success: true,
+          userId: user.id,
+          email: user.email,
+          profile: this.currentUserProfile,
+          isAdmin,
+          fromCache: true
+        };
+      }
+      
+      // 获取用户配置信息
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
         
-        // 检查用户角色
-        const isAdmin = profile?.role === 'admin';
+      if (profileError) {
+        if (profileError.code !== 'PGRST116') { // 不是"找不到记录"错误时才报错
+          console.error('获取用户配置失败:', profileError);
+          return {
+            success: false,
+            user,
+            message: '获取用户配置失败',
+            error: profileError
+          };
+        }
+        
+        // 用户配置不存在，返回成功但没有配置
+        this.updateCache(null);
         
         return {
           success: true,
           userId: user.id,
           email: user.email,
-          profile,
-          isAdmin
-        };
-      } catch (profileError) {
-        console.error('获取用户配置失败:', profileError);
-        return {
-          success: false,
-          user,
-          message: '获取用户配置失败',
-          error: profileError
+          profile: null,
+          isAdmin: false
         };
       }
+      
+      // 更新缓存
+      this.updateCache(profile as UserProfile);
+      
+      // 检查用户角色
+      const isAdmin = profile?.role === 'admin';
+      
+      return {
+        success: true,
+        userId: user.id,
+        email: user.email,
+        profile,
+        isAdmin
+      };
     } catch (error) {
       console.error('获取用户信息失败:', error);
       return {

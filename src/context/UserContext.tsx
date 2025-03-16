@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '../utils/supabaseConfig';
 import { UserProfile, UserProfileService } from '../userManagement/userProfileService';
 
@@ -8,6 +8,7 @@ interface UserContextType {
   isAdmin: boolean;
   isLoading: boolean;
   error: string | null;
+  email: string | null;
   refreshUserProfile: () => Promise<void>;
 }
 
@@ -20,19 +21,40 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  
+  // 添加一个ref来防止重复调用
+  const isLoadingRef = useRef<boolean>(false);
 
   const fetchUserProfile = async () => {
+    // 防止重复调用
+    if (isLoadingRef.current) {
+      console.log('已有一个获取用户信息的请求正在处理，跳过调用');
+      return;
+    }
+    
     try {
+      isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
 
-      // 获取当前登录用户
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // 检查用户session以减少API调用
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('未登录');
+      }
       
-      if (authError || !user) {
-        throw new Error('未登录或获取用户信息失败');
+      // 使用本地session信息，避免再次调用getUser API
+      const user = sessionData.session.user;
+      
+      // 保存用户邮箱
+      if (user.email) {
+        setEmail(user.email);
       }
 
+      // 调试输出
+      console.log('User context: 使用session中的用户信息, userId:', user.id);
+      
       // 获取用户配置信息
       const profile = await UserProfileService.getUserProfile(user.id);
       
@@ -54,6 +76,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(err instanceof Error ? err.message : '未知错误');
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -73,6 +96,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAdmin,
     isLoading,
     error,
+    email,
     refreshUserProfile
   };
 

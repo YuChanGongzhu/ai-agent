@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tencentCloudService, LighthouseInstance, SUPPORTED_REGIONS, RegionInfo } from '../api/tencent_cloud';
-import { supabase } from '../utils/supabaseConfig';
-import { UserProfile, UserProfileService } from '../userManagement/userProfileService';
+import { useUser } from '../context/UserContext'; // 导入useUser钩子
 
 interface WindowsServer {
   ip: string;
@@ -23,65 +22,20 @@ export const ServerManage: React.FC = () => {
   const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [serverToConnect, setServerToConnect] = useState<WindowsServer | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
-
-  // 获取当前用户的信息和配置
-  const fetchUserInfo = async () => {
-    try {
-      // 使用整合后的方法获取用户信息和配置
-      const result = await UserProfileService.getUserInfoWithProfile();
-      
-      if (!result.success) {
-        console.error(result.message || '获取用户信息失败');
-        return { success: false };
-      }
-      
-      // 输出是否使用了缓存数据
-      if (result.fromCache) {
-        console.log('使用缓存的用户数据');
-      } else {
-        console.log('获取了新的用户数据');
-      }
-      
-      // 设置用户数据到组件状态
-      if (result.email) {
-        setUserEmail(result.email);
-      }
-      
-      // 添加类型保护，确保值不是undefined
-      if (result.profile !== undefined) {
-        setUserProfile(result.profile);
-      }
-      
-      // 添加类型保护，确保值不是undefined
-      if (result.isAdmin !== undefined) {
-        setIsAdmin(result.isAdmin);
-      } else {
-        setIsAdmin(false); // 默认非管理员
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('获取用户信息失败:', error);
-      setIsAdmin(false);
-      return { success: false };
-    }
-  };
+  
+  // 使用UserContext提供的用户信息
+  const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // 获取用户信息和权限
-        const userResult = await fetchUserInfo();
-        if (!userResult.success) {
-          setLoading(false);
-          return;
+        // 等待用户上下文加载完成
+        if (userLoading) {
+          return; // 用户数据加载中，等待
         }
-        
+
         // 获取所有地域的服务器列表
         console.log('正在从腾讯云API获取所有地域的服务器列表...');
         await fetchAllRegionInstances();
@@ -94,7 +48,7 @@ export const ServerManage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [userLoading]); // 依赖于userLoading
 
   // 根据用户权限过滤服务器列表
   useEffect(() => {
@@ -106,9 +60,9 @@ export const ServerManage: React.FC = () => {
       if (isAdmin) {
         // 管理员可以看到所有服务器
         newFilteredServers.set(regionId, servers);
-      } else if (userEmail) {
+      } else if (email) {
         // 普通用户只能看到名称包含其邮箱的服务器
-        const userEmailParts = userEmail.split('@')[0].toLowerCase();
+        const userEmailParts = email.split('@')[0].toLowerCase();
         const filteredServers = servers.filter(server => 
           server.name.toLowerCase().includes(userEmailParts)
         );
@@ -121,7 +75,7 @@ export const ServerManage: React.FC = () => {
     
     setFilteredRegionServers(newFilteredServers);
     
-  }, [regionServers, isAdmin, userEmail]);
+  }, [regionServers, isAdmin, email]);
 
   const fetchAllRegionInstances = async () => {
     try {
@@ -228,7 +182,7 @@ export const ServerManage: React.FC = () => {
         <p className="text-gray-600">
           {isAdmin 
             ? '管理员模式：显示所有服务器' 
-            : `普通用户模式：仅显示与您账号 (${userEmail}) 相关的服务器`}
+            : `普通用户模式：仅显示与您账号 (${email}) 相关的服务器`}
         </p>
       </div>
 
