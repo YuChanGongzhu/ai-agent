@@ -13,6 +13,7 @@ import PersonSelector from './task/person';
 import ServerManage from './server/serverManage';
 import UserManagement from './userManagement/UserManagement';
 import { UserProvider } from './context/UserContext';
+import { WxAccountProvider } from './context/WxAccountContext';
 
 function App() {
   return (
@@ -25,23 +26,26 @@ function App() {
             <ProtectedRoute>
               {/* 使用UserProvider包装整个应用，提供用户配置上下文 */}
               <UserProvider>
-                <div className="flex">
-                  <NavBar />
-                  <div className="flex-1">
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/employee" element={<EmployeeTable />} />
-                      <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
-                      <Route path="/dialog" element={<Dialog />} />
-                      <Route path="/task" element={<TaskPage />} />
-                      <Route path="/task/invite" element={<PersonSelector />} />
-                      <Route path="/calendar" element={<CalendarComponent />} />
-                      <Route path="/server" element={<ServerManage />} />
-                      <Route path="/users" element={<UserManagement />} />
-                    </Routes>
+                {/* 使用WxAccountProvider提供微信账号上下文 */}
+                <WxAccountProvider>
+                  <div className="flex">
+                    <NavBar />
+                    <div className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/employee" element={<EmployeeTable />} />
+                        <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
+                        <Route path="/dialog" element={<Dialog />} />
+                        <Route path="/task" element={<TaskPage />} />
+                        <Route path="/task/invite" element={<PersonSelector />} />
+                        <Route path="/calendar" element={<CalendarComponent />} />
+                        <Route path="/server" element={<ServerManage />} />
+                        <Route path="/users" element={<UserManagement />} />
+                      </Routes>
+                    </div>
                   </div>
-                </div>
+                </WxAccountProvider>
               </UserProvider>
             </ProtectedRoute>
           }

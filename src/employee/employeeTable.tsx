@@ -1,67 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from "react";
-import { WxAccount, getWxAccountListApi } from '../api/airflow';
-import { useUser } from '../context/UserContext';
-import { UserProfile } from '../userManagement/userProfileService';
+import { WxAccount } from '../api/airflow';
+import { useWxAccount } from '../context/WxAccountContext';
 
 export const EmployeeTable: React.FC = () => {
     const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(true);
-    const [filteredWxAccountList, setFilteredWxAccountList] = useState<WxAccount[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // 使用上下文获取用户配置和管理员状态
-    const { userProfile, isAdmin, isLoading: userLoading } = useUser();
+    // 使用微信账号上下文获取账号列表和刷新方法
+    const { filteredWxAccountList, isLoading, refreshWxAccounts } = useWxAccount();
 
     const handleEdit = (wxAccount: WxAccount) => {
         navigate(`/employee/edit/${wxAccount.wxid}`, { state: { wxAccount } });
     };
 
-    // 过滤微信账号列表
-    const filterWxAccounts = (accounts: WxAccount[], profile: UserProfile | null, isUserAdmin: boolean) => {
-        if (isUserAdmin) {
-            // 管理员可以看到所有账号
-            return accounts;
+    // 处理刷新按钮点击
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await refreshWxAccounts();
+        } finally {
+            setIsRefreshing(false);
         }
-        
-        if (!profile || !profile.mobile_devices || profile.mobile_devices.length === 0) {
-            // 如果用户没有关联设备，则不显示任何账号
-            return [];
-        }
-        
-        // 只显示用户关联设备中包含的手机号对应的微信账号
-        const mobileDevices = profile.mobile_devices || [];        
-        // mobile_devices 是对象数组，需要比较 device.name 与 account.mobile
-        return accounts.filter(account => 
-            account.mobile && mobileDevices.some(device => 
-                // 处理不同的设备格式
-                (typeof device === 'string' ? device === account.mobile : device.name === account.mobile)
-            )
-        );
     };
-
-    useEffect(() => {
-        const fetchWxAccounts = async () => {
-            try {
-                setIsLoading(true);
-                const accounts = await getWxAccountListApi();
-                const filtered = filterWxAccounts(accounts, userProfile, isAdmin);
-                setFilteredWxAccountList(filtered);
-            } catch (error) {
-                console.error('获取微信账号失败:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        // 只有当用户配置加载完成后才加载微信账号
-        if (!userLoading) {
-            fetchWxAccounts();
-        }
-    }, [userProfile, isAdmin, userLoading]); // 依赖于用户上下文中的数据
 
     return (
         <div className="bg-white rounded-lg shadow-lg text p-2 m-2">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-700">微信账号列表</h2>
+                <button 
+                    onClick={handleRefresh}
+                    disabled={isLoading || isRefreshing}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                >
+                    {isRefreshing ? (
+                        <>
+                            <span className="loading loading-spinner loading-sm mr-2"></span>
+                            <span>刷新中...</span>
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>刷新账号列表</span>
+                        </>
+                    )}
+                </button>
+            </div>
+            
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600"></div>
