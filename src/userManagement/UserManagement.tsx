@@ -72,28 +72,36 @@ const UserManagement: React.FC = () => {
           .eq('user_id', user.id)
           .single();
         
-        // 检查用户角色
-        const userRole = user.user_metadata?.role || (profile?.role as string) || 'user';
+        // 调试输出用户信息
+        console.log('User profile:', profile);
         
-        if (userRole !== 'admin') {
-          // 不是管理员，重定向到其他页面
+        // 正确地获取用户角色，优先检查profile.role
+        const userRole = profile?.role || user.user_metadata?.role || 'user';
+        console.log('User role determined as:', userRole);
+        
+        // 大小写不敏感的比较，允许'Admin'、'ADMIN'、'admin'等
+        if (typeof userRole === 'string' && userRole.toLowerCase() === 'admin') {
+          setIsAdmin(true);
+          setError(null);
+          console.log('用户是管理员');
+        } else {
+          // 不是管理员，设置状态但不重定向
           setIsAdmin(false);
-          navigate('/dashboard');  // 重定向到控制面板或主页
+          setError('您没有访问用户管理页面的权限');
+          console.log('用户不是管理员，role =', userRole);
           return;
         }
-        
-        setIsAdmin(true);
       } catch (err) {
         console.error('验证管理员权限失败:', err);
         setIsAdmin(false);
-        navigate('/dashboard');  // 重定向到控制面板或主页
+        setError('验证管理员权限失败，请刷新页面或者联系系统管理员');
       } finally {
         setIsAdminChecking(false);
       }
     }
     
     checkAdminPermission();
-  }, [navigate]);
+  }, []);
 
   // 搜索功能
   useEffect(() => {
@@ -502,9 +510,25 @@ const UserManagement: React.FC = () => {
     );
   }
 
-  // 如果不是管理员，不应该显示此页面（已在useEffect中处理重定向）
-  if (!isAdmin) {
-    return null;
+  // 如果不是管理员，显示错误消息而不是返回null
+  if (!isAdmin && !isAdminChecking) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">权限不足</h2>
+          <p className="text-gray-600 mb-6">{error || '您没有管理员权限，无法访问用户管理页面。'}</p>
+          <button 
+            onClick={() => navigate('/employee')} 
+            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md shadow-sm transition-colors"
+          >
+            返回主页
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
