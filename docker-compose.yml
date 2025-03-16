@@ -28,7 +28,7 @@ services:
     volumes:
       - ./:/app
     ports:
-      - "5001:5001"
+      - "6666:6666"
     environment:
       - PYTHONUNBUFFERED=1
     command: sh -c "pip install flask && python webhook_server.py"

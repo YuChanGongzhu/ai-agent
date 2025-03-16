@@ -50,4 +50,4 @@ def update_code():
 # 直接运行Flask应用
 if __name__ == "__main__":
     # 在容器中运行时使用0.0.0.0，并关闭debug模式
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    app.run(host='0.0.0.0', port=6666, debug=False)
