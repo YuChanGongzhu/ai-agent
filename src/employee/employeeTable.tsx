@@ -8,7 +8,6 @@ import { UserProfile } from '../userManagement/userProfileService';
 export const EmployeeTable: React.FC = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
-    const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
     const [filteredWxAccountList, setFilteredWxAccountList] = useState<WxAccount[]>([]);
     
     // 使用上下文获取用户配置和管理员状态
@@ -17,8 +16,6 @@ export const EmployeeTable: React.FC = () => {
     const handleEdit = (wxAccount: WxAccount) => {
         navigate(`/employee/edit/${wxAccount.wxid}`, { state: { wxAccount } });
     };
-
-    // 不再需要获取用户配置和管理员状态的方法，现在从上下文中获取
 
     // 过滤微信账号列表
     const filterWxAccounts = (accounts: WxAccount[], profile: UserProfile | null, isUserAdmin: boolean) => {
@@ -47,13 +44,7 @@ export const EmployeeTable: React.FC = () => {
         const fetchWxAccounts = async () => {
             try {
                 setIsLoading(true);
-                
-                // 获取微信账号列表
                 const accounts = await getWxAccountListApi();
-                setWxAccountList(accounts);
-                
-                // 根据用户权限和设备过滤账号
-                // 使用上下文中的userProfile和isAdmin
                 const filtered = filterWxAccounts(accounts, userProfile, isAdmin);
                 setFilteredWxAccountList(filtered);
             } catch (error) {

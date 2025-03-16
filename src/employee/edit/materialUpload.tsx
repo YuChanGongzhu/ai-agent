@@ -11,8 +11,7 @@ import {
     DocumentItem
 } from '../../api/dify';
 import { WxAccount } from '../../api/airflow';
-import { supabase } from '../../utils/supabaseConfig';
-import { UserProfileService } from '../../userManagement/userProfileService';
+import { useUser } from '../../context/UserContext';
 
 interface FileWithPreview extends File {
     preview?: string;
@@ -45,45 +44,37 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     const [userMaterialList, setUserMaterialList] = useState<string[]>([]);
     const [userLoading, setUserLoading] = useState(true);
 
-    // 获取当前用户信息和权限
+    // 使用UserContext获取用户信息和权限
+    const { userProfile, isAdmin: contextIsAdmin, isLoading: userContextLoading } = useUser();
+
+    // 从用户上下文获取用户数据
     useEffect(() => {
-        const fetchUserData = async () => {
+        // 当用户上下文完成加载时更新用户数据
+        if (!userContextLoading) {
             try {
                 setUserLoading(true);
                 
-                // 获取当前用户
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-                
-                // 获取用户配置
-                const profile = await UserProfileService.getUserProfile(user.id);
-                
-                // 检查用户是否是管理员
-                const { data: roleData } = await supabase
-                    .from('user_profiles')
-                    .select('role')
-                    .eq('user_id', user.id)
-                    .single();
-                
-                const isUserAdmin = roleData?.role === 'admin';
-                setIsAdmin(isUserAdmin);
+                // 设置管理员状态
+                setIsAdmin(contextIsAdmin);
                 
                 // 获取用户可访问的素材库列表
-                if (profile && profile.material_list) {
-                    setUserMaterialList(profile.material_list);
+                if (userProfile && userProfile.material_list) {
+                    setUserMaterialList(userProfile.material_list);
+                    console.log('MaterialUpload: 从缓存中获取用户素材列表', userProfile.material_list);
                 }
             } catch (error) {
-                console.error('Failed to fetch user data:', error);
+                console.error('Failed to process user data:', error);
             } finally {
                 setUserLoading(false);
             }
-        };
-        
-        fetchUserData();
-    }, []);
+        }
+    }, [userProfile, contextIsAdmin, userContextLoading]);
     
     // 获取数据集并根据用户权限进行过滤
     useEffect(() => {
+        // 当用户数据或数据集加载完成时并且用户上下文加载完成时执行
+        if (userLoading || userContextLoading) return;
+        
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -124,7 +115,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
         if (!userLoading) {
             fetchData();
         }
-    }, [userLoading, isAdmin, userMaterialList, datasetId]);
+    }, [userLoading, userContextLoading, isAdmin, userMaterialList, datasetId]);
 
     useEffect(() => {
         if (datasetId) {
