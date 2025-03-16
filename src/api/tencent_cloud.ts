@@ -10,8 +10,8 @@ export interface RegionInfo {
 // 支持的地域列表
 export const SUPPORTED_REGIONS: RegionInfo[] = [
   { id: 'ap-guangzhou', name: '华南地区（广州）' },
-  { id: 'ap-beijing', name: '华北地区（北京）' },
-  { id: 'ap-shanghai', name: '华东地区（上海）' },
+//   { id: 'ap-beijing', name: '华北地区（北京）' },
+//   { id: 'ap-shanghai', name: '华东地区（上海）' },
 ];
 
 interface TencentCloudConfig {

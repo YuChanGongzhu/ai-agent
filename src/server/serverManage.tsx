@@ -27,21 +27,46 @@ export const ServerManage: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
 
-  // 获取当前用户的配置信息及角色
-  const fetchUserProfileAndCheckAdmin = async (userId: string) => {
+  // 获取当前用户的信息和配置
+  const fetchUserInfo = async () => {
     try {
-      const profile = await UserProfileService.getUserProfile(userId);
-      setUserProfile(profile);
+      // 使用整合后的方法获取用户信息和配置
+      const result = await UserProfileService.getUserInfoWithProfile();
       
-      // 从配置信息中获取用户角色
-      const isUserAdmin = profile?.role === 'admin';
-      setIsAdmin(isUserAdmin);
+      if (!result.success) {
+        console.error(result.message || '获取用户信息失败');
+        return { success: false };
+      }
       
-      return { profile, isUserAdmin };
+      // 输出是否使用了缓存数据
+      if (result.fromCache) {
+        console.log('使用缓存的用户数据');
+      } else {
+        console.log('获取了新的用户数据');
+      }
+      
+      // 设置用户数据到组件状态
+      if (result.email) {
+        setUserEmail(result.email);
+      }
+      
+      // 添加类型保护，确保值不是undefined
+      if (result.profile !== undefined) {
+        setUserProfile(result.profile);
+      }
+      
+      // 添加类型保护，确保值不是undefined
+      if (result.isAdmin !== undefined) {
+        setIsAdmin(result.isAdmin);
+      } else {
+        setIsAdmin(false); // 默认非管理员
+      }
+      
+      return result;
     } catch (error) {
-      console.error('获取用户配置失败:', error);
+      console.error('获取用户信息失败:', error);
       setIsAdmin(false);
-      return { profile: null, isUserAdmin: false };
+      return { success: false };
     }
   };
 
@@ -50,21 +75,12 @@ export const ServerManage: React.FC = () => {
       try {
         setLoading(true);
         
-        // 获取当前用户信息
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          console.error('未登录用户');
+        // 获取用户信息和权限
+        const userResult = await fetchUserInfo();
+        if (!userResult.success) {
           setLoading(false);
           return;
         }
-
-        // 保存用户邮箱
-        if (user.email) {
-          setUserEmail(user.email);
-        }
-        
-        // 获取用户配置并检查管理员角色
-        await fetchUserProfileAndCheckAdmin(user.id);
         
         // 获取所有地域的服务器列表
         console.log('正在从腾讯云API获取所有地域的服务器列表...');
