@@ -48,9 +48,13 @@ export const EmployeeTable: React.FC = () => {
         }
         
         // 只显示用户关联设备中包含的手机号对应的微信账号
-        const mobileDevices = profile.mobile_devices || [];
+        const mobileDevices = profile.mobile_devices || [];        
+        // mobile_devices 是对象数组，需要比较 device.name 与 account.mobile
         return accounts.filter(account => 
-            account.mobile && mobileDevices.some(device => device === account.mobile)
+            account.mobile && mobileDevices.some(device => 
+                // 处理不同的设备格式
+                (typeof device === 'string' ? device === account.mobile : device.name === account.mobile)
+            )
         );
     };
 
@@ -68,8 +72,7 @@ export const EmployeeTable: React.FC = () => {
                 }
                 
                 // 获取用户配置并检查管理员角色
-                const { profile, isUserAdmin } = await fetchUserProfileAndCheckAdmin(user.id);
-                
+                const { profile, isUserAdmin } = await fetchUserProfileAndCheckAdmin(user.id);                
                 // 获取微信账号列表
                 const accounts = await getWxAccountListApi();
                 setWxAccountList(accounts);
