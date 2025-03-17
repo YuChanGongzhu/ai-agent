@@ -1,27 +1,29 @@
 import { DialogList } from './dialogList';
 import { DialogPage } from './dialogPage';
-import { ChatMemory } from './chatMemory';
 import { MaterialBase } from './materialBase';
+import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
-import { getWxAccountListApi, WxAccount, getUserMsgCountApi } from '../api/airflow';
+import { getWxAccountListApi, WxAccount, getUserMsgCountApi, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage, getRoomMpListMessagesApi } from '../api/mysql';
 
-interface ApiCustomerInfo {
-    name: string | null;
-    age: string | null;
-    gender: string | null;
-    region: string | null;
-    contact: string | null;
+
+
+interface AvatarData {
+    wxid: string;
+    smallHeadImgUrl: string;
+    bigHeadImgUrl: string;
+    update_time: string;
 }
 
 export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
+    const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
+    const [humanList, setHumanList] = useState<string[]>([]);
     const [wxAccountList, setWxAccountList] = useState<WxAccount[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
-    const [customerInfo, setCustomerInfo] = useState<ApiCustomerInfo | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -30,6 +32,9 @@ export const Dialog = () => {
         if (!selectedAccount) return;
     
         try {
+            // Add a 2-second delay before fetching conversations
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             // 并行请求 getRoomListMessagesApi 和 getRoomMpListMessagesApi
             const [response1, response2] = await Promise.all([
                 getRoomListMessagesApi({
@@ -45,6 +50,8 @@ export const Dialog = () => {
                 .sort((a, b) => new Date(b.msg_datetime).getTime() - new Date(a.msg_datetime).getTime());
     
             setConversations(allConversations);
+            
+            await getHumanList();
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {
@@ -102,9 +109,43 @@ export const Dialog = () => {
         }
     }, [messageCount])
 
+    // useEffect(() => {
+    //     console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
+    // }, [selectedAccount, selectedConversation]);
+
+    const getHeadList=async()=>{
+        try {
+            const res = await getWxCountactHeadListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const avatarData = JSON.parse(res.value);
+            const avatarArray: AvatarData[] = Object.values(avatarData);
+            setAvatarList(avatarArray);
+        } catch (error) {
+            console.error('Failed to fetch wx accounts:', error);
+        } 
+    }
+    const getHumanList=async()=>{
+        try {
+            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const humanData = JSON.parse(res.value);
+            const humanArray: string[] = Object.values(humanData);
+            setHumanList(humanArray);
+        } catch (error) {
+            console.error('Failed to fetch wx human list:', error);
+        } 
+    }
+    
+    // Function to refresh the human list - can be passed to child components
+    const refreshHumanList = () => {
+        if (selectedAccount) {
+            getHumanList();
+        }
+    }
+
     useEffect(() => {
-        console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
-    }, [selectedAccount, selectedConversation]);
+        if(selectedAccount) {
+            getHeadList();
+        }
+    }, [selectedAccount]);
 
     return (
         <div className="h-screen p-2 flex flex-col space-y-4">
@@ -172,6 +213,8 @@ export const Dialog = () => {
                             dialogs={conversations}
                             onSelectDialog={setSelectedConversation}
                             isLoading={isLoadingConversations}
+                            avatarList={avatarList}
+                            humanList={humanList}
                         />
                     </div>
                 </div>
@@ -180,21 +223,22 @@ export const Dialog = () => {
                     <DialogPage
                         conversation={selectedConversation}
                         selectedAccount={selectedAccount}
+                        avatarList={avatarList}
+                        refreshHumanList={refreshHumanList}
+                        humanList={humanList}
                     />
                 </div>
 
                 <div className="flex-1">
                     <div className="h-[80vh] flex flex-col space-y-2">
-                        <div className="flex-shrink-0">
+                        {/* <div className="flex-shrink-0">
                             <MaterialBase />
-                        </div>
+                        </div> */}
 
                         <div className="flex-shrink-0">
-                            <ChatMemory
-                                customerInfo={customerInfo}
+                            <Memory
                                 selectedAccount={selectedAccount}
                                 selectedConversation={selectedConversation}
-                                onCustomerInfoUpdate={setCustomerInfo}
                             />
                         </div>
                     </div>

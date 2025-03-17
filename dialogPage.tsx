@@ -2,25 +2,45 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage, getChatMessagesApi, getChatMpMessagesApi, ChatMessage } from '../api/mysql';
-import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi } from '../api/airflow';
+import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, getMpAIReplyListApi, postMpAIReplyListApi, updateWxHumanListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
+
+interface AvatarData {
+    wxid: string;
+    smallHeadImgUrl: string;
+    bigHeadImgUrl: string;
+    update_time: string;
+}
 
 interface DialogPageProps {
     conversation: RoomListMessage | null;
     selectedAccount: WxAccount | null;
+    avatarList?: AvatarData[];
+    refreshHumanList?: () => void;
+    humanList?: string[];
 }
 
-interface Message {
+type Message = {
     id: string;
-    content: string;
     timestamp: number;
     isUser: boolean;
     senderName: string;
-    msgType?: number;
-}
+    senderId?: string;
+  } & (
+    | {
+        msgType?: number;  // 数字类型对应个人账号的聊天信息 content
+        content: string;
+        msg_content?: never;
+      }
+    | {
+        msgType?: string;  // 字符串类型对应公众号的聊天信息 msg_content
+        msg_content: string;
+        content?: never;
+      }
+  );
 
-export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount }) => {
+export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount, avatarList = [], refreshHumanList, humanList = [] }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -29,11 +49,26 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isSending, setIsSending] = useState(false);
     const messageContainerRef = useRef<HTMLDivElement>(null);
     const enabledRoomsRef = useRef<string[]>([]);
+    const [notification, setNotification] = useState<{show: boolean, message: string, type: 'success' | 'error'}>({show: false, message: '', type: 'success'});
 
     const scrollToBottom = () => {
         const messageContainer = messageContainerRef.current;
         if (!messageContainer) return;
         messageContainer.scrollTop = messageContainer.scrollHeight;
+    };
+    
+    // Function to show notification
+    const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+        setNotification({
+            show: true,
+            message,
+            type
+        });
+        
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => {
+            setNotification({show: false, message: '', type: 'success'});
+        }, 3000);
     };
 
     useEffect(() => {
@@ -51,47 +86,61 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
 
     const loadMessages = async () => {
         if (!conversation) return;
-        
         setIsFetchingHistory(true);
         try {
-            // 获取 AI 启用状态
-            const aiResponse = await getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            // 并行调用两个 API
+            const [aiResponse, mpAiResponse] = await Promise.all([
+                getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || ''),
+                getMpAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '')
+            ]);
+    
             try {
                 const enabledRooms = JSON.parse(aiResponse.value);
-                enabledRoomsRef.current = enabledRooms;
-                setIsAIEnabled(enabledRooms.includes(conversation.room_id));
+                const enabledMpRooms = JSON.parse(mpAiResponse.value);
+    
+                // 合并 AI 使能的房间
+                const allEnabledRooms = Array.from(new Set([...enabledRooms, ...enabledMpRooms]));
+                enabledRoomsRef.current = allEnabledRooms;
+                setIsAIEnabled(allEnabledRooms.includes(conversation.room_id));
             } catch (error) {
                 console.error('Error parsing AI enabled rooms:', error);
                 enabledRoomsRef.current = [];
                 setIsAIEnabled(false);
             }
     
-            // 同时调用 getChatMessagesApi 和 getChatMpMessagesApi
-            const [response1, response2] = await Promise.all([
-                getChatMessagesApi({
-                    wx_user_id: selectedAccount?.wxid || '',
-                    room_id: conversation?.room_id || ''
-                }),
-                getChatMpMessagesApi({
-                    wx_user_id: selectedAccount?.wxid || '',
-                    room_id: conversation?.room_id || ''
-                })
-            ]);
+            // 获取聊天消息
+            const response = await getChatMessagesApi({
+                wx_user_id: selectedAccount?.wxid || '',
+                room_id: conversation?.room_id || ''
+            });
+
+            if(response.data.total === 0 && response.code === 0 ){
+                const mpResponse = await getChatMpMessagesApi({wx_user_id: selectedAccount?.wxid || ''})
+                const mpTransformedMessages = mpResponse.data.records.reverse().map(msg => ({
+                    id: msg.msg_id,
+                    content: msg.msg_content || '',
+                    timestamp: new Date(msg.msg_datetime).getTime(),
+                    isUser: msg.msg_id.split('_')[0] === 'ai',
+                    senderName: msg.sender_name || msg.sender_id,
+                    msgType: msg.msg_type,
+                    senderId: msg.sender_id
+                }
+            ));
     
-            // 合并消息并去重
-            const allMessages = [...response1.data.records, ...response2.data.records]
-                .sort((a, b) => new Date(a.msg_datetime).getTime() - new Date(b.msg_datetime).getTime());
+            setMessages(mpTransformedMessages);
+            }else{
+                const transformedMessages = response.data.records.reverse().map(msg => ({
+                    id: msg.msg_id,
+                    content: msg.content || '',
+                    timestamp: new Date(msg.msg_datetime).getTime(),
+                    isUser: msg.sender_id === selectedAccount?.wxid,
+                    senderName: msg.sender_name || msg.sender_id,
+                    msgType: msg.msg_type,
+                    senderId: msg.sender_id
+                }
+            ));
     
-            const transformedMessages = allMessages.map(msg => ({
-                id: msg.msg_id,
-                content: msg.content || '',
-                timestamp: new Date(msg.msg_datetime).getTime(),
-                isUser: msg.sender_id === selectedAccount?.wxid,
-                senderName: msg.sender_name || msg.sender_id,
-                msgType: msg.msg_type
-            }));
-    
-            setMessages(transformedMessages);
+            setMessages(transformedMessages);}
         } catch (error) {
             console.error('Error loading messages:', error);
         } finally {
@@ -139,24 +188,38 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         }),
                         getChatMpMessagesApi({
                             wx_user_id: selectedAccount?.wxid || '',
-                            room_id: conversation?.room_id || ''
+                            // room_id: conversation?.room_id || ''
+                            // roomid与usrid交叉使用会导致列表无信息
                         })
                     ]);
     
-                    // 合并消息并去重
-                    const allMessages = [...response1.data.records, ...response2.data.records]
-                        .sort((a, b) => new Date(a.msg_datetime).getTime() - new Date(b.msg_datetime).getTime());
-    
-                    const transformedMessages = allMessages.map(msg => ({
-                        id: msg.msg_id,
-                        content: msg.content || '',
-                        timestamp: new Date(msg.msg_datetime).getTime(),
-                        isUser: msg.sender_id === selectedAccount?.wxid,
-                        senderName: msg.sender_name || msg.sender_id,
-                        msgType: msg.msg_type
-                    }));
-    
-                    setMessages(transformedMessages);
+                    // 合并消息
+                    //1指个人微信号，2指公众号信息
+                    const [resMsg1, resMsg2] = [[...response1.data.records],[...response2.data.records]];
+                    if(response1.data.total === 0 && response1.code === 0 ){
+                        const transformedMessages = resMsg2.map(msg => ({
+                            id: msg.msg_id,
+                            content: msg.msg_content || '',
+                            timestamp: new Date(msg.msg_datetime).getTime(),
+                            // 判断是否为用户
+                            isUser: msg.msg_id.split('_')[0] === 'ai',
+                            senderName: msg.sender_name || msg.sender_id,
+                            msgType: msg.msg_type
+                        }));
+                        console.log("###################################");
+                        console.log(transformedMessages);
+                        setMessages(transformedMessages);
+                    }else{
+                        const transformedMessages = resMsg1.map(msg => ({
+                            id: msg.msg_id,
+                            content: msg.content || '',
+                            timestamp: new Date(msg.msg_datetime).getTime(),
+                            isUser: msg.sender_id === selectedAccount?.wxid,
+                            senderName: msg.sender_name || msg.sender_id,
+                            msgType: msg.msg_type
+                        }));
+                        setMessages(transformedMessages);
+                    }
                 } catch (error) {
                     console.error('Error refreshing messages:', error);
                 } finally {
@@ -184,9 +247,26 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             </div>
         );
     }
-
+    
     return (
         <div className="bg-white rounded-3xl shadow-lg h-full flex flex-col relative overflow-hidden">
+            {/* Notification */}
+            {notification.show && (
+                <div className={`absolute top-3 right-20 border-l-4 p-3 rounded shadow-md z-10 max-w-xs transition-all duration-300 ease-in-out opacity-100 ${notification.type === 'success' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-red-100 border-red-500 text-red-700'}`}>
+                    <div className="flex items-center">
+                        {notification.type === 'success' ? (
+                            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        ) : (
+                            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        )}
+                        <p className="text-base">{notification.message}</p>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
@@ -196,39 +276,55 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
                 </div>
                 <div className="flex items-center space-x-2">
+                    {humanList.includes(conversation.room_id) && (
+                        <button 
+                            className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
+                            onClick={async () => {
+                                if (!selectedAccount) return;
+                                
+                                try {
+                                    const updatedHumanList = humanList.filter(id => id !== conversation.room_id);
+                                    await updateWxHumanListApi(selectedAccount.wxid, selectedAccount.name, updatedHumanList);
+                                    showNotification('已解除人工处理', 'success');
+                                    refreshHumanList?.();
+                                } catch (error) {
+                                    console.error('解除人工处理失败:', error);
+                                    showNotification('解除人工处理失败', 'error');
+                                }
+                            }}
+                        >
+                            解除人工
+                        </button>
+                    )}
                     <span className="text-sm text-gray-600">AI</span>
                     <button
                         onClick={async () => {
                             const newAIEnabled = !isAIEnabled;
                             setIsAIEnabled(newAIEnabled);
                             
-                            // Update the enabled rooms list
                             try {
                                 const currentRooms = [...enabledRoomsRef.current];
-                                
+
                                 if (newAIEnabled) {
-                                    // Add current room if not already in the list
                                     if (!currentRooms.includes(conversation.room_id)) {
                                         currentRooms.push(conversation.room_id);
                                     }
                                 } else {
-                                    // Remove current room from the list
                                     const index = currentRooms.indexOf(conversation.room_id);
                                     if (index > -1) {
                                         currentRooms.splice(index, 1);
                                     }
                                 }
-                                
-                                // Update the ref and send to server
+
                                 enabledRoomsRef.current = currentRooms;
-                                await postAIReplyListApi(
-                                    selectedAccount?.name || '', 
-                                    selectedAccount?.wxid || '', 
-                                    currentRooms
-                                );
+
+                                // 并行提交
+                                await Promise.all([
+                                    postAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '', currentRooms),
+                                    postMpAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || '', currentRooms)
+                                ]);
                             } catch (error) {
                                 console.error('Error updating AI enabled rooms:', error);
-                                // Revert the UI state if there was an error
                                 setIsAIEnabled(!newAIEnabled);
                             }
                         }}
@@ -290,15 +386,42 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                 )}
                             >
                                 {/* Avatar */}
-                                <div
-                                    className={clsx(
-                                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white',
-                                        message.isUser ? 'bg-purple-500' : 'bg-gray-400'
-                                    )}
-                                    title={message.senderName}
-                                >
-                                    {message.senderName.charAt(0).toUpperCase()}
-                                </div>
+                                {avatarList.find(avatar => avatar.wxid === message.senderId) ? (
+                                    <div
+                                        className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+                                        title={message.senderName}
+                                    >
+                                        <img 
+                                            src={avatarList.find(avatar => avatar.wxid === message.senderId)?.smallHeadImgUrl} 
+                                            alt={message.senderName} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = null;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    parent.classList.add(
+                                                        'flex', 'items-center', 'justify-center', 
+                                                        'text-sm', 'font-medium', 'text-white',
+                                                        message.isUser ? 'bg-purple-500' : 'bg-gray-400'
+                                                    );
+                                                    parent.textContent = message.senderName.charAt(0).toUpperCase();
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div
+                                        className={clsx(
+                                            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white',
+                                            message.isUser ? 'bg-purple-500' : 'bg-gray-400'
+                                        )}
+                                        title={message.senderName}
+                                    >
+                                        {message.senderName.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
 
                                 {/* Message Content */}
                                 <div
@@ -310,10 +433,46 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">
-                                        {message.msgType === 3 || message.msgType === 34 ? 
-                                            <MessageContent content={message.content} msgType={message.msgType} /> :
-                                            getMessageContent(message.msgType || 0, message.content)
-                                        }
+                                    {(() => {
+                                    // 类型守卫
+                                    const isNumberType = (t?: number | string): t is number => typeof t === 'number'
+                                    const isStringType = (t?: number | string): t is string => typeof t === 'string'
+
+                                    // 获取类型安全的内容值
+                                    const getSafeContent = (msg: Message): string => {
+                                        if ('content' in msg) return msg.content! // 非空断言
+                                        if ('msg_content' in msg) return msg.msg_content! // 正确属性名
+                                        return '' // 防止为空
+                                      };
+
+                                    // 主逻辑分支
+                                    if (isNumberType(message.msgType)) {
+                                    const msgType = message.msgType || 0 // 默认值处理
+                                    return msgType === 3 || msgType === 34 ? (
+                                        <MessageContent
+                                        content={getSafeContent(message)}
+                                        msgType={msgType}
+                                        />
+                                    ) : (
+                                        getMessageContent(msgType, getSafeContent(message))
+                                    )
+                                    }
+
+                                    if (isStringType(message.msgType)) {
+                                    const msgType = message.msgType || 'text' // 默认值处理
+                                    return msgType === 'image' || msgType === 'voice' ? (
+                                        <MessageContent
+                                        content={getSafeContent(message)}
+                                        msgType={msgType}
+                                        />
+                                    ) : (
+                                        getMessageContent(msgType, getSafeContent(message))
+                                    )
+                                    }
+
+                                    // 处理未定义 msgType 的情况
+                                    return getMessageContent(0, getSafeContent(message))
+                                })()}
                                     </div>
                                     <div
                                         className={clsx(

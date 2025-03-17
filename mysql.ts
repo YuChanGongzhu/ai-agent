@@ -26,6 +26,29 @@ export interface ChatMessagesResponse {
     };
 }
 
+export interface MpChatMessage {
+    msg_id: string;
+    wx_user_id: string;
+    wx_user_name: string;
+    room_id: string;
+    room_name: string;
+    sender_id: string;
+    sender_name: string;
+    msg_type: number;
+    msg_type_name: string;
+    msg_content: string;
+    msg_datetime: string;
+}
+
+export interface MpChatMessagesResponse {
+    code: number;
+    message: string;
+    data: {
+        total: number;
+        records: MpChatMessage[];
+    };
+}
+
 export const getChatMessagesApi = async (params: {
     room_id?: string;
     wx_user_id?: string;
@@ -83,7 +106,6 @@ export const getRoomListMessagesApi = async (params: {
 };
 
 export const getChatMpMessagesApi = async (params: {
-    room_id?: string;
     wx_user_id?: string;
     sender_id?: string;
     start_time?: string;
@@ -92,15 +114,16 @@ export const getChatMpMessagesApi = async (params: {
     offset?: number;
 }) => {
     const queryParams = new URLSearchParams();
+    console.log(queryParams);
     Object.entries(params).forEach(([key, value]) => {
         if (value) queryParams.append(key, value.toString());
     });
 
-    const response = await fetch(`${roomMpMsgListUrl}/messages?${queryParams.toString()}`);
+    const response = await fetch(`${roomMpMsgListUrl}?${queryParams.toString()}`);
     if (!response.ok) {
         throw new Error('Failed to fetch chat MP messages');
     }
-    return response.json() as Promise<ChatMessagesResponse>;
+    return response.json() as Promise<MpChatMessagesResponse>;
 };
 
 export const getRoomMpListMessagesApi = async (params: {
