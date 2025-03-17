@@ -191,7 +191,7 @@ export const ServerManage: React.FC = () => {
     if (runningWxAccounts.length > 0) {
       return {
         label: '微信运行中',
-        className: 'bg-purple-100 text-purple-800',
+        className: 'bg-green-100 text-green-800',
         accounts: runningWxAccounts
       };
     } else {
@@ -341,17 +341,19 @@ export const ServerManage: React.FC = () => {
                     </svg>
                     <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
                   </div>
-                  <div className="mt-1 space-y-1">
+                  
+                  {/* 将内网和外网IP显示在同一行 */}
+                  <div className="mt-1 flex items-center flex-wrap gap-1">
                     {server.publicIp && (
-                      <div className="flex items-center">
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-2">外网</span>
-                        <p className="text-gray-600">{server.publicIp}</p>
+                      <div className="flex items-center mr-3">
+                        <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-1">外</span>
+                        <span className="text-gray-600 text-sm">{server.publicIp}</span>
                       </div>
                     )}
                     {server.privateIp && (
                       <div className="flex items-center">
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2">内网</span>
-                        <p className="text-gray-600">{server.privateIp}</p>
+                        <span className="text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded mr-1">内</span>
+                        <span className="text-gray-600 text-sm">{server.privateIp}</span>
                       </div>
                     )}
                   </div>
@@ -367,7 +369,7 @@ export const ServerManage: React.FC = () => {
                         {getWechatStatusLabel(server).accounts.length > 0 ? (
                           // 如果有微信账号在运行，为每个账号显示一个标签
                           getWechatStatusLabel(server).accounts.map((account, index) => (
-                            <div key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            <div key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               微信({account.name || account.wxid || account.mobile || `账号${index+1}`})运行中
                             </div>
                           ))
