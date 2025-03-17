@@ -11,7 +11,7 @@ import {
     DocumentItem
 } from '../../api/dify';
 import { WxAccount } from '../../api/airflow';
-import { supabase } from '../../utils/supabaseConfig';
+import { supabase } from '../../auth/supabaseConfig';
 import { UserProfileService } from '../../userManagement/userProfileService';
 
 interface FileWithPreview extends File {

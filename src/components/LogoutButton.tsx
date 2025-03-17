@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logoutUser } from '../utils/authService';
+import { logoutUser } from '../auth/authService';
 
 interface LogoutButtonProps {
   className?: string;

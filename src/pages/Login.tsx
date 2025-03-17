@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import groupIcon from '../img/nav/group.svg';
 import loginImage from '../img/login.png';
-import { loginUser } from '../utils/authService';
+import { loginUser } from '../auth/authService';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');

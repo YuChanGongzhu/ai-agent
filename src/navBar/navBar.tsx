@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../utils/supabaseConfig';
-import { logoutUser } from '../utils/authService';
+import { supabase } from '../auth/supabaseConfig';
+import { logoutUser } from '../auth/authService';
 import { useUser } from '../context/UserContext';
 
 import calenderSVG from '../img/nav/calender.svg';

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { tencentCloudService, LighthouseInstance, SUPPORTED_REGIONS, RegionInfo } from '../api/tencent_cloud';
 import { useUser } from '../context/UserContext'; // 导入useUser钩子
+import { useWxAccount } from '../context/WxAccountContext'; // 导入useWxAccount钩子
 
 interface WindowsServer {
   ip: string;
+  publicIp: string;  // 外网IP
+  privateIp: string; // 内网IP
   name: string;
   instanceId?: string;
   osName?: string;
@@ -25,6 +28,9 @@ export const ServerManage: React.FC = () => {
   
   // 使用UserContext提供的用户信息
   const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
+  
+  // 使用WxAccountContext提供的微信账号列表
+  const { wxAccountList, isLoading: wxLoading } = useWxAccount();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,8 +89,15 @@ export const ServerManage: React.FC = () => {
       const serversByRegion = new Map<string, WindowsServer[]>();
       
       instancesByRegion.forEach((instances, regionId) => {
-        const servers: WindowsServer[] = instances.map((instance: LighthouseInstance) => ({
+        // 筛选仅保留Windows服务器
+        const windowsInstances = instances.filter((instance: LighthouseInstance) => 
+          instance.OsName && instance.OsName.toLowerCase().includes('windows')
+        );
+        
+        const servers: WindowsServer[] = windowsInstances.map((instance: LighthouseInstance) => ({
           ip: instance.PublicAddresses[0] || instance.PrivateAddresses[0] || '',
+          publicIp: instance.PublicAddresses[0] || '',
+          privateIp: instance.PrivateAddresses[0] || '',
           name: instance.InstanceName,
           instanceId: instance.InstanceId,
           osName: instance.OsName,
@@ -102,7 +115,7 @@ export const ServerManage: React.FC = () => {
         totalCount += servers.length;
       });
       
-      console.log(`成功获取 ${totalCount} 台腾讯云服务器实例，分布在 ${serversByRegion.size} 个地域`);
+      console.log(`成功获取 ${totalCount} 台Windows服务器实例，分布在 ${serversByRegion.size} 个地域`);
     } catch (error) {
       console.error('获取腾讯云服务器列表失败:', error);
       throw error;
@@ -165,6 +178,29 @@ export const ServerManage: React.FC = () => {
   // 获取各地域过滤后的服务器数量
   const getRegionServerCount = (regionId: string): number => {
     return filteredRegionServers.get(regionId)?.length || 0;
+  };
+
+  // 根据服务器IP地址和微信账号列表判断微信状态
+  const getWechatStatusLabel = (server: WindowsServer) => {
+    // 检查匹配当前服务器IP的所有微信账号
+    const runningWxAccounts = wxAccountList.filter(
+      account => account.source_ip && 
+      (account.source_ip === server.publicIp || account.source_ip === server.privateIp)
+    );
+    
+    if (runningWxAccounts.length > 0) {
+      return {
+        label: '微信运行中',
+        className: 'bg-purple-100 text-purple-800',
+        accounts: runningWxAccounts
+      };
+    } else {
+      return {
+        label: '空闲中',
+        className: 'bg-gray-100 text-gray-600',
+        accounts: []
+      };
+    }
   };
 
   if (loading) {
@@ -305,21 +341,51 @@ export const ServerManage: React.FC = () => {
                     </svg>
                     <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
                   </div>
-                  <p className="text-gray-600">{server.ip}</p>
+                  <div className="mt-1 space-y-1">
+                    {server.publicIp && (
+                      <div className="flex items-center">
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-2">外网</span>
+                        <p className="text-gray-600">{server.publicIp}</p>
+                      </div>
+                    )}
+                    {server.privateIp && (
+                      <div className="flex items-center">
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2">内网</span>
+                        <p className="text-gray-600">{server.privateIp}</p>
+                      </div>
+                    )}
+                  </div>
                   
                   {server.osName && (
-                    <p className="text-gray-600 text-sm mt-1">{server.osName}</p>
+                    <p className="text-gray-600 text-sm mt-2">{server.osName}</p>
                   )}
                   
-                  {server.status && (
-                    <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      server.status === 'RUNNING' ? 'bg-green-100 text-green-800' : 
-                      server.status === 'STOPPED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {server.status === 'RUNNING' ? '运行中' : 
-                      server.status === 'STOPPED' ? '已停止' : server.status}
-                    </div>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {/* 删除服务器状态标签，只保留微信状态标签 */}
+                    {!wxLoading && server.status === 'RUNNING' && (
+                      <>
+                        {getWechatStatusLabel(server).accounts.length > 0 ? (
+                          // 如果有微信账号在运行，为每个账号显示一个标签
+                          getWechatStatusLabel(server).accounts.map((account, index) => (
+                            <div key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              微信({account.name || account.wxid || account.mobile || `账号${index+1}`})运行中
+                            </div>
+                          ))
+                        ) : (
+                          // 如果没有微信账号在运行，显示空闲中
+                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            微信空闲中
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {/* 非运行状态的服务器也显示微信空闲状态 */}
+                    {!wxLoading && server.status !== 'RUNNING' && (
+                      <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        微信空闲中
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="mt-4">
                     <button

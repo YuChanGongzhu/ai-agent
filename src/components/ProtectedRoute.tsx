@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { supabase } from '../utils/supabaseConfig';
+import { supabase } from '../auth/supabaseConfig';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 interface ProtectedRouteProps {

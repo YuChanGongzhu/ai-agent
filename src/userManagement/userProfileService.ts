@@ -1,4 +1,4 @@
-import { supabase } from '../utils/supabaseConfig';
+import { supabase } from '../auth/supabaseConfig';
 
 export interface UserProfile {
   id?: string;
