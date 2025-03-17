@@ -11,6 +11,8 @@ export const getApiKey = (config?: string) => {
       return process.env.REACT_APP_DIFY_API_KEY2;
     case 'config3':
       return process.env.REACT_APP_DIFY_API_KEY3;
+    case 'config4':
+      return process.env.REACT_APP_DIFY_API_KEY_FINANCE;
     default:
       return process.env.REACT_APP_DIFY_API_KEY3;
   }
@@ -472,6 +474,9 @@ export async function createDocumentByFileApi(
   data: CreateDocumentByFileData
 ): Promise<CreateDocumentByFileResponse> {
   try {
+    console.log('Creating document with data:', JSON.stringify(data));
+    console.log('File:', file.name, file.type, file.size);
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('data', JSON.stringify(data));
@@ -487,8 +492,13 @@ export async function createDocumentByFileApi(
     );
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating document by file:', error);
+    if (error.response) {
+      // 输出详细的错误响应，帮助诊断
+      console.error('Error response:', error.response.status);
+      console.error('Error data:', error.response.data);
+    }
     throw error;
   }
 }

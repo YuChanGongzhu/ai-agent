@@ -17,12 +17,13 @@ const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL
 const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME
 const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
 
-export type ConfigKey = 'config1' | 'config2' | 'config3';
+export type ConfigKey = 'config1' | 'config2' | 'config3' | 'config4';
 
 const keyMap: Record<ConfigKey, string | undefined> = {
   'config1': process.env.REACT_APP_DIFY_API_KEY1,
   'config2': process.env.REACT_APP_DIFY_API_KEY2,
-  'config3': process.env.REACT_APP_DIFY_API_KEY3
+  'config3': process.env.REACT_APP_DIFY_API_KEY3,
+  'config4': process.env.REACT_APP_DIFY_API_KEY_FINANCE
 }
 
 const airflowAxios = axios.create({
