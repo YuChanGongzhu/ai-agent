@@ -30,12 +30,27 @@ export const ServerManage: React.FC = () => {
   const [isRebootDialogOpen, setIsRebootDialogOpen] = useState<boolean>(false);
   const [isRebooting, setIsRebooting] = useState<boolean>(false);
   const [rebootError, setRebootError] = useState<string | null>(null);
+  // 创建实例相关状态
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState<boolean>(false);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<boolean>(false);
+  const [createdInstanceIds, setCreatedInstanceIds] = useState<string[]>([]);
+  // 用户配额相关状态
+  const [serverQuota, setServerQuota] = useState<number>(0);
+  const [usedQuota, setUsedQuota] = useState<number>(0);
+  // 删除实例相关状态
+  const [serverToDelete, setServerToDelete] = useState<WindowsServer | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false); 
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false);
   
   // 使用UserContext提供的用户信息
   const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
   
   // 使用WxAccountContext提供的微信账号列表
-  const { wxAccountList, isLoading: wxLoading } = useWxAccount();
+  const { wxAccountList, isLoading: wxLoading, updateServerList } = useWxAccount();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,7 +101,22 @@ export const ServerManage: React.FC = () => {
     
     setFilteredRegionServers(newFilteredServers);
     
+    // 计算已使用的配额
+    let totalUsedServers = 0;
+    newFilteredServers.forEach((servers) => {
+      totalUsedServers += servers.length;
+    });
+    setUsedQuota(totalUsedServers);
+    
+    // 设置用户配额
+    setServerQuota(isAdmin ? 50 : 2);
+    
   }, [regionServers, isAdmin, email]);
+
+  // 检查是否超出配额
+  const checkQuotaExceeded = (): boolean => {
+    return usedQuota >= serverQuota;
+  };
 
   const fetchAllRegionInstances = async () => {
     try {
@@ -114,6 +144,9 @@ export const ServerManage: React.FC = () => {
       });
       
       setRegionServers(serversByRegion);
+      
+      // 将服务器列表传递给WxAccountContext
+      updateServerList(serversByRegion);
       
       let totalCount = 0;
       serversByRegion.forEach(servers => {
@@ -228,6 +261,84 @@ export const ServerManage: React.FC = () => {
     }
   };
 
+  // 打开创建实例对话框
+  const openCreateDialog = () => {
+    setIsCreateDialogOpen(true);
+    setCreateError(null);
+    setCreateSuccess(false);
+    setCreatedInstanceIds([]);
+  };
+
+  // 关闭创建实例对话框
+  const closeCreateDialog = () => {
+    setIsCreateDialogOpen(false);
+    // 如果创建成功了，刷新实例列表
+    if (createSuccess) {
+      fetchAllRegionInstances();
+    }
+  };
+
+  // 创建实例
+  const createInstance = async () => {
+    try {
+      // 检查是否超出配额
+      if (checkQuotaExceeded()) {
+        setCreateError(`您已达到服务器配额上限(${serverQuota})，无法创建更多实例`);
+        return;
+      }
+      
+      setIsCreating(true);
+      setCreateError(null);
+      setCreateSuccess(false);
+      
+      // 从环境变量获取Windows密码
+      // 注意：环境变量必须以REACT_APP_开头才能在React前端访问
+      const windowsPassword = process.env.REACT_APP_WINDOWS_PASSWORD;
+      
+      // 检查密码是否存在
+      if (!windowsPassword) {
+        console.warn('未找到环境变量REACT_APP_WINDOWS_PASSWORD，将使用默认密码');
+      }
+      
+      // 使用环境变量中的密码，如果不存在则使用默认强密码
+      const password = windowsPassword;
+            
+      // 设置创建实例参数
+      const params = {
+        BundleId: 'bundle_starter_mc_med2_01',
+        BlueprintId: 'lhbp-4286aomh',
+        InstanceName: `WCF_${email}`,
+        FirewallTemplateId: 'lhft-ikbqyf7x',
+        DryRun: false, // 是否仅预检请求，false为实际创建实例
+        LoginConfiguration: {
+          AutoGeneratePassword: 'NO',
+          Password: password
+        },
+        InstanceChargePrepaid: {
+          Period: 1,
+          RenewFlag: 'NOTIFY_AND_MANUAL_RENEW'
+        },
+        region: selectedRegion
+      };
+      
+      const instanceIds = await tencentCloudService.createInstances(params);
+      
+      setCreateSuccess(true);
+      setCreatedInstanceIds(instanceIds);
+      
+      // 创建成功后3秒自动关闭对话框
+      setTimeout(() => {
+        closeCreateDialog();
+      }, 3000);
+    } catch (error) {
+      console.error('创建实例失败:', error);
+      setCreateError(error instanceof Error ? error.message : '创建实例失败，请稍后重试');
+      setCreateSuccess(false);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const closeConnection = () => {
     setSelectedServer(null);
     setConnectionUrl(null);
@@ -272,6 +383,108 @@ export const ServerManage: React.FC = () => {
     }
   };
 
+  // 打开删除确认对话框
+  const showDeleteConfirmation = (server: WindowsServer) => {
+    setServerToDelete(server);
+    setIsDeleteDialogOpen(true);
+    setDeleteError(null);
+    setDeleteSuccess(false);
+  };
+
+  // 关闭删除确认对话框
+  const closeDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setServerToDelete(null);
+    setDeleteError(null);
+    // 如果删除成功，刷新服务器列表
+    if (deleteSuccess) {
+      fetchAllRegionInstances();
+    }
+  };
+
+  // 执行删除操作（先隔离，再销毁）
+  const deleteServer = async () => {
+    if (!serverToDelete || !serverToDelete.instanceId || !serverToDelete.region) {
+      setDeleteError('缺少实例ID或地域信息，无法执行删除操作');
+      return;
+    }
+
+    // 确保实例ID和地域都存在
+    const instanceId = serverToDelete.instanceId;
+    const region = serverToDelete.region;
+
+    if (serverToDelete.status !== 'RUNNING' && serverToDelete.status !== 'STOPPED') {
+      setDeleteError(`无法删除实例，当前状态为: ${serverToDelete.status || '未知'}，只有运行中或已停止的实例才能删除`);
+      return;
+    }
+    
+    // 检查是否有微信账号在运行
+    if (getWechatStatusLabel(serverToDelete).accounts.length > 0) {
+      setDeleteError('无法删除实例，该实例上有微信账号正在运行');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      // 1. 先隔离实例（退还实例）
+      await tencentCloudService.isolateInstances([instanceId], region);
+      
+      // 延迟检查实例状态，等待其变为 SHUTDOWN
+      let retryCount = 0;
+      const maxRetry = 10;
+      const checkInstanceStatus = async () => {
+        try {
+          // 获取实例最新状态
+          const instancesByRegion = await tencentCloudService.getAllRegionInstances();
+          const regionInstances = instancesByRegion.get(region) || [];
+          const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
+          
+          if (instance && instance.InstanceState === 'SHUTDOWN') {
+            // 如果实例状态为 SHUTDOWN，则执行销毁操作
+            await tencentCloudService.terminateInstances([instanceId], region);
+            setDeleteSuccess(true);
+            
+            // 更新服务器状态（从列表中移除）
+            const updatedServers = new Map(regionServers);
+            const regionServersArray = updatedServers.get(region) || [];
+            const updatedServersArray = regionServersArray.filter(server => 
+              server.instanceId !== instanceId
+            );
+            updatedServers.set(region, updatedServersArray);
+            setRegionServers(updatedServers);
+            
+            // 3秒后自动关闭对话框
+            setTimeout(() => {
+              closeDeleteDialog();
+            }, 3000);
+          } else if (retryCount < maxRetry) {
+            // 如果状态不是 SHUTDOWN 且未超过重试次数，则继续等待
+            retryCount++;
+            setTimeout(checkInstanceStatus, 5000); // 每5秒检查一次
+          } else {
+            // 如果超过最大重试次数，则提示错误
+            throw new Error('等待实例状态变更超时，请手动检查实例状态并尝试再次删除');
+          }
+        } catch (error) {
+          console.error('检查实例状态失败:', error);
+          throw error;
+        }
+      };
+      
+      // 开始检查实例状态
+      setTimeout(checkInstanceStatus, 5000);
+    } catch (error) {
+      console.error('删除服务器失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '删除服务器失败，请稍后重试';
+      setDeleteError(errorMessage);
+      setDeleteSuccess(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -288,6 +501,11 @@ export const ServerManage: React.FC = () => {
           {isAdmin 
             ? '管理员模式：显示所有服务器' 
             : `普通用户模式：仅显示与您账号 (${email}) 相关的服务器`}
+        </p>
+        <p className="text-gray-600 mt-1">
+          服务器配额: <span className={usedQuota >= serverQuota ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+            {usedQuota} / {serverQuota}
+          </span>
         </p>
       </div>
 
@@ -314,6 +532,25 @@ export const ServerManage: React.FC = () => {
             >
               断开连接
             </button>
+          </div>
+          
+          {/* 添加操作提示 */}
+          <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">操作步骤</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p className="font-medium">1. 登录Windows系统后，<span className="text-orange-600">无需额外操作</span>，等待微信登录二维码自动出现</p>
+                  <p className="mt-1">2. 如果没有出现微信二维码或登录异常，请尝试点击"重启系统"按钮</p>
+                  <p className="mt-1">3. 微信登录后，系统将自动管理微信，<span className="text-orange-600">请勿手动操作</span>Windows系统</p>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="relative h-full w-full border border-gray-300 rounded">
@@ -384,10 +621,29 @@ export const ServerManage: React.FC = () => {
               </button>
             ))}
             <button
-              className="ml-auto text-sm text-blue-600 hover:text-blue-800"
+              className="ml-auto flex items-center bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-1.5 px-3 rounded transition-colors"
               onClick={fetchAllRegionInstances}
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
               刷新列表
+            </button>
+            {/* 添加创建实例按钮（对所有用户显示） */}
+            <button
+              className={`ml-2 flex items-center font-medium py-1.5 px-3 rounded transition-colors ${
+                checkQuotaExceeded() 
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                  : 'bg-green-100 hover:bg-green-200 text-green-700'
+              }`}
+              onClick={openCreateDialog}
+              disabled={checkQuotaExceeded()}
+              title={checkQuotaExceeded() ? `已达到服务器配额上限(${serverQuota})` : '创建新实例'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              创建实例
             </button>
           </div>
 
@@ -471,25 +727,46 @@ export const ServerManage: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="mt-4 grid grid-cols-3 gap-2">
                     <button
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded text-sm"
                       onClick={() => connectToVnc(server)}
                       disabled={!server.instanceId || server.status !== 'RUNNING'}
                     >
-                      VNC终端连接
+                      登录系统
                     </button>
                     
                     <button
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-3 rounded text-sm"
                       onClick={() => showRebootConfirmation(server)}
                       disabled={!server.instanceId || server.status !== 'RUNNING'}
                     >
                       重启系统
                     </button>
 
+                    {/* 添加删除实例按钮 - 对所有用户显示 */}
+                    <button
+                      className={`${
+                        !server.instanceId || 
+                        (server.status !== 'RUNNING' && server.status !== 'STOPPED') || 
+                        getWechatStatusLabel(server).accounts.length > 0
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-red-600 hover:bg-red-700'
+                      } text-white font-semibold py-2 px-3 rounded text-sm`}
+                      onClick={() => showDeleteConfirmation(server)}
+                      disabled={!server.instanceId || 
+                               (server.status !== 'RUNNING' && server.status !== 'STOPPED') || 
+                               getWechatStatusLabel(server).accounts.length > 0}
+                      title={getWechatStatusLabel(server).accounts.length > 0 ? 
+                            "微信运行中的实例不能删除" : 
+                            (!server.instanceId || (server.status !== 'RUNNING' && server.status !== 'STOPPED')) ? 
+                            "只有运行中或已停止的实例才能删除" : "删除实例"}
+                    >
+                      删除实例
+                    </button>
+
                     {(!server.instanceId || server.status !== 'RUNNING') && (
-                      <p className="text-xs text-gray-500 mt-1 text-center col-span-2">
+                      <p className="text-xs text-gray-500 mt-1 text-center col-span-3">
                         {!server.instanceId ? '此服务器无法使用操作' : `服务器当前状态: ${server.status || '未知'}`}
                       </p>
                     )}
@@ -539,6 +816,138 @@ export const ServerManage: React.FC = () => {
                       '确认重启'
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 创建实例对话框 */}
+          {isCreateDialogOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-semibold mb-4">创建新实例</h3>
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">实例配置参数</h4>
+                  <p className="text-sm text-blue-600 mb-2">
+                    使用环境变量 REACT_APP_WINDOWS_PASSWORD 中的密码
+                  </p>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm text-gray-700">当前配额状态:</p>
+                    <span className={usedQuota >= serverQuota ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                      {usedQuota} / {serverQuota}
+                    </span>
+                  </div>
+                  <ul className="space-y-2 text-gray-700 text-sm bg-gray-50 p-3 rounded">
+                    <li><span className="font-medium">套餐ID:</span> bundle_starter_mc_med2_01</li>
+                    <li><span className="font-medium">镜像ID:</span> lhbp-4286aomh</li>
+                    <li><span className="font-medium">防火墙模板:</span> lhft-ikbqyf7x</li>
+                    <li><span className="font-medium">实例名称:</span> WCX_{email ? email.split('@')[0] : '[邮箱]'}</li>
+                    <li><span className="font-medium">登录密码:</span> 已设置默认密码</li>
+                    <li><span className="font-medium">购买时长:</span> 1个月</li>
+                    <li><span className="font-medium">测试模式:</span> 否（实际创建实例）</li>
+                  </ul>
+                </div>
+                
+                {createError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {createError}
+                  </div>
+                )}
+                
+                {createSuccess && (
+                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    <p>创建实例请求成功！</p>
+                    {createdInstanceIds.length > 0 && (
+                      <p className="text-sm">实例ID: {createdInstanceIds.join(', ')}</p>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={closeCreateDialog}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+                    disabled={isCreating}
+                  >
+                    {createSuccess ? '关闭' : '取消'}
+                  </button>
+                  {!createSuccess && (
+                    <button
+                      onClick={createInstance}
+                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded flex items-center"
+                      disabled={isCreating || checkQuotaExceeded()}
+                    >
+                      {isCreating ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          创建中...
+                        </>
+                      ) : checkQuotaExceeded() ? (
+                        '配额已满'
+                      ) : (
+                        '确认创建'
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 删除实例确认对话框 */}
+          {isDeleteDialogOpen && serverToDelete && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-semibold mb-4">确认删除服务器</h3>
+                <div className="mb-4">
+                  <p className="text-gray-700 mb-2">
+                    您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
+                  </p>
+                </div>
+                
+                {deleteError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {deleteError}
+                  </div>
+                )}
+                
+                {deleteSuccess && (
+                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    <p>删除实例请求成功！</p>
+                    <p className="text-sm">实例正在删除中...</p>
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={closeDeleteDialog}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+                    disabled={isDeleting}
+                  >
+                    {deleteSuccess ? '关闭' : '取消'}
+                  </button>
+                  {!deleteSuccess && (
+                    <button
+                      onClick={deleteServer}
+                      className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded flex items-center"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          删除中...
+                        </>
+                      ) : (
+                        '确认删除'
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

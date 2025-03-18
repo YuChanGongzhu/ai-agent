@@ -56,6 +56,31 @@ interface Tag {
   Value: string;
 }
 
+// 创建实例所需的计费模式接口
+interface InstanceChargePrepaid {
+  Period: number;
+  RenewFlag: string;
+}
+
+// 创建实例所需的登录配置接口
+interface LoginConfiguration {
+  AutoGeneratePassword?: string;
+  Password?: string;
+  KeyIds?: string[];
+}
+
+// 创建实例的请求参数接口
+interface CreateInstanceParams {
+  BundleId: string;      // 套餐ID
+  BlueprintId: string;   // 镜像ID
+  InstanceChargePrepaid: InstanceChargePrepaid; // 包年包月相关参数
+  InstanceName?: string; // 实例显示名称
+  FirewallTemplateId?: string; // 防火墙模板ID
+  DryRun?: boolean;      // 是否只预检此次请求
+  LoginConfiguration?: LoginConfiguration; // 实例登录配置
+  region?: string;       // 地域
+}
+
 export interface LighthouseInstance {
   InstanceId: string;
   BundleId: string;
@@ -215,6 +240,100 @@ export class TencentCloudService {
       throw error;
     }
   }
+  
+  /**
+   * 隔离实例（退还实例）
+   */
+  async isolateInstances(instanceIds: string[], region: string = this.config.region): Promise<string> {
+    if (!instanceIds || instanceIds.length === 0) {
+      throw new Error('隔离实例失败: 未提供实例ID');
+    }
+    
+    try {
+      // 构建请求数据
+      const requestData: any = {
+        Action: 'IsolateInstances',
+        Version: this.apiVersion,
+        InstanceIds: instanceIds,
+        IsolateDataDisk: true  // 同时退还数据盘
+      };
+      
+      // 调用API
+      const response = await this.sendRequest(requestData, region);
+      return response.RequestId;
+    } catch (error) {
+      console.error(`隔离实例失败:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 销毁实例
+   */
+  async terminateInstances(instanceIds: string[], region: string = this.config.region): Promise<string> {
+    if (!instanceIds || instanceIds.length === 0) {
+      throw new Error('销毁实例失败: 未提供实例ID');
+    }
+    
+    try {
+      // 构建请求数据
+      const requestData: any = {
+        Action: 'TerminateInstances',
+        Version: this.apiVersion,
+        InstanceIds: instanceIds
+      };
+      
+      // 调用API
+      const response = await this.sendRequest(requestData, region);
+      return response.RequestId;
+    } catch (error) {
+      console.error(`销毁实例失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 创建腾讯云轻量应用服务器实例
+   */
+  async createInstances(params: CreateInstanceParams): Promise<string[]> {
+    const region = params.region || this.config.region;
+    try {
+      // 构建请求数据
+      const requestData: any = {
+        Action: 'CreateInstances',
+        Version: this.apiVersion,
+        BundleId: params.BundleId,
+        BlueprintId: params.BlueprintId,
+        InstanceChargePrepaid: params.InstanceChargePrepaid,
+      };
+
+      // 添加可选参数
+      if (params.InstanceName) {
+        requestData.InstanceName = params.InstanceName;
+      }
+
+      if (params.FirewallTemplateId) {
+        requestData.FirewallTemplateId = params.FirewallTemplateId;
+      }
+
+      if (params.DryRun !== undefined) {
+        requestData.DryRun = params.DryRun;
+      }
+
+      // 添加登录配置
+      if (params.LoginConfiguration) {
+        requestData.LoginConfiguration = params.LoginConfiguration;
+      }
+      
+      // 调用API
+      const response = await this.sendRequest(requestData, region);
+      
+      return response.InstanceIdSet || [];
+    } catch (error) {
+      console.error(`创建实例失败:`, error);
+      throw error;
+    }
+  }
 
   // 准备查询参数
   private prepareParams(params: InstanceQueryParams): any {
@@ -293,8 +412,14 @@ export class TencentCloudService {
     delete payload.Action;
     delete payload.Version;
     
-    // 调试输出，检查是否保留了 InstanceIds 参数
-    console.log('构建的请求载荷:', JSON.stringify(payload));
+    // 创建一个用于日志输出的安全副本
+    const logPayload = JSON.parse(JSON.stringify(payload));
+    if (logPayload.LoginConfiguration?.Password) {
+      logPayload.LoginConfiguration.Password = '*****';
+    }
+    
+    // 调试输出，使用屏蔽了密码的副本
+    console.log('构建的请求载荷:', JSON.stringify(logPayload));
     
     return payload;
   }
