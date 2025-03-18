@@ -20,9 +20,9 @@ const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
 export type ConfigKey = 'config1' | 'config2' | 'config3' | 'config4';
 
 const keyMap: Record<ConfigKey, string | undefined> = {
-  'config1': process.env.REACT_APP_DIFY_API_KEY1,
-  'config2': process.env.REACT_APP_DIFY_API_KEY2,
-  'config3': process.env.REACT_APP_DIFY_API_KEY3,
+  'config1': process.env.REACT_APP_DIFY_API_SALES,
+  'config2': process.env.REACT_APP_DIFY_API_HEALTH,
+  'config3': process.env.REACT_APP_DIFY_API_BEAUTY,
   'config4': process.env.REACT_APP_DIFY_API_KEY_FINANCE
 }
 

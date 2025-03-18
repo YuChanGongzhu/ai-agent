@@ -6,15 +6,15 @@ const DATASET_API_KEY = process.env.REACT_APP_DIFY_DATASET_API_KEY;
 export const getApiKey = (config?: string) => {
   switch(config) {
     case 'config1':
-      return process.env.REACT_APP_DIFY_API_KEY1;
+      return process.env.REACT_APP_DIFY_API_SALES;
     case 'config2':
-      return process.env.REACT_APP_DIFY_API_KEY2;
+      return process.env.REACT_APP_DIFY_API_HEALTH;
     case 'config3':
-      return process.env.REACT_APP_DIFY_API_KEY3;
+      return process.env.REACT_APP_DIFY_API_BEAUTY;
     case 'config4':
       return process.env.REACT_APP_DIFY_API_KEY_FINANCE;
     default:
-      return process.env.REACT_APP_DIFY_API_KEY3;
+      return process.env.REACT_APP_DIFY_API_BEAUTY;
   }
 };
 
