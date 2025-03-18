@@ -11,7 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
 import ServerManage from './server/serverManage';
-import UserManagement from './userManagement/UserManagement';
+import ManagementPage from './management/ManagementPage';
 import { UserProvider } from './context/UserContext';
 import { WxAccountProvider } from './context/WxAccountContext';
 
@@ -41,7 +41,7 @@ function App() {
                         <Route path="/task/invite" element={<PersonSelector />} />
                         <Route path="/calendar" element={<CalendarComponent />} />
                         <Route path="/server" element={<ServerManage />} />
-                        <Route path="/users" element={<UserManagement />} />
+                        <Route path="/manage" element={<ManagementPage />} />
                       </Routes>
                     </div>
                   </div>

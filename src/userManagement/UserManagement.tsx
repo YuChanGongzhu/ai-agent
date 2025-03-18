@@ -6,8 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { getDatasetsApi, Dataset } from '../api/dify';
 import { useUser } from '../context/UserContext';
 
+interface UserManagementProps {
+  externalDatasets?: Dataset[];
+  externalDatasetsLoading?: boolean;
+}
+
 // 集成用户编辑组件到用户管理页面
-const UserManagement: React.FC = () => {
+const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, externalDatasetsLoading }) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
@@ -121,8 +126,10 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // 获取素材库数据
+  // 获取素材库数据（如果没有提供外部数据集）
   const fetchDatasets = async () => {
+    if (externalDatasets) return; // 如果提供了外部数据集，则不需要获取
+    
     try {
       setDatasetsLoading(true);
       const response = await getDatasetsApi({});
@@ -134,12 +141,28 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // 使用外部数据集（如果提供）
+  useEffect(() => {
+    if (externalDatasets) {
+      setDatasets(externalDatasets);
+    }
+  }, [externalDatasets]);
+
+  // 使用外部数据集加载状态（如果提供）
+  useEffect(() => {
+    if (externalDatasetsLoading !== undefined) {
+      setDatasetsLoading(externalDatasetsLoading);
+    }
+  }, [externalDatasetsLoading]);
+
   // 仅当用户是管理员时，才加载用户列表和素材库
   useEffect(() => {
     if (!isAdmin || isAdminChecking) return;
     
-    // 加载素材库数据
-    fetchDatasets();
+    // 加载素材库数据（如果没有提供外部数据集）
+    if (!externalDatasets) {
+      fetchDatasets();
+    }
     
     async function fetchUsers() {
       try {
@@ -624,7 +647,7 @@ const UserManagement: React.FC = () => {
                       角色
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      状态
+                      行业
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       操作
@@ -683,12 +706,8 @@ const UserManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.profile?.is_active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {user.profile?.is_active ? '正常' : '已禁用'}
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {user.profile?.industry || '未分配'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

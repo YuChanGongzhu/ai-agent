@@ -27,7 +27,7 @@ const navItems: NavItem[] = [
   { name: '任务', icon: taskSVG, url: '/task' },
   { name: '日历', icon: calenderSVG, url: '/calendar' },
   { name: '服务器', icon: serverSVG, url: '/server' },
-  { name: '用户管理', icon: usersSVG, url: '/users', adminOnly: true },
+  { name: '系统管理', icon: usersSVG, url: '/manage', adminOnly: true },
 ];
 
 const NavBar: React.FC = () => {

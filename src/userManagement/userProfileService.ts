@@ -17,6 +17,7 @@ export interface UserProfile {
   servers?: any[]; // 用户关联的服务器列表
   role?: string; // 用户角色
   material_list?: string[]; // 用户能访问的素材库ID列表
+  industry?: string; // 用户所属行业
 }
 
 export class UserProfileService {
