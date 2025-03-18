@@ -319,7 +319,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {messages.map((message) => (
+                        {messages.filter(message => message.content.trim() !== '').map((message) => (
                             <div
                                 key={message.id}
                                 className={clsx(
