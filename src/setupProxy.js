@@ -154,9 +154,41 @@ module.exports = function(app) {
         // 确保Host头正确设置
         proxyReq.setHeader('Host', 'lighthouse.tencentcloudapi.com');
         
+        // 处理POST请求体，确保参数正确传递
+        if (req.method === 'POST' && req.body) {
+          try {
+            // 如果请求体已经是字符串，则直接使用
+            let bodyData = req.body;
+            
+            // 如果请求体是对象，则转为JSON字符串
+            if (typeof req.body !== 'string') {
+              bodyData = JSON.stringify(req.body);
+            }
+            
+            // 修改请求体并重写Content-Length
+            const bodyLength = Buffer.byteLength(bodyData);
+            proxyReq.setHeader('Content-Length', bodyLength);
+            
+            // 写入请求体
+            proxyReq.write(bodyData);
+            
+            console.log(`[Proxy] POST请求体已重写，长度: ${bodyLength}字节`);
+          } catch (error) {
+            console.error('[Proxy] 处理请求体时出错:', error);
+          }
+        }
+        
         // 在开发环境下记录请求信息
         if (process.env.NODE_ENV === 'development') {
           console.log(`[Proxy] 请求: ${req.method} ${req.path}`);
+          
+          // 记录请求头信息，用于调试
+          console.log('[Proxy] 请求头:', JSON.stringify(proxyReq.getHeaders()));
+          
+          // 记录请求参数，用于调试
+          if (req.body) {
+            console.log('[Proxy] 请求体:', typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+          }
         }
       },
       onProxyRes: (proxyRes, req, res) => {

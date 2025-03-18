@@ -186,6 +186,36 @@ export class TencentCloudService {
     }
   }
 
+  // 重启实例
+  public async rebootInstances(instanceIds: string[], region: string = this.config.region): Promise<string> {
+    if (!instanceIds || instanceIds.length === 0) {
+      throw new Error('重启实例失败: 未提供实例ID');
+    }
+    
+    console.log(`正在重启 ${region} 地域的实例 ${instanceIds.join(', ')}...`);
+    
+    try {
+      // 使用API文档中指定的格式：InstanceIds作为数组传递
+      const requestData = {
+        Action: 'RebootInstances',
+        Version: this.apiVersion,
+        InstanceIds: instanceIds // 直接传递实例ID数组
+      };
+      
+      // 输出请求数据进行调试
+      console.log('重启实例请求数据:', JSON.stringify(requestData));
+      
+      // 调用API
+      const response = await this.sendRequest(requestData, region);
+      console.log(`重启实例请求成功，RequestId: ${response.RequestId}`);
+      
+      return response.RequestId;
+    } catch (error) {
+      console.error(`重启实例失败:`, error);
+      throw error;
+    }
+  }
+
   // 准备查询参数
   private prepareParams(params: InstanceQueryParams): any {
     const result: any = {};
@@ -262,6 +292,9 @@ export class TencentCloudService {
     // 移除一些特殊字段，这些字段会在header中单独发送
     delete payload.Action;
     delete payload.Version;
+    
+    // 调试输出，检查是否保留了 InstanceIds 参数
+    console.log('构建的请求载荷:', JSON.stringify(payload));
     
     return payload;
   }

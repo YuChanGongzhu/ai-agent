@@ -25,6 +25,11 @@ export const ServerManage: React.FC = () => {
   const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [serverToConnect, setServerToConnect] = useState<WindowsServer | null>(null);
+  // 重启功能相关状态
+  const [serverToReboot, setServerToReboot] = useState<WindowsServer | null>(null);
+  const [isRebootDialogOpen, setIsRebootDialogOpen] = useState<boolean>(false);
+  const [isRebooting, setIsRebooting] = useState<boolean>(false);
+  const [rebootError, setRebootError] = useState<string | null>(null);
   
   // 使用UserContext提供的用户信息
   const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
@@ -156,6 +161,70 @@ export const ServerManage: React.FC = () => {
       setConnectionError(errorMessage);
     } finally {
       setConnecting(false);
+    }
+  };
+
+  // 打开重启确认对话框
+  const showRebootConfirmation = (server: WindowsServer) => {
+    setServerToReboot(server);
+    setIsRebootDialogOpen(true);
+    setRebootError(null);
+  };
+
+  // 关闭重启确认对话框
+  const closeRebootDialog = () => {
+    setIsRebootDialogOpen(false);
+    setServerToReboot(null);
+    setRebootError(null);
+  };
+
+  // 执行重启操作
+  const rebootServer = async () => {
+    if (!serverToReboot || !serverToReboot.instanceId || !serverToReboot.region) {
+      setRebootError('缺少实例ID或地域信息，无法执行重启操作');
+      return;
+    }
+
+    if (serverToReboot.status !== 'RUNNING') {
+      setRebootError(`无法重启实例，当前状态为: ${serverToReboot.status || '未知'}，只有运行中的实例才能重启`);
+      return;
+    }
+
+    setIsRebooting(true);
+    setRebootError(null);
+
+    try {
+      await tencentCloudService.rebootInstances([serverToReboot.instanceId], serverToReboot.region);
+      
+      // 更新服务器状态
+      const updatedServers = new Map(regionServers);
+      const regionServersArray = updatedServers.get(serverToReboot.region) || [];
+      
+      const updatedServersArray = regionServersArray.map(server => {
+        if (server.instanceId === serverToReboot.instanceId) {
+          return { ...server, status: 'REBOOTING' };
+        }
+        return server;
+      });
+      
+      updatedServers.set(serverToReboot.region, updatedServersArray);
+      setRegionServers(updatedServers);
+      
+      // 关闭对话框
+      setIsRebootDialogOpen(false);
+      setServerToReboot(null);
+      
+      // 延迟几秒后刷新服务器列表以获取最新状态
+      setTimeout(() => {
+        fetchAllRegionInstances();
+      }, 5000);
+      
+    } catch (error) {
+      console.error('重启服务器失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '重启服务器失败，请稍后重试';
+      setRebootError(errorMessage);
+    } finally {
+      setIsRebooting(false);
     }
   };
 
@@ -363,7 +432,20 @@ export const ServerManage: React.FC = () => {
                   )}
                   
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {/* 删除服务器状态标签，只保留微信状态标签 */}
+                    {/* 添加服务器实例状态标签 */}
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      server.status === 'RUNNING' 
+                        ? 'bg-green-100 text-green-800' 
+                        : server.status === 'REBOOTING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : server.status === 'STOPPED'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      状态: {server.status || '未知'}
+                    </div>
+                    
+                    {/* 微信状态标签 */}
                     {!wxLoading && server.status === 'RUNNING' && (
                       <>
                         {getWechatStatusLabel(server).accounts.length > 0 ? (
@@ -389,17 +471,26 @@ export const ServerManage: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="mt-4">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
                     <button
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
                       onClick={() => connectToVnc(server)}
                       disabled={!server.instanceId || server.status !== 'RUNNING'}
                     >
                       VNC终端连接
                     </button>
+                    
+                    <button
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded"
+                      onClick={() => showRebootConfirmation(server)}
+                      disabled={!server.instanceId || server.status !== 'RUNNING'}
+                    >
+                      重启系统
+                    </button>
+
                     {(!server.instanceId || server.status !== 'RUNNING') && (
-                      <p className="text-xs text-gray-500 mt-1 text-center">
-                        {!server.instanceId ? '此服务器无法使用VNC' : '服务器必须处于运行状态才能连接'}
+                      <p className="text-xs text-gray-500 mt-1 text-center col-span-2">
+                        {!server.instanceId ? '此服务器无法使用操作' : `服务器当前状态: ${server.status || '未知'}`}
                       </p>
                     )}
                   </div>
@@ -407,6 +498,51 @@ export const ServerManage: React.FC = () => {
               ))
             )}
           </div>
+
+          {/* 重启确认对话框 */}
+          {isRebootDialogOpen && serverToReboot && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-semibold mb-4">确认重启服务器</h3>
+                <p className="text-gray-700 mb-6">
+                  您确定要重启服务器 <span className="font-semibold">{serverToReboot.name}</span> 吗？此操作可能会导致正在运行的应用程序中断。
+                </p>
+                
+                {rebootError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {rebootError}
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={closeRebootDialog}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+                    disabled={isRebooting}
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={rebootServer}
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded flex items-center"
+                    disabled={isRebooting}
+                  >
+                    {isRebooting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        正在重启...
+                      </>
+                    ) : (
+                      '确认重启'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
