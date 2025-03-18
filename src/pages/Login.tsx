@@ -141,10 +141,8 @@ const Login: React.FC = () => {
                 className="w-full bg-primary text-white rounded-lg py-3 hover:bg-primary/90 transition-colors disabled:opacity-50"
                 disabled={loading}
               >
-                {loading ? '处理中...' : '登录'}
+                {loading ? '登录中...' : '登录'}
               </button>
-              
-
             </form>
           </div>
         </div>
