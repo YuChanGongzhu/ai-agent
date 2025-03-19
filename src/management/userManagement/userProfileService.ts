@@ -1,5 +1,5 @@
-import { supabase } from '../auth/supabaseConfig';
-import { UserProfile } from '../context/type';
+import { supabase } from '../../auth/supabaseConfig';
+import { UserProfile } from '../../context/type';
 
 export class UserProfileService {
   // 添加静态变量用于缓存当前用户和配置信息

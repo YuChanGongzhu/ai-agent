@@ -6,7 +6,7 @@ import { EmployeeTable } from './employee/employeeTable';
 import { EmployeeEdit } from './employee/employeeEdit';
 import { Dialog } from './dialog/dialog';
 import { CalendarComponent } from './calendar/calender';
-import Login from './pages/Login';
+import Login from './login/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';

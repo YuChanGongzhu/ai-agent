@@ -57,7 +57,6 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
     }, [selectedAccount, selectedConversation]);
 
     const fetchInitialSummary = async () => {
-        // 确保 selectedAccount 和 selectedConversation 都不为 null 且具有必要的属性
         if (selectedAccount && selectedConversation && selectedAccount.wxid && selectedConversation.room_id) {
             try {
                 const summaryResponse = await getWxChatHistorySummaryApi(
@@ -65,48 +64,34 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                     selectedConversation.room_id
                 );
                 console.log('初始聊天摘要内容:', summaryResponse);
-                
-                // 尝试解析 JSON 内容（如果是 JSON 格式）
                 try {
                     const parsedSummary = JSON.parse(summaryResponse.value);
                     console.log('解析后的初始聊天摘要:', parsedSummary);
                     
-                    // 提取客户信息并更新状态
                     if (parsedSummary && parsedSummary.summary_json) {
-                        // 更新客户基本信息
                         if (parsedSummary.summary_json.customer_info) {
                             setCustomerInfo(parsedSummary.summary_json.customer_info);
                         }
-                        
-                        // 更新关键事件
                         if (parsedSummary.summary_json.chat_key_event) {
                             setChatKeyEvents(parsedSummary.summary_json.chat_key_event);
                         }
-                        
-                        // 更新用户画像
                         if (parsedSummary.summary_json.user_profile) {
                             setUserProfile(parsedSummary.summary_json.user_profile);
                         }
                     }
                 } catch (parseError) {
-                    // 如果不是 JSON 格式，直接显示原始内容
                     console.log('原始初始聊天摘要文本:', summaryResponse.value);
                 }
             } catch (error) {
                 console.error('获取初始聊天摘要时出错:', error);
-                // 如果获取失败，不做特殊处理，用户仍然可以通过点击按钮手动获取
             }
         }
     };
 
-    // 获取聊天历史摘要的函数
     const fetchChatHistorySummary = async () => {
-        // 确保 selectedAccount 和 selectedConversation 都不为 null 且具有必要的属性
         if (selectedAccount && selectedConversation && selectedAccount.wxid && selectedConversation.room_id) {
             setIsLoading(true);
             const roomId = selectedConversation.room_id.replace(/@/g, '');
-
-            // 清空当前的数据
             setCustomerInfo({
                 name: null,
                 age: null,
@@ -118,7 +103,6 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
             setUserProfile({});
             
             try {
-                // 第一步：生成聊天历史摘要
                 const currentDate = new Date().toISOString();
                 const request = {
                     conf: {
@@ -134,7 +118,6 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                 
                 const response = await generateWxChatHistorySummaryApi(request);
                 
-                // 第二步：获取生成的聊天摘要
                 setTimeout(async () => {
                     try {
                         const summaryResponse = await getWxChatHistorySummaryApi(
@@ -143,30 +126,24 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                         );
                         console.log('聊天摘要内容:', summaryResponse);
                         
-                        // 尝试解析 JSON 内容（如果是 JSON 格式）
                         try {
                             const parsedSummary = JSON.parse(summaryResponse.value);
                             console.log('解析后的聊天摘要:', parsedSummary);
                             
-                            // 更新客户基本信息
                             if (parsedSummary && parsedSummary.summary_json) {
-                                // 更新客户基本信息
                                 if (parsedSummary.summary_json.customer_info) {
                                     setCustomerInfo(parsedSummary.summary_json.customer_info);
                                 }
                                 
-                                // 更新关键事件
                                 if (parsedSummary.summary_json.chat_key_event) {
                                     setChatKeyEvents(parsedSummary.summary_json.chat_key_event);
                                 }
                                 
-                                // 更新用户画像
                                 if (parsedSummary.summary_json.user_profile) {
                                     setUserProfile(parsedSummary.summary_json.user_profile);
                                 }
                             }
                         } catch (parseError) {
-                            // 如果不是 JSON 格式，直接显示原始内容
                             console.log('原始聊天摘要文本:', summaryResponse.value);
                         }
                     } catch (summaryError) {
@@ -185,13 +162,11 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
             setIsLoading(false);
         }
     };
-
-    // 将用户画像数据转换为标签数组 - 使用value作为标签文本
+    
     const userProfileTags = Object.entries(userProfile).map(([key, value]) => ({
         text: value
     }));
 
-    // 将关键事件转换为记忆数组
     const memoryEvents = chatKeyEvents.map(event => ({
         date: event.time,
         content: event.detail

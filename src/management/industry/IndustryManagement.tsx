@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../auth/supabaseConfig';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../../context/UserContext';
 import * as IndustryService from './industryService';
 import { Industry } from './industryService';
-import { getDatasetsApi, Dataset } from '../api/dify';
+import { getDatasetsApi, Dataset } from '../../api/dify';
 
 interface IndustryManagementProps {
   externalDatasets?: Dataset[];

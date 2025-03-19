@@ -1,6 +1,5 @@
 import { DialogList } from './dialogList';
 import { DialogPage } from './dialogPage';
-import { MaterialBase } from './materialBase';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
 import { getUserMsgCountApi, WxAccount, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';

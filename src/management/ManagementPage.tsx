@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
-import UserManagement from '../userManagement/UserManagement';
-import IndustryManagement from '../industry/IndustryManagement';
+import UserManagement from './userManagement/UserManagement';
+import IndustryManagement from './industry/IndustryManagement';
 import { getDatasetsApi, Dataset } from '../api/dify';
 import { Navigate } from 'react-router-dom';
 

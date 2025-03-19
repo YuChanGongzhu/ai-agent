@@ -1,5 +1,4 @@
-import supabase from '../auth/supabaseConfig';
-import { PostgrestError } from '@supabase/supabase-js';
+import supabase from '../../auth/supabaseConfig';
 
 // 定义行业数据接口
 export interface Industry {

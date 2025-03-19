@@ -7,7 +7,7 @@ import EffectTest from './edit/effectTest';
 import { getWxAccountPromptApi } from '../api/airflow';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeChoice } from './edit/employeeChoice';
-import FileManager from './file/FileManager';
+import FileManager from './edit/FileManager';
 
 
 export const EmployeeEdit: React.FC = () => {

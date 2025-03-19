@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../auth/supabaseConfig';
+import { supabase } from '../../auth/supabaseConfig';
 import { UserProfileService } from './userProfileService';
-import { UserProfile } from '../context/type';
-import { UserData } from '../context/type';
+import { UserProfile } from '../../context/type';
+import { UserData } from '../../context/type';
 import { useNavigate } from 'react-router-dom';
-import { getDatasetsApi, Dataset } from '../api/dify';
-import { useUser } from '../context/UserContext';
+import { getDatasetsApi, Dataset } from '../../api/dify';
+import { useUser } from '../../context/UserContext';
 
 interface UserManagementProps {
   externalDatasets?: Dataset[];
