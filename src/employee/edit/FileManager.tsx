@@ -351,7 +351,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
     };
 
     return (
-        <div className="bg-white shadow-lg rounded-lg p-6">
+        <div className="bg-white shadow-lg rounded-lg p-4">
             {/* 通知栏 */}
             {notification.show && (
                 <div className={`fixed top-4 right-4 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-md shadow-lg z-50`}>
@@ -562,9 +562,6 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         操作
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        知识库
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -612,17 +609,6 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                                                     </svg>
                                                 </button>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button 
-                                                onClick={() => handleAddFileToDify(file)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-purple-600 hover:bg-purple-700 text-white"
-                                                title="添加到知识库"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                </svg>
-                                            </button>
                                         </td>
                                     </tr>
                                 ))}

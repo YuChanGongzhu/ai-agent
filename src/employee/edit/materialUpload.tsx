@@ -58,11 +58,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     if (!userContextLoading) {
       try {
         setUserLoading(true);
-
-        // 设置管理员状态
         setIsAdmin(contextIsAdmin);
-
-        // 获取用户可访问的素材库列表
         if (userProfile && userProfile.material_list) {
           setUserMaterialList(userProfile.material_list);
         }
@@ -74,16 +70,12 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     }
   }, [userProfile, contextIsAdmin, userContextLoading]);
 
-  // 获取数据集并根据用户权限进行过滤
   useEffect(() => {
-    // 当用户数据或数据集加载完成时并且用户上下文加载完成时执行
     const fetchData = async () => {
       try {
         setLoading(true);
         const res = await getDatasetsApi({ limit: '50' });
 
-        // 管理员可以看到所有素材库
-        // 非管理员只能看到分配给他们的素材库
         let filteredDatasets = res.data;
         if (!isAdmin && userMaterialList.length > 0) {
           filteredDatasets = res.data.filter(dataset =>
@@ -112,25 +104,21 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
       }
     };
 
-    // 只有在用户加载完成后才获取数据集
     if (!userLoading) {
       fetchData();
     }
   }, [userLoading, isAdmin, userMaterialList, datasetId]);
 
-  // 获取选中数据集的文档列表
   useEffect(() => {
     if (datasetId) {
       fetchDocuments();
     }
   }, [datasetId]);
   
-  // 数据集选择处理函数
   const handleSelectDataset = (id: string) => {
     setDatasetId(id);
   };
 
-  // 处理创建新素材库
   const handleCreateDataset = async () => {
     if (!newDatasetName.trim()) return;
 
@@ -144,13 +132,9 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
         permission: 'all_team_members',
       });
 
-      // 添加新创建的数据集到列表
       setDatasets(prev => [response, ...prev]);
-
-      // 选择新创建的数据集
       setDatasetId(response.id);
 
-      // 关闭模态窗口并重置表单
       setShowCreateDatasetModal(false);
       setNewDatasetName('');
       setNewDatasetDescription('');
@@ -164,7 +148,6 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     }
   };
 
-  // 获取文档列表
   const fetchDocuments = async () => {
     if (!datasetId) return;
 
@@ -179,17 +162,14 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     }
   };
 
-  // 删除文档
   const handleDeleteDocument = async (documentId: string) => {
     if (!datasetId) return;
 
     try {
       setDeletingDocId(documentId);
 
-      // 删除Dify中的文档
       await deleteDatasetDocumentApi(datasetId, documentId);
 
-      // 更新文档列表
       setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== documentId));
 
       showNotification('文档删除成功', 'success');
@@ -203,19 +183,15 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     }
   };
 
-  // 打开删除确认模态窗口
   const openDeleteModal = (doc: DocumentItem) => {
     setDocumentToDelete({ id: doc.id, name: doc.name });
     setShowDeleteModal(true);
   };
-
-  // 关闭删除确认模态窗口
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setDocumentToDelete(null);
   };
 
-  // 显示通知消息
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({
       show: true,
@@ -228,7 +204,6 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     }, 3000);
   };
 
-  // 处理从COS选择文件添加到知识库
   const handleFileSelect = async (cosFile: CosFileItem) => {
     if (!datasetId) {
       showNotification('请先选择或创建一个知识库', 'error');
@@ -238,18 +213,15 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     setSelectedFile(cosFile);
   };
 
-  // 添加选中的COS文件到Dify知识库
   const addFileToDify = async () => {
     if (!selectedFile || !datasetId) return;
 
     try {
       setIsAddingDocument(true);
       
-      // 从COS文件信息中提取文件名和扩展名
       const fileName = selectedFile.name;
       const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
       
-      // 根据文件类型确定doc_type
       let docType: DocType = 'personal_document';
       if (['doc', 'docx', 'pdf', 'txt'].includes(fileExt)) {
         docType = 'personal_document';
@@ -259,12 +231,9 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
         docType = 'business_document';
       }
 
-      // 创建一个模拟的File对象用于API请求
-      // 注意：这里我们仅提供文件的URL，实际创建会在API中进行
       const fileBlob = new Blob([''], { type: selectedFile.type });
       const file = new File([fileBlob], fileName, { type: selectedFile.type });
 
-      // 准备请求数据
       const data: CreateDocumentByFileData = {
         indexing_technique: 'high_quality',
         doc_type: docType,
@@ -288,13 +257,10 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
         }
       };
 
-      // 发起API请求将文件添加到知识库
       const result = await createDocumentByFileApi(datasetId, file, data);
       
-      // 刷新文档列表
       fetchDocuments();
       
-      // 重置选中的文件
       setSelectedFile(null);
       
       showNotification(`成功将文件 ${fileName} 添加到知识库`, 'success');
@@ -311,7 +277,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
+    <div className="bg-white shadow-md rounded-lg p-4">
       {/* 通知消息 */}
       {notification.show && (
         <div className={`fixed top-4 right-4 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-md shadow-lg z-50`}>
@@ -430,7 +396,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
 
       {/* 主内容区域 */}
       <div className="mb-1 flex justify-between items-center">
-        <h3 className="text-xl font-medium text-gray-900">素材库</h3>
+        <h3 className="text-xl font-medium text-gray-900">知识库</h3>
         {isAdmin && (
           <button
             onClick={() => setShowCreateDatasetModal(true)}
@@ -439,7 +405,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            创建素材库
+            创建知识库
           </button>
         )}
       </div>
