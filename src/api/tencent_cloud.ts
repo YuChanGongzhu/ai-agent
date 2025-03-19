@@ -414,9 +414,9 @@ export class TencentCloudService {
     
     // 创建一个用于日志输出的安全副本
     const logPayload = JSON.parse(JSON.stringify(payload));
-    if (logPayload.LoginConfiguration?.Password) {
-      logPayload.LoginConfiguration.Password = '*****';
-    }
+    // if (logPayload.LoginConfiguration?.Password) {
+    //   logPayload.LoginConfiguration.Password = '*****';
+    // }
     
     // 调试输出，使用屏蔽了密码的副本
     console.log('构建的请求载荷:', JSON.stringify(logPayload));
