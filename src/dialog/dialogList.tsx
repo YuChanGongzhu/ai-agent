@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {  useState } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage } from '../api/mysql';
@@ -25,11 +25,8 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
     const [showHumanDialog, setShowHumanDialog] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
 
-    // Format the human list with required fields
     const formattedHumanList = humanList.map(wxid => {
-        // Find the corresponding conversation for this wxid
         const dialog = dialogs.find(conv => conv.room_id === wxid);
-        // Find avatar from avatar list
         const avatar = avatarList.find(av => av.wxid === wxid)?.smallHeadImgUrl || '';
         return {
             wxid,
@@ -57,7 +54,6 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
         (dialog.room_name || dialog.sender_name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Human Dialog Popup
     return (
         <>
             <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
@@ -73,7 +69,6 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                     className="pl-8 pr-4 py-2 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
                                     autoFocus
                                     onBlur={() => {
-                                        // Only hide if the search query is empty
                                         if (!searchQuery) {
                                             setShowSearchInput(false);
                                         }

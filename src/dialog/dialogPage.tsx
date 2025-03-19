@@ -48,15 +48,12 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
         messageContainer.scrollTop = messageContainer.scrollHeight;
     };
     
-    // Function to show notification
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setNotification({
             show: true,
             message,
             type
         });
-        
-        // Auto-hide notification after 3 seconds
         setTimeout(() => {
             setNotification({show: false, message: '', type: 'success'});
         }, 3000);

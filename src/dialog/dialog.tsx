@@ -20,29 +20,33 @@ export const Dialog = () => {
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
     const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
     const [humanList, setHumanList] = useState<string[]>([]);
-    // 使用上下文获取微信账号数据
-    const { wxAccountList, filteredWxAccountList, isLoading: isLoadingAccounts } = useWxAccount();
+    const { filteredWxAccountList, isLoading: isLoadingAccounts } = useWxAccount();
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
-    // 仅保留对话加载状态
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
-    const getConversations = async () => {
-        if (!selectedAccount) return;
-
+    const getHumanList = async () => {//获取微信转人工列表
         try {
-            // Add a 2-second delay before fetching conversations
+            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
+            const humanData = JSON.parse(res.value);
+            const humanArray: string[] = Object.values(humanData);
+            setHumanList(humanArray);
+        } catch (error) {
+            console.error('Failed to fetch wx human list:', error);
+        }
+    }
+
+    const getConversations = async () => {//获取微信会话列表
+        if (!selectedAccount) return;
+        try {
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
             const res = await getRoomListMessagesApi({
                 wx_user_id: selectedAccount.wxid
             });
             setConversations(res.data);
-            
-            await getHumanList();
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {
@@ -53,7 +57,6 @@ export const Dialog = () => {
     useEffect(() => {
         const pollMessageCount = async () => {
             if (!selectedAccount) return;
-
             try {
                 const response = await getUserMsgCountApi(selectedAccount.name);
                 const newCount = response.value;
@@ -77,18 +80,35 @@ export const Dialog = () => {
 
     useEffect(() => {
         if (messageCount && selectedAccount) {
-            getConversations();
-            if (selectedConversation) {
-                setSelectedConversation({ ...selectedConversation });
-            }
+            const currentConversation = selectedConversation;
+            const updateConversationsAndCheckSelected = async () => {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    const res = await getRoomListMessagesApi({
+                        wx_user_id: selectedAccount.wxid
+                    });
+                    
+                    setConversations(res.data);
+                    if (currentConversation) {
+                        const matchingConversation = res.data.find(conv => 
+                            conv.room_id === currentConversation.room_id
+                        );
+                        if (matchingConversation && JSON.stringify(matchingConversation) !== JSON.stringify(currentConversation)) {
+                            setSelectedConversation(matchingConversation);
+                        }
+                    }
+                    getHumanList();
+                } catch (error) {
+                    console.error('Error refreshing conversations:', error);
+                } finally{
+                    setIsLoadingConversations(false)
+                }
+            };
+            updateConversationsAndCheckSelected();
         }
     }, [messageCount])
 
-    // useEffect(() => {
-    //     console.log('选择的账号或对话已更新', { selectedAccount, selectedConversation });
-    // }, [selectedAccount, selectedConversation]);
-
-    const getHeadList=async()=>{
+    const getHeadList = async () => {
         try {
             const res = await getWxCountactHeadListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
             const avatarData = JSON.parse(res.value);
@@ -96,20 +116,9 @@ export const Dialog = () => {
             setAvatarList(avatarArray);
         } catch (error) {
             console.error('Failed to fetch wx accounts:', error);
-        } 
+        }
     }
-    const getHumanList=async()=>{
-        try {
-            const res = await getWxHumanListApi(selectedAccount?.name || '', selectedAccount?.wxid || '');
-            const humanData = JSON.parse(res.value);
-            const humanArray: string[] = Object.values(humanData);
-            setHumanList(humanArray);
-        } catch (error) {
-            console.error('Failed to fetch wx human list:', error);
-        } 
-    }
-    
-    // Function to refresh the human list - can be passed to child components
+
     const refreshHumanList = () => {
         if (selectedAccount) {
             getHumanList();
@@ -117,8 +126,12 @@ export const Dialog = () => {
     }
 
     useEffect(() => {
-        if(selectedAccount) {
+        if (selectedAccount) {
+            setConversations([]);
             getHeadList();
+            setIsLoadingConversations(true);
+            getConversations();
+            getHumanList();
         }
     }, [selectedAccount]);
 
@@ -144,8 +157,6 @@ export const Dialog = () => {
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                                 onClick={() => {
                                     setSelectedAccount(account);
-                                    setIsLoadingConversations(true);
-                                    setConversations([]);
                                 }}>
                                 <span>{account.name}</span>
                                 <button
@@ -209,10 +220,6 @@ export const Dialog = () => {
 
                 <div className="flex-1">
                     <div className="h-[80vh] flex flex-col space-y-2">
-                        {/* <div className="flex-shrink-0">
-                            <MaterialBase />
-                        </div> */}
-
                         <div className="flex-shrink-0">
                             <Memory
                                 selectedAccount={selectedAccount}
