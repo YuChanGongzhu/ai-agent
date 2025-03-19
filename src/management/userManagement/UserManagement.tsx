@@ -3,9 +3,9 @@ import { supabase } from '../../auth/supabaseConfig';
 import { UserProfileService } from './userProfileService';
 import { UserProfile } from '../../context/type';
 import { UserData } from '../../context/type';
-import { useNavigate } from 'react-router-dom';
 import { getDatasetsApi, Dataset } from '../../api/dify';
 import { useUser } from '../../context/UserContext';
+import { Industry } from '../industry/industryService';
 
 interface UserManagementProps {
   externalDatasets?: Dataset[];
@@ -14,6 +14,7 @@ interface UserManagementProps {
   externalUsersLoading?: boolean;
   externalUsersError?: string | null;
   externalRefetchUsers?: () => Promise<void>;
+  externalIndustries?: Industry[];
 }
 
 // 集成用户编辑组件到用户管理页面
@@ -23,9 +24,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
   externalUsers,
   externalUsersLoading,
   externalUsersError,
-  externalRefetchUsers
+  externalRefetchUsers,
+  externalIndustries
  }) => {
-  const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,8 @@ const UserManagement: React.FC<UserManagementProps> = ({
   
   // 素材管理相关状态
   const [materialInput, setMaterialInput] = useState('');
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('自定义');
+  const [showMaterialPopup, setShowMaterialPopup] = useState(false);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   
@@ -298,8 +301,12 @@ const UserManagement: React.FC<UserManagementProps> = ({
       mobile_devices: user.profile?.mobile_devices || [],
       servers: user.profile?.servers || [],
       material_list: user.profile?.material_list || [],
-      role: user.profile?.role || 'user'
+      role: user.profile?.role || 'user',
+      industry: user.profile?.industry || '自定义'
     });
+    
+    // 设置选择的行业
+    setSelectedIndustry(user.profile?.industry || '自定义');
   };
 
   // 取消编辑
@@ -312,6 +319,25 @@ const UserManagement: React.FC<UserManagementProps> = ({
   // 表单字段变更处理
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
+    // 特殊处理行业选择
+    if (name === 'industry') {
+      setSelectedIndustry(value);
+      
+      // 如果选择了特定行业（非自定义），则自动应用该行业的素材列表
+      if (value !== '自定义' && externalIndustries) {
+        const selectedIndustryData = externalIndustries.find(industry => industry.name === value);
+        if (selectedIndustryData) {
+          setFormData({
+            ...formData,
+            industry: value,
+            material_list: selectedIndustryData.material_list || []
+          });
+          return;
+        }
+      }
+    }
+    
     setFormData({
       ...formData,
       [name]: type === 'checkbox' 
@@ -444,7 +470,8 @@ const UserManagement: React.FC<UserManagementProps> = ({
         mobile_devices: formData.mobile_devices,
         servers: formData.servers,
         material_list: formData.material_list,
-        role: formData.role
+        role: formData.role,
+        industry: formData.industry
       };
 
       // 更新用户配置
@@ -803,6 +830,30 @@ const UserManagement: React.FC<UserManagementProps> = ({
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    行业标签
+                  </label>
+                  <select
+                    name="industry"
+                    value={selectedIndustry}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                  >
+                    <option value="自定义">自定义</option>
+                    {externalIndustries && externalIndustries.map(industry => (
+                      <option key={industry.id} value={industry.name}>
+                        {industry.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedIndustry !== '自定义' && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      已自动应用 {selectedIndustry} 行业的素材列表。
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     状态
                   </label>
                   <select
@@ -930,79 +981,142 @@ const UserManagement: React.FC<UserManagementProps> = ({
               
               {/* 素材库管理 */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  可访问素材库
-                </label>
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    选择素材库
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    可访问素材库 {selectedIndustry !== '自定义' && <span className="text-xs text-gray-500">({selectedIndustry} 行业)</span>}
                   </label>
-                  <div className="bg-gray-50 p-3 rounded-md border border-gray-300 max-h-60 overflow-y-auto">
-                    {datasetsLoading ? (
-                      <div className="text-center py-2">加载中...</div>
-                    ) : datasets.length === 0 ? (
-                      <div className="text-center py-2">暂无可用素材库</div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {datasets.map(dataset => {
-                          const isSelected = formData.material_list.includes(dataset.id);
-                          return (
-                            <div 
-                              key={dataset.id} 
-                              className={`p-2 rounded-md cursor-pointer border flex items-center ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                              onClick={() => {
-                                // 如果已选中，则移除
-                                if (isSelected) {
-                                  handleRemoveMaterial(dataset.id);
-                                } else {
-                                  // 否则添加到选中列表
-                                  setFormData({
-                                    ...formData,
-                                    material_list: [...formData.material_list, dataset.id]
-                                  });
-                                }
-                              }}
-                            >
-                              <div className={`w-5 h-5 rounded border mr-2 flex-shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
-                                {isSelected && (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="flex-grow">
-                                <div className="font-medium">{dataset.name}</div>
-                                <div className="text-xs text-gray-500">{dataset.id}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  {selectedIndustry === '自定义' && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMaterialPopup(true)}
+                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                    >
+                      选择素材库
+                    </button>
+                  )}
                 </div>
+                
+                {/* 素材库弹窗 */}
+                {showMaterialPopup && selectedIndustry === '自定义' && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-2xl max-h-[80vh] overflow-hidden">
+                      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="text-lg font-medium">选择素材库</h3>
+                        <button
+                          type="button"
+                          onClick={() => setShowMaterialPopup(false)}
+                          className="text-gray-400 hover:text-gray-500"
+                        >
+                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="p-4 overflow-y-auto max-h-[60vh]">
+                        {datasetsLoading ? (
+                          <div className="text-center py-8">加载中...</div>
+                        ) : datasets.length === 0 ? (
+                          <div className="text-center py-8">暂无可用素材库</div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {datasets.map(dataset => {
+                              const isSelected = formData.material_list.includes(dataset.id);
+                              return (
+                                <div 
+                                  key={dataset.id} 
+                                  className={`p-3 rounded-md cursor-pointer border flex items-center ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                                  onClick={() => {
+                                    // 如果已选中，则移除
+                                    if (isSelected) {
+                                      handleRemoveMaterial(dataset.id);
+                                    } else {
+                                      // 否则添加到选中列表
+                                      setFormData({
+                                        ...formData,
+                                        material_list: [...formData.material_list, dataset.id]
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <div className={`w-5 h-5 rounded border mr-2 flex-shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                                    {isSelected && (
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="flex-grow">
+                                    <div className="font-medium">{dataset.name}</div>
+                                    <div className="text-xs text-gray-500">{dataset.id}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-between">
+                        <div className="space-x-2">
+                          <button
+                            type="button"
+                            onClick={handleAddAllMaterials}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                            disabled={datasetsLoading}
+                          >
+                            全选
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearAllMaterials}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
+                            disabled={formData.material_list.length === 0}
+                          >
+                            清空
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowMaterialPopup(false)}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                        >
+                          完成
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-4">
                   <div className="flex justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">已选素材库 ({formData.material_list.length})</span>
-                    <div className="space-x-2">
-                      <button
-                        type="button"
-                        onClick={handleAddAllMaterials}
-                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                        disabled={datasetsLoading}
-                      >
-                        全选
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleClearAllMaterials}
-                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                        disabled={formData.material_list.length === 0}
-                      >
-                        清空
-                      </button>
-                    </div>
+                    {selectedIndustry === '自定义' && (
+                      <div className="space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddAllMaterials();
+                            // 打开弹窗后添加全部
+                            if (!showMaterialPopup) {
+                              setShowMaterialPopup(true);
+                            }
+                          }}
+                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                          disabled={datasetsLoading}
+                        >
+                          全选
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearAllMaterials}
+                          className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                          disabled={formData.material_list.length === 0}
+                        >
+                          清空
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {datasetsLoading ? (

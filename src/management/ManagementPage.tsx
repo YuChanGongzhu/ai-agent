@@ -169,6 +169,7 @@ const ManagementPage: React.FC = () => {
             externalUsersLoading={usersLoading}
             externalUsersError={usersError}
             externalRefetchUsers={fetchUsers}
+            externalIndustries={industries}
           />
         )}
         {activeTab === 'industry' && (
