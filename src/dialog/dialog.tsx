@@ -128,6 +128,7 @@ export const Dialog = () => {
     useEffect(() => {
         if (selectedAccount) {
             setConversations([]);
+            setSelectedConversation(null);
             getHeadList();
             setIsLoadingConversations(true);
             getConversations();
