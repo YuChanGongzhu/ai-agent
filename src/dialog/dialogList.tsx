@@ -17,11 +17,12 @@ interface DialogListProps {
     isLoading?: boolean;
     avatarList?: AvatarData[];
     humanList?: string[];
+    selectedDialog?: RoomListMessage | null;
 }
 
-export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false, avatarList = [], humanList = [] }) => {
+export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false, avatarList = [], humanList = [], selectedDialog = null }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(selectedDialog?.msg_id || null);
     const [showHumanDialog, setShowHumanDialog] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
 
@@ -155,7 +156,7 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                                     key={dialog.msg_id}
                                     className={clsx(
                                         'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
-                                        selectedId === dialog.msg_id ? 'bg-purple-100' : 'hover:bg-gray-100'
+                                        (selectedDialog?.msg_id === dialog.msg_id || selectedId === dialog.msg_id) ? 'bg-purple-100' : 'hover:bg-gray-100'
                                     )}
                                     onClick={() => handleDialogClick(dialog)}
                                 >

@@ -204,6 +204,7 @@ export const Dialog = () => {
                             isLoading={isLoadingConversations}
                             avatarList={avatarList}
                             humanList={humanList}
+                            selectedDialog={selectedConversation}
                         />
                     </div>
                 </div>
