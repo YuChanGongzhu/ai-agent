@@ -10,10 +10,21 @@ import { useUser } from '../../context/UserContext';
 interface UserManagementProps {
   externalDatasets?: Dataset[];
   externalDatasetsLoading?: boolean;
+  externalUsers?: UserData[];
+  externalUsersLoading?: boolean;
+  externalUsersError?: string | null;
+  externalRefetchUsers?: () => Promise<void>;
 }
 
 // 集成用户编辑组件到用户管理页面
-const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, externalDatasetsLoading }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ 
+  externalDatasets, 
+  externalDatasetsLoading,
+  externalUsers,
+  externalUsersLoading,
+  externalUsersError,
+  externalRefetchUsers
+ }) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
@@ -21,9 +32,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, exter
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 管理员验证状态
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isAdminChecking, setIsAdminChecking] = useState<boolean>(true);
+
   
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,43 +69,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, exter
   const [saveLoading, setSaveLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // 使用UserContext获取用户信息和管理员状态
-  const { userProfile, isAdmin: contextIsAdmin, isLoading: userContextLoading } = useUser();
-  
-  // 验证当前用户是否为管理员（使用上下文）
-  useEffect(() => {
-    async function checkAdminPermission() {
-      try {
-        setIsAdminChecking(true);
-        
-        // 从用户上下文获取管理员状态
-        if (userContextLoading) {
-          // 如果上下文还在加载，等待
-          return;
-        }
-        
-        // 使用上下文中的管理员状态
-        if (contextIsAdmin) {
-          setIsAdmin(true);
-          setError(null);
-          console.log('用户是管理员（从上下文获取）');
-        } else {
-          // 不是管理员，设置状态但不重定向
-          setIsAdmin(false);
-          setError('您没有访问用户管理页面的权限');
-          console.log('用户不是管理员（从上下文获取）');
-        }
-      } catch (err) {
-        console.error('验证管理员权限失败:', err);
-        setIsAdmin(false);
-        setError('验证管理员权限失败，请刷新页面或者联系系统管理员');
-      } finally {
-        setIsAdminChecking(false);
-      }
-    }
-    
-    checkAdminPermission();
-  }, [contextIsAdmin, userContextLoading]); // 依赖于上下文中的数据，当上下文更新时重新检查
+  // 使用UserContext获取用户信息
+  const { userProfile } = useUser();
 
   // 搜索功能
   useEffect(() => {
@@ -156,80 +130,100 @@ const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, exter
     }
   }, [externalDatasetsLoading]);
 
-  // 仅当用户是管理员时，才加载用户列表和素材库
+  // 使用外部用户数据（父组件提供）
   useEffect(() => {
-    if (!isAdmin || isAdminChecking) return;
-    
     // 加载素材库数据（如果没有提供外部数据集）
     if (!externalDatasets) {
       fetchDatasets();
     }
     
-    async function fetchUsers() {
-      try {
-        setLoading(true);
+    // 如果有外部用户数据，使用它
+    if (externalUsers) {
+      setUsers(externalUsers);
+      setFilteredUsers(externalUsers);
+      setTotalPages(Math.ceil(externalUsers.length / itemsPerPage));
+      setError(externalUsersError || null);
+    }
+    
+    // 如果无外部用户数据，则自行获取
+    if (!externalUsers && !externalUsersLoading) {
+      fetchLocalUsers();
+    }
+    
+    // 同步加载状态
+    if (externalUsersLoading !== undefined) {
+      setLoading(externalUsersLoading);
+    }
+  }, [externalUsers, externalUsersLoading, externalUsersError, externalDatasets]);
+  
+  // 本地获取用户数据（当父组件没有提供时使用）
+  const fetchLocalUsers = async () => {
+    try {
+      setLoading(true);
+      
+      // 从 user_profiles 表获取用户配置信息
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('*');
+      
+      if (profilesError) {
+        throw profilesError;
+      }
+      
+      if (profilesData && profilesData.length > 0) {
+        // 使用配置信息构建用户列表
+        const formattedUsers = profilesData.map(profile => {
+          return {
+            id: profile.user_id,
+            email: profile.email || '从未登录',
+            last_sign_in_at: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '从未登录',
+            created_at: profile.created_at || '',
+            is_active: profile.is_active !== undefined ? profile.is_active : true,
+            role: profile.role || 'user',
+            display_name: profile.display_name || '',
+            profile: profile
+          };
+        });
         
-        // 从 user_profiles 表获取用户配置信息
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('user_profiles')
-          .select('*');
+        // 按最后登录时间排序，最新登录的显示在最上面
+        const sortedUsers = formattedUsers.sort((a, b) => {
+          // 如果没有profile或updated_at，则排在最后
+          if (!a.profile?.updated_at) return 1;
+          if (!b.profile?.updated_at) return -1;
+          // 降序排序，最新的在前面
+          return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
+        });
         
-        if (profilesError) {
-          throw profilesError;
-        }
-        
-        if (profilesData && profilesData.length > 0) {
-          // 使用配置信息构建用户列表
-          const formattedUsers = profilesData.map(profile => {
-            return {
-              id: profile.user_id,
-              email: profile.email || '从未登录',
-              last_sign_in_at: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '从未登录',
-              created_at: profile.created_at || '',
-              is_active: profile.is_active !== undefined ? profile.is_active : true,
-              role: profile.role || 'user',
-              display_name: profile.display_name || '',
-              profile: profile
-            };
-          });
-          
-          // 按最后登录时间排序，最新登录的显示在最上面
-          const sortedUsers = formattedUsers.sort((a, b) => {
-            // 如果没有profile或updated_at，则排在最后
-            if (!a.profile?.updated_at) return 1;
-            if (!b.profile?.updated_at) return -1;
-            // 降序排序，最新的在前面
-            return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
-          });
-          
-          setUsers(sortedUsers);
-          setFilteredUsers(sortedUsers);
-          setTotalPages(Math.ceil(sortedUsers.length / itemsPerPage));
-          setError(null);
-        } else {
-          // 如果没有用户数据，显示空列表
-          setUsers([]);
-          setFilteredUsers([]);
-          setTotalPages(0);
-          setError('暂无用户数据');
-        }
-      } catch (err: any) {
-        console.error('Error fetching users:', err);
-        setError(err.message || '获取用户列表失败');
+        setUsers(sortedUsers);
+        setFilteredUsers(sortedUsers);
+        setTotalPages(Math.ceil(sortedUsers.length / itemsPerPage));
+        setError(null);
+      } else {
+        // 如果没有用户数据，显示空列表
         setUsers([]);
         setFilteredUsers([]);
-      } finally {
-        setLoading(false);
+        setTotalPages(0);
+        setError('暂无用户数据');
       }
+    } catch (err: any) {
+      console.error('Error fetching users:', err);
+      setError(err.message || '获取用户列表失败');
+      setUsers([]);
+      setFilteredUsers([]);
+    } finally {
+      setLoading(false);
     }
-
-    fetchUsers();
-  }, [isAdmin, isAdminChecking]);
+  };
 
   // 刷新用户数据
   const refreshUsers = async () => {
-    if (!isAdmin) return;
+    // 如果有外部刷新函数，使用它
+    if (externalRefetchUsers) {
+      await externalRefetchUsers();
+      return;
+    }
     
+    // 否则自行刷新
     setLoading(true);
     setError(null);
     
@@ -547,35 +541,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ externalDatasets, exter
     );
   };
 
-  // 如果正在检查管理员权限，显示加载中
-  if (isAdminChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
-  // 如果不是管理员，显示错误消息而不是返回null
-  if (!isAdmin && !isAdminChecking) {
-    return (
-      <div className="p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">权限不足</h2>
-          <p className="text-gray-600 mb-6">{error || '您没有管理员权限，无法访问用户管理页面。'}</p>
-          <button 
-            onClick={() => navigate('/employee')} 
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md shadow-sm transition-colors"
-          >
-            返回主页
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6">

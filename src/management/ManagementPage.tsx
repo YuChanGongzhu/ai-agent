@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../context/UserContext';
 import UserManagement from './userManagement/UserManagement';
 import IndustryManagement from './industry/IndustryManagement';
 import { getDatasetsApi, Dataset } from '../api/dify';
-import { Navigate } from 'react-router-dom';
+import { supabase } from '../auth/supabaseConfig';
+import * as IndustryService from './industry/industryService';
+import { UserData } from '../context/type';
+import { Industry } from './industry/industryService';
 
 // Tab类型定义
 type TabType = 'users' | 'industry';
 
 const ManagementPage: React.FC = () => {
-  const { isAdmin } = useUser();
-  const [isAdminChecking, setIsAdminChecking] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
+  
+  // 用户数据状态
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  
+  // 行业数据状态
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [industriesLoading, setIndustriesLoading] = useState(false);
+  const [industriesError, setIndustriesError] = useState<string | null>(null);
 
   // 获取素材库数据（只获取一次，两个组件共用）
   const fetchDatasets = async () => {
@@ -30,25 +40,94 @@ const ManagementPage: React.FC = () => {
     }
   };
 
-  // 仅当用户是管理员时，才加载素材库数据
+  // 获取用户数据
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      
+      // 从 user_profiles 表获取用户配置信息
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('*');
+      
+      if (profilesError) {
+        throw profilesError;
+      }
+      
+      if (profilesData && profilesData.length > 0) {
+        // 使用配置信息构建用户列表
+        const formattedUsers = profilesData.map(profile => {
+          return {
+            id: profile.user_id,
+            email: profile.email || '从未登录',
+            last_sign_in_at: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '从未登录',
+            created_at: profile.created_at || '',
+            is_active: profile.is_active !== undefined ? profile.is_active : true,
+            role: profile.role || 'user',
+            display_name: profile.display_name || '',
+            profile: profile
+          };
+        });
+        
+        // 按最后登录时间排序，最新登录的显示在最上面
+        const sortedUsers = formattedUsers.sort((a, b) => {
+          // 如果没有profile或updated_at，则排在最后
+          if (!a.profile?.updated_at) return 1;
+          if (!b.profile?.updated_at) return -1;
+          // 降序排序，最新的在前面
+          return new Date(b.profile.updated_at).getTime() - new Date(a.profile.updated_at).getTime();
+        });
+        
+        setUsers(sortedUsers);
+        setUsersError(null);
+      } else {
+        setUsers([]);
+        setUsersError('暂无用户数据');
+      }
+    } catch (err: any) {
+      console.error('获取用户列表失败:', err);
+      setUsersError(err.message || '获取用户列表失败');
+      setUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+  
+  // 获取行业数据
+  const fetchIndustries = async () => {
+    try {
+      setIndustriesLoading(true);
+      const industriesData = await IndustryService.getAllIndustries();
+      
+      if (industriesData && industriesData.length > 0) {
+        // 按名称排序
+        const sortedIndustries = industriesData.sort((a, b) => 
+          a.name.localeCompare(b.name, 'zh-CN')
+        );
+        
+        setIndustries(sortedIndustries);
+        setIndustriesError(null);
+      } else {
+        setIndustries([]);
+        setIndustriesError('暂无行业数据');
+      }
+    } catch (err: any) {
+      console.error('获取行业列表失败:', err);
+      setIndustriesError(err.message || '获取行业列表失败');
+      setIndustries([]);
+    } finally {
+      setIndustriesLoading(false);
+    }
+  };
+
+  // 页面加载时获取所有数据
   useEffect(() => {
-    if (!isAdmin || isAdminChecking) return;
     fetchDatasets();
-  }, [isAdmin, isAdminChecking]);
+    fetchUsers();
+    fetchIndustries();
+  }, []);
 
-  // 如果正在检查管理员状态，显示加载中
-  if (isAdminChecking) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
-  // 如果不是管理员，重定向到首页
-  if (!isAdmin) {
-    return <Navigate to="/" />;
-  }
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -85,13 +164,21 @@ const ManagementPage: React.FC = () => {
         {activeTab === 'users' && (
           <UserManagement 
             externalDatasets={datasets} 
-            externalDatasetsLoading={datasetsLoading} 
+            externalDatasetsLoading={datasetsLoading}
+            externalUsers={users}
+            externalUsersLoading={usersLoading}
+            externalUsersError={usersError}
+            externalRefetchUsers={fetchUsers}
           />
         )}
         {activeTab === 'industry' && (
           <IndustryManagement 
             externalDatasets={datasets} 
-            externalDatasetsLoading={datasetsLoading} 
+            externalDatasetsLoading={datasetsLoading}
+            externalIndustries={industries}
+            externalIndustriesLoading={industriesLoading}
+            externalIndustriesError={industriesError}
+            externalRefetchIndustries={fetchIndustries}
           />
         )}
       </div>

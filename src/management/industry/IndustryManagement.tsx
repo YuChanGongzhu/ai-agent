@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import * as IndustryService from './industryService';
 import { Industry } from './industryService';
@@ -8,19 +7,25 @@ import { getDatasetsApi, Dataset } from '../../api/dify';
 interface IndustryManagementProps {
   externalDatasets?: Dataset[];
   externalDatasetsLoading?: boolean;
+  externalIndustries?: Industry[];
+  externalIndustriesLoading?: boolean;
+  externalIndustriesError?: string | null;
+  externalRefetchIndustries?: () => Promise<void>;
 }
 
-const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDatasets, externalDatasetsLoading }) => {
-  const navigate = useNavigate();
+const IndustryManagement: React.FC<IndustryManagementProps> = ({ 
+  externalDatasets, 
+  externalDatasetsLoading,
+  externalIndustries,
+  externalIndustriesLoading,
+  externalIndustriesError,
+  externalRefetchIndustries
+ }) => {
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [filteredIndustries, setFilteredIndustries] = useState<Industry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // 管理员验证状态
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isAdminChecking, setIsAdminChecking] = useState<boolean>(true);
   
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,44 +61,6 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDataset
     app_id: ''
   });
   
-  // 使用UserContext获取用户信息和管理员状态
-  const { userProfile, isAdmin: contextIsAdmin, isLoading: userContextLoading } = useUser();
-  
-  // 验证当前用户是否为管理员（使用上下文）
-  useEffect(() => {
-    async function checkAdminPermission() {
-      try {
-        setIsAdminChecking(true);
-        
-        // 从用户上下文获取管理员状态
-        if (userContextLoading) {
-          // 如果上下文还在加载，等待
-          return;
-        }
-        
-        // 使用上下文中的管理员状态
-        if (contextIsAdmin) {
-          setIsAdmin(true);
-          setError(null);
-          console.log('用户是管理员（从上下文获取）');
-        } else {
-          // 不是管理员，设置状态但不重定向
-          setIsAdmin(false);
-          setError('您没有访问行业管理页面的权限');
-          console.log('用户不是管理员（从上下文获取）');
-        }
-      } catch (err) {
-        console.error('验证管理员权限失败:', err);
-        setIsAdmin(false);
-        setError('验证管理员权限失败，请刷新页面或者联系系统管理员');
-      } finally {
-        setIsAdminChecking(false);
-      }
-    }
-    
-    checkAdminPermission();
-  }, [contextIsAdmin, userContextLoading]);
-
   // 搜索功能
   useEffect(() => {
     if (!industries.length) return;
@@ -121,17 +88,35 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDataset
     }
   };
 
-  // 仅当用户是管理员时，才加载行业列表
+  // 页面加载时获取行业列表和素材库数据
   useEffect(() => {
-    if (!isAdmin || isAdminChecking) return;
-    
-    fetchIndustries();
-    
     // 加载素材库数据（如果没有提供外部数据集）
     if (!externalDatasets) {
       fetchDatasets();
     }
-  }, [isAdmin, isAdminChecking, externalDatasets]);
+    
+    // 如果无外部行业数据，则自行获取
+    if (!externalIndustries) {
+      fetchLocalIndustries();
+    }
+  }, [externalDatasets, externalIndustries]);
+  
+  // 使用外部行业数据（如果提供）
+  useEffect(() => {
+    if (externalIndustries) {
+      setIndustries(externalIndustries);
+      setFilteredIndustries(externalIndustries);
+      setTotalPages(Math.ceil(externalIndustries.length / itemsPerPage));
+      setError(externalIndustriesError || null);
+    }
+  }, [externalIndustries, externalIndustriesError]);
+  
+  // 同步加载状态
+  useEffect(() => {
+    if (externalIndustriesLoading !== undefined) {
+      setLoading(externalIndustriesLoading);
+    }
+  }, [externalIndustriesLoading]);
   
   // 获取素材库列表（如果没有提供外部数据集）
   const fetchDatasets = async () => {
@@ -164,8 +149,8 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDataset
     }
   }, [externalDatasetsLoading]);
 
-  // 获取行业列表
-  const fetchIndustries = async () => {
+  // 获取行业列表（本地获取，当父组件未提供时使用）
+  const fetchLocalIndustries = async () => {
     try {
       setLoading(true);
       const industriesData = await IndustryService.getAllIndustries();
@@ -194,6 +179,18 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDataset
     } finally {
       setLoading(false);
     }
+  };
+  
+  // 刷新行业列表（优先使用父组件提供的刷新函数）
+  const fetchIndustries = async () => {
+    // 如果有外部刷新函数，使用它
+    if (externalRefetchIndustries) {
+      await externalRefetchIndustries();
+      return;
+    }
+    
+    // 否则自行刷新
+    await fetchLocalIndustries();
   };
 
   // 创建新行业
@@ -418,36 +415,6 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({ externalDataset
       </div>
     );
   };
-
-  // 如果正在检查管理员权限，显示加载中
-  if (isAdminChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // 如果不是管理员，显示错误消息
-  if (!isAdmin && !isAdminChecking) {
-    return (
-      <div className="p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <svg className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">权限不足</h2>
-          <p className="text-gray-600 mb-6">{error || '您没有管理员权限，无法访问行业管理页面。'}</p>
-          <button 
-            onClick={() => navigate('/employee')} 
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md shadow-sm transition-colors"
-          >
-            返回主页
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6">
