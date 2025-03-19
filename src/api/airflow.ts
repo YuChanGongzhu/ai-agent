@@ -17,15 +17,6 @@ const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL
 const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME
 const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
 
-export type ConfigKey = 'config1' | 'config2' | 'config3' | 'config4';
-
-const keyMap: Record<ConfigKey, string | undefined> = {
-  'config1': process.env.REACT_APP_DIFY_API_SALES,
-  'config2': process.env.REACT_APP_DIFY_API_HEALTH,
-  'config3': process.env.REACT_APP_DIFY_API_BEAUTY,
-  'config4': process.env.REACT_APP_DIFY_API_KEY_FINANCE
-}
-
 const airflowAxios = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -138,6 +129,14 @@ export const getWxCountactHeadListApi = async (name: string, wxid: string): Prom
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
 }
 
+export type ConfigKey = 'config1' | 'config2' | 'config3' | 'config4';
+
+const keyMap: Record<ConfigKey, string | undefined> = {
+  'config1': process.env.REACT_APP_DIFY_API_SALES,
+  'config2': process.env.REACT_APP_DIFY_API_HEALTH,
+  'config3': process.env.REACT_APP_DIFY_API_BEAUTY,
+  'config4': process.env.REACT_APP_DIFY_API_KEY_FINANCE
+}
 export const updateWxDifyReplyApi = async (wxid: string, name: string, config?: string): Promise<VariableResponse> => {
   console.log(wxid, name, config, config ? keyMap[config as ConfigKey] : keyMap['config3']);
   return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{

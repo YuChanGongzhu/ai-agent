@@ -9,7 +9,7 @@ interface COSConfig {
 }
 
 // 上传进度回调函数类型
-export interface UploadProgressCallback {
+interface UploadProgressCallback {
   (progressData: {
     loaded: number;
     total: number;

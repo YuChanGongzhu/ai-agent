@@ -35,7 +35,7 @@ interface GetConversationsParams {
   sort_by?: SortBy;
 }
 
-export interface Conversation {
+interface Conversation {
   id: string;
   name: string;
   inputs: {
