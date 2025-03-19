@@ -129,8 +129,8 @@ export const Dialog = () => {
         if (selectedAccount) {
             setConversations([]);
             setSelectedConversation(null);
-            getHeadList();
             setIsLoadingConversations(true);
+            getHeadList();
             getConversations();
             getHumanList();
         }
