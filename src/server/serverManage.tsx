@@ -413,8 +413,8 @@ export const ServerManage: React.FC = () => {
     const instanceId = serverToDelete.instanceId;
     const region = serverToDelete.region;
 
-    if (serverToDelete.status !== 'RUNNING' && serverToDelete.status !== 'STOPPED') {
-      setDeleteError(`无法删除实例，当前状态为: ${serverToDelete.status || '未知'}，只有运行中或已停止的实例才能删除`);
+    if (serverToDelete.status !== 'RUNNING' && serverToDelete.status !== 'STOPPED' && serverToDelete.status !== 'SHUTDOWN') {
+      setDeleteError(`无法删除实例，当前状态为: ${serverToDelete.status || '未知'}，只有运行中、已停止或已关机的实例才能删除`);
       return;
     }
     
@@ -428,12 +428,52 @@ export const ServerManage: React.FC = () => {
     setDeleteError(null);
 
     try {
-      // 1. 先隔离实例（退还实例）
+      // 如果实例已经是SHUTDOWN状态，直接执行销毁操作
+      if (serverToDelete.status === 'SHUTDOWN') {
+        try {
+          await tencentCloudService.terminateInstances([instanceId], region);
+          setDeleteSuccess(true);
+          
+          // 更新服务器状态（从列表中移除）
+          const updatedServers = new Map(regionServers);
+          const servers = updatedServers.get(region);
+          
+          if (servers && Array.isArray(servers)) {
+            const updatedServersArray = servers.filter(server => 
+              server.instanceId !== instanceId
+            );
+            updatedServers.set(region, updatedServersArray);
+            setRegionServers(updatedServers);
+          }
+          
+          // 3秒后自动关闭对话框
+          setTimeout(() => {
+            closeDeleteDialog();
+          }, 3000);
+        } catch (terminateError) {
+          console.error('销毁实例失败:', terminateError);
+          const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
+          
+          if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
+            // 如果是操作未完成错误，提示用户稍后手动销毁
+            setDeleteError('实例正在执行其他操作，请稍后手动尝试销毁操作');
+          } else {
+            setDeleteError(`销毁实例失败: ${errorMessage}`);
+          }
+        }
+        setIsDeleting(false);
+        return;
+      }
+
+      // 对于非SHUTDOWN状态，先隔离实例（退还实例）
       await tencentCloudService.isolateInstances([instanceId], region);
       
       // 延迟检查实例状态，等待其变为 SHUTDOWN
       let retryCount = 0;
-      const maxRetry = 10;
+      const maxRetry = 15; // 增加最大重试次数
+      const initialWaitTime = 15000; // 首次等待30秒，给予足够时间让操作开始执行
+      const checkIntervalTime = 5000; // 每次检查间隔增加到5秒
+      
       const checkInstanceStatus = async () => {
         try {
           // 获取实例最新状态
@@ -441,28 +481,87 @@ export const ServerManage: React.FC = () => {
           const regionInstances = instancesByRegion.get(region) || [];
           const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
           
-          if (instance && instance.InstanceState === 'SHUTDOWN') {
-            // 如果实例状态为 SHUTDOWN，则执行销毁操作
-            await tencentCloudService.terminateInstances([instanceId], region);
+          if (!instance) {
+            // 如果实例已不存在，可能已经被删除了，直接认为成功
             setDeleteSuccess(true);
             
             // 更新服务器状态（从列表中移除）
             const updatedServers = new Map(regionServers);
-            const regionServersArray = updatedServers.get(region) || [];
-            const updatedServersArray = regionServersArray.filter(server => 
-              server.instanceId !== instanceId
-            );
-            updatedServers.set(region, updatedServersArray);
-            setRegionServers(updatedServers);
+            const servers = updatedServers.get(region);
             
-            // 3秒后自动关闭对话框
+            if (servers && Array.isArray(servers)) {
+              const updatedServersArray = servers.filter(server => 
+                server.instanceId !== instanceId
+              );
+              updatedServers.set(region, updatedServersArray);
+              setRegionServers(updatedServers);
+            }
+            
             setTimeout(() => {
               closeDeleteDialog();
             }, 3000);
+            return;
+          }
+          
+          // 检查是否有正在进行的操作
+          if (instance.LatestOperation === 'IsolateInstances' && 
+              instance.LatestOperationState === 'OPERATING') {
+            // 如果操作仍在进行中，继续等待
+            if (retryCount < maxRetry) {
+              retryCount++;
+              setTimeout(checkInstanceStatus, checkIntervalTime);
+              return;
+            } else {
+              throw new Error('隔离实例操作超时，请稍后手动尝试销毁操作');
+            }
+          }
+          
+          if (instance.InstanceState === 'SHUTDOWN') {
+            try {
+              // 销毁前额外等待一段时间，确保隔离操作完全结束
+              setTimeout(async () => {
+                try {
+                  // 如果实例状态为 SHUTDOWN，则执行销毁操作
+                  await tencentCloudService.terminateInstances([instanceId], region);
+                  setDeleteSuccess(true);
+                  
+                  // 更新服务器状态（从列表中移除）
+                  const updatedServers = new Map(regionServers);
+                  const servers = updatedServers.get(region);
+                  
+                  if (servers && Array.isArray(servers)) {
+                    const updatedServersArray = servers.filter(server => 
+                      server.instanceId !== instanceId
+                    );
+                    updatedServers.set(region, updatedServersArray);
+                    setRegionServers(updatedServers);
+                  }
+                  
+                  // 3秒后自动关闭对话框
+                  setTimeout(() => {
+                    closeDeleteDialog();
+                  }, 3000);
+                } catch (terminateError) {
+                  // 如果销毁失败，检查是否是操作未完成的错误
+                  console.error('销毁实例失败:', terminateError);
+                  const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
+                  
+                  if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
+                    // 如果是操作未完成错误，提示用户稍后手动销毁
+                    setDeleteError('实例正在执行隔离操作，请稍后手动尝试销毁操作');
+                  } else {
+                    setDeleteError(`销毁实例失败: ${errorMessage}`);
+                  }
+                }
+              }, 5000); // 额外等待5秒再执行销毁操作
+            } catch (error) {
+              console.error('销毁实例失败:', error);
+              throw error;
+            }
           } else if (retryCount < maxRetry) {
             // 如果状态不是 SHUTDOWN 且未超过重试次数，则继续等待
             retryCount++;
-            setTimeout(checkInstanceStatus, 5000); // 每5秒检查一次
+            setTimeout(checkInstanceStatus, checkIntervalTime);
           } else {
             // 如果超过最大重试次数，则提示错误
             throw new Error('等待实例状态变更超时，请手动检查实例状态并尝试再次删除');
@@ -473,8 +572,8 @@ export const ServerManage: React.FC = () => {
         }
       };
       
-      // 开始检查实例状态
-      setTimeout(checkInstanceStatus, 5000);
+      // 开始检查实例状态，首次检查前等待时间更长
+      setTimeout(checkInstanceStatus, initialWaitTime);
     } catch (error) {
       console.error('删除服务器失败:', error);
       const errorMessage = error instanceof Error ? error.message : '删除服务器失败，请稍后重试';
