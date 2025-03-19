@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../auth/supabaseConfig';
-import { UserProfileService, UserProfile } from './userProfileService';
-import { UserData } from './types';
+import { UserProfileService } from './userProfileService';
+import { UserProfile } from '../context/type';
+import { UserData } from '../context/type';
 import { useNavigate } from 'react-router-dom';
 import { getDatasetsApi, Dataset } from '../api/dify';
 import { useUser } from '../context/UserContext';

@@ -10,4 +10,4 @@ export {
 } from './userHooks';
 
 // 导出类型
-export type { UserContextType } from './types'; 
+export type { UserContextType } from './type'; 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '../auth/supabaseConfig';
-import { UserProfile, UserProfileService } from '../userManagement/userProfileService';
-import { UserContextType } from './types';
+import { UserContextType,UserProfile } from './type';
+import { UserProfileService } from '../userManagement/userProfileService';
 
 // 创建上下文
 // =======================================================

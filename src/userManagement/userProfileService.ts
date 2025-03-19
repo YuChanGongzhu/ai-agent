@@ -1,24 +1,5 @@
 import { supabase } from '../auth/supabaseConfig';
-
-export interface UserProfile {
-  id?: string;
-  user_id: string;
-  display_name?: string;
-  email?: string;
-  phone?: string;
-  department?: string;
-  position?: string;
-  avatar_url?: string;
-  bio?: string;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  mobile_devices?: any[]; // 用户关联的手机设备列表
-  servers?: any[]; // 用户关联的服务器列表
-  role?: string; // 用户角色
-  material_list?: string[]; // 用户能访问的素材库ID列表
-  industry?: string; // 用户所属行业
-}
+import { UserProfile } from '../context/type';
 
 export class UserProfileService {
   // 添加静态变量用于缓存当前用户和配置信息

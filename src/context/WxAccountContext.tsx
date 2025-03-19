@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { WxAccount, getWxAccountListApi } from '../api/airflow';
 import { useUser } from './UserContext';
-import { UserProfile } from '../userManagement/userProfileService';
+import { UserProfile } from './type';
 import { tencentCloudService, LighthouseInstance } from '../api/tencent_cloud';
 
 // 服务器类型定义
