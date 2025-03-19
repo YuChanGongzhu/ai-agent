@@ -847,19 +847,19 @@ export const ServerManage: React.FC = () => {
                     <button
                       className={`${
                         !server.instanceId || 
-                        (server.status !== 'RUNNING' && server.status !== 'STOPPED') || 
+                        (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') || 
                         getWechatStatusLabel(server).accounts.length > 0
                           ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-red-600 hover:bg-red-700'
                       } text-white font-semibold py-2 px-3 rounded text-sm`}
                       onClick={() => showDeleteConfirmation(server)}
                       disabled={!server.instanceId || 
-                               (server.status !== 'RUNNING' && server.status !== 'STOPPED') || 
+                               (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') || 
                                getWechatStatusLabel(server).accounts.length > 0}
                       title={getWechatStatusLabel(server).accounts.length > 0 ? 
                             "微信运行中的实例不能删除" : 
-                            (!server.instanceId || (server.status !== 'RUNNING' && server.status !== 'STOPPED')) ? 
-                            "只有运行中或已停止的实例才能删除" : "删除实例"}
+                            (!server.instanceId || (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN')) ? 
+                            "只有运行中、已停止或已关机的实例才能删除" : "删除实例"}
                     >
                       删除实例
                     </button>
