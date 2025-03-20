@@ -2,7 +2,7 @@ import { DialogList } from './dialogList';
 import { DialogPage } from './dialogPage';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
-import { getUserMsgCountApi, WxAccount, getWxCountactHeadListApi, getWxHumanListApi } from '../api/airflow';
+import { getUserMsgCountApi, WxAccount, getWxCountactHeadListApi, getWxHumanListApi, getWxAccountSingleChatApi, getWxAccountGroupChatApi, updateWxAccountSingleChatApi, updateWxAccountGroupChatApi, getAIReplyListApi, getDisableAIReplyListApi } from '../api/airflow';
 import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
 import { useWxAccount } from '../context/WxAccountContext';
 
@@ -25,6 +25,11 @@ export const Dialog = () => {
     const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+    const [singleChatEnabled, setSingleChatEnabled] = useState(false);
+    const [groupChatEnabled, setGroupChatEnabled] = useState(false);
+    const [enabledRooms, setEnabledRooms] = useState<string[]>([]);
+    const [disabledRooms, setDisabledRooms] = useState<string[]>([]);
+    const [loadingAISettings, setLoadingAISettings] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
     const getHumanList = async () => {//获取微信转人工列表
@@ -123,6 +128,78 @@ export const Dialog = () => {
             getHumanList();
         }
     }
+    
+    // Function to fetch AI settings (global toggles and room lists)
+    const fetchAISettings = async () => {
+        if (!selectedAccount) return;
+        
+        setLoadingAISettings(true);
+        try {
+            // Fetch all settings in parallel
+            const [singleChatResponse, groupChatResponse, enabledRoomsResponse, disabledRoomsResponse] = await Promise.all([
+                // Single chat setting
+                getWxAccountSingleChatApi(selectedAccount.name, selectedAccount.wxid),
+                // Group chat setting
+                getWxAccountGroupChatApi(selectedAccount.name, selectedAccount.wxid),
+                // Enabled rooms list
+                getAIReplyListApi(selectedAccount.name, selectedAccount.wxid),
+                // Disabled rooms list
+                getDisableAIReplyListApi(selectedAccount.name, selectedAccount.wxid)
+            ]);
+            
+            // Update state with fetched values
+            setSingleChatEnabled(singleChatResponse.value === 'on');
+            setGroupChatEnabled(groupChatResponse.value === 'on');
+            
+            try {
+                const enabledRoomsData = JSON.parse(enabledRoomsResponse.value);
+                setEnabledRooms(Array.isArray(enabledRoomsData) ? enabledRoomsData : []);
+                
+                const disabledRoomsData = JSON.parse(disabledRoomsResponse.value);
+                setDisabledRooms(Array.isArray(disabledRoomsData) ? disabledRoomsData : []);
+            } catch (error) {
+                console.error('Error parsing AI rooms data:', error);
+                setEnabledRooms([]);
+                setDisabledRooms([]);
+            }
+        } catch (error) {
+            console.error('Error fetching AI settings:', error);
+        } finally {
+            setLoadingAISettings(false);
+        }
+    };
+    
+    // Function to update single chat global setting
+    const updateSingleChatSetting = async (newValue: boolean) => {
+        if (!selectedAccount) return;
+        
+        try {
+            await updateWxAccountSingleChatApi(
+                selectedAccount.name,
+                selectedAccount.wxid,
+                newValue ? 'on' : 'off'
+            );
+            setSingleChatEnabled(newValue);
+        } catch (error) {
+            console.error('Error updating single chat setting:', error);
+        }
+    };
+    
+    // Function to update group chat global setting
+    const updateGroupChatSetting = async (newValue: boolean) => {
+        if (!selectedAccount) return;
+        
+        try {
+            await updateWxAccountGroupChatApi(
+                selectedAccount.name,
+                selectedAccount.wxid,
+                newValue ? 'on' : 'off'
+            );
+            setGroupChatEnabled(newValue);
+        } catch (error) {
+            console.error('Error updating group chat setting:', error);
+        }
+    };
 
     useEffect(() => {
         if (selectedAccount) {
@@ -132,6 +209,7 @@ export const Dialog = () => {
             getHeadList();
             getConversations();
             getHumanList();
+            fetchAISettings(); // Also fetch AI settings when account changes
         }
     }, [selectedAccount]);
 
@@ -205,6 +283,15 @@ export const Dialog = () => {
                             avatarList={avatarList}
                             humanList={humanList}
                             selectedDialog={selectedConversation}
+                            userName={selectedAccount?.name || ''}
+                            wxid={selectedAccount?.wxid || ''}
+                            singleChatEnabled={singleChatEnabled}
+                            groupChatEnabled={groupChatEnabled}
+                            enabledRooms={enabledRooms}
+                            disabledRooms={disabledRooms}
+                            updateSingleChatSetting={updateSingleChatSetting}
+                            updateGroupChatSetting={updateGroupChatSetting}
+                            isLoadingSettings={loadingAISettings}
                         />
                     </div>
                 </div>
@@ -216,6 +303,12 @@ export const Dialog = () => {
                         avatarList={avatarList}
                         refreshHumanList={refreshHumanList}
                         humanList={humanList}
+                        singleChatEnabled={singleChatEnabled}
+                        groupChatEnabled={groupChatEnabled}
+                        enabledRooms={enabledRooms}
+                        disabledRooms={disabledRooms}
+                        onEnabledRoomsChange={setEnabledRooms}
+                        onDisabledRoomsChange={setDisabledRooms}
                     />
                 </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
-import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, updateWxHumanListApi } from '../api/airflow';
+import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, updateWxHumanListApi, getDisableAIReplyListApi, postDisableAIReplyListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
 
@@ -19,6 +19,13 @@ interface DialogPageProps {
     avatarList?: AvatarData[];
     refreshHumanList?: () => void;
     humanList?: string[];
+    // AI settings props
+    singleChatEnabled?: boolean;
+    groupChatEnabled?: boolean;
+    enabledRooms?: string[];
+    disabledRooms?: string[];
+    onEnabledRoomsChange?: (rooms: string[]) => void;
+    onDisabledRoomsChange?: (rooms: string[]) => void;
 }
 
 interface Message {
@@ -31,7 +38,20 @@ interface Message {
     senderId?: string;
 }
 
-export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAccount, avatarList = [], refreshHumanList, humanList = [] }) => {
+export const DialogPage: React.FC<DialogPageProps> = ({
+    conversation,
+    selectedAccount,
+    avatarList = [],
+    refreshHumanList,
+    humanList = [],
+    // AI settings from parent
+    singleChatEnabled = false,
+    groupChatEnabled = false,
+    enabledRooms = [],
+    disabledRooms = [],
+    onEnabledRoomsChange,
+    onDisabledRoomsChange
+}) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -39,15 +59,15 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
     const [isAIEnabled, setIsAIEnabled] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const messageContainerRef = useRef<HTMLDivElement>(null);
-    const enabledRoomsRef = useRef<string[]>([]);
-    const [notification, setNotification] = useState<{show: boolean, message: string, type: 'success' | 'error'}>({show: false, message: '', type: 'success'});
+    // Remove the internal refs and state for AI settings
+    const [notification, setNotification] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
     const scrollToBottom = () => {
         const messageContainer = messageContainerRef.current;
         if (!messageContainer) return;
         messageContainer.scrollTop = messageContainer.scrollHeight;
     };
-    
+
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setNotification({
             show: true,
@@ -55,12 +75,14 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             type
         });
         setTimeout(() => {
-            setNotification({show: false, message: '', type: 'success'});
+            setNotification({ show: false, message: '', type: 'success' });
         }, 3000);
     };
 
     useEffect(() => {
         if (conversation) {
+            // Determine if AI should be enabled for this conversation using parent props
+            updateAIEnabledState(conversation);
             loadMessages();
         } else {
             setMessages([]);
@@ -72,27 +94,46 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
         scrollToBottom();
     }, [messages]);
 
+    // Function to determine if AI should be enabled for this conversation
+    const updateAIEnabledState = (conv: RoomListMessage) => {
+        const isGroup = conv.is_group;
+        const roomId = conv.room_id;
+
+        if (isGroup) {
+            // For group chats
+            if (groupChatEnabled) {
+                // If group chat globally ON, check if this room is in disabled list
+                setIsAIEnabled(!disabledRooms.includes(roomId));
+            } else {
+                // If group chat globally OFF, check if this room is in enabled list
+                setIsAIEnabled(enabledRooms.includes(roomId));
+            }
+        } else {
+            // For private chats
+            if (singleChatEnabled) {
+                // If single chat globally ON, check if this room is in disabled list
+                setIsAIEnabled(!disabledRooms.includes(roomId));
+            } else {
+                // If single chat globally OFF, check if this room is in enabled list
+                setIsAIEnabled(enabledRooms.includes(roomId));
+            }
+        }
+    };
+
     const loadMessages = async () => {
         if (!conversation) return;
         setIsFetchingHistory(true);
         try {
-            const [aiResponse, response] = await Promise.all([
-                getAIReplyListApi(selectedAccount?.name || '', selectedAccount?.wxid || ''),
-                getChatMessagesApi({
-                    wx_user_id: selectedAccount?.wxid || '',
-                    room_id: conversation?.room_id || ''
-                })
-            ]);
-
-            try {
-                const enabledRooms = JSON.parse(aiResponse.value);
-                enabledRoomsRef.current = enabledRooms;
-                setIsAIEnabled(enabledRooms.includes(conversation.room_id));
-            } catch (error) {
-                console.error('Error parsing AI enabled rooms:', error);
-                enabledRoomsRef.current = [];
-                setIsAIEnabled(false);
+            // If we have metadata from DialogList, update the AI state
+            if ('_meta' in conversation) {
+                updateAIEnabledState(conversation);
             }
+
+            // Fetch chat messages
+            const response = await getChatMessagesApi({
+                wx_user_id: selectedAccount?.wxid || '',
+                room_id: conversation?.room_id || ''
+            });
 
             // 处理消息列表
             const transformedMessages = response.data.records.reverse().map(msg => ({
@@ -123,7 +164,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             const currentTime = new Date().toISOString();
             const roomId = conversation.room_id.replace(/@/g, '');
             const dagRunId = `manual_${selectedAccount?.wxid || 'unknown'}_${roomId}_${currentTime}`;
-            
+
             await sendChatMessageApi({
                 conf: {
                     content: newMessage,
@@ -142,7 +183,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             });
 
             setIsSending(true);
-            
+
             setTimeout(async () => {
                 try {
                     const response = await getChatMessagesApi({
@@ -187,7 +228,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             </div>
         );
     }
-    
+
     return (
         <div className="bg-white rounded-3xl shadow-lg h-full flex flex-col relative overflow-hidden">
             {/* Notification */}
@@ -217,11 +258,11 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                 </div>
                 <div className="flex items-center space-x-2">
                     {humanList.includes(conversation.room_id) && (
-                        <button 
+                        <button
                             className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
                             onClick={async () => {
                                 if (!selectedAccount) return;
-                                
+
                                 try {
                                     const updatedHumanList = humanList.filter(id => id !== conversation.room_id);
                                     await updateWxHumanListApi(selectedAccount.wxid, selectedAccount.name, updatedHumanList);
@@ -241,29 +282,107 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                         onClick={async () => {
                             const newAIEnabled = !isAIEnabled;
                             setIsAIEnabled(newAIEnabled);
-                            
+
                             try {
-                                const currentRooms = [...enabledRoomsRef.current];
+                                const isGroup = conversation.is_group;
+                                const roomId = conversation.room_id;
+                                const globalEnabled = isGroup ? groupChatEnabled : singleChatEnabled;
+
+                                // Get current lists from props
+                                const updatedEnabledRooms = [...enabledRooms];
+                                const updatedDisabledRooms = [...disabledRooms];
                                 
-                                if (newAIEnabled) {
-                                    if (!currentRooms.includes(conversation.room_id)) {
-                                        currentRooms.push(conversation.room_id);
+                                // 确保 room_id 不会同时存在于两个列表中
+                                // 检查是否已存在于另一个列表
+                                const enabledIndex = updatedEnabledRooms.indexOf(roomId);
+                                const disabledIndex = updatedDisabledRooms.indexOf(roomId);
+
+                                if (globalEnabled) {
+                                    // Global setting is ON
+                                    if (newAIEnabled) {
+                                        // Turning AI ON for this room - remove from disable list
+                                        if (disabledIndex > -1) {
+                                            updatedDisabledRooms.splice(disabledIndex, 1);
+                                        }
+                                        
+                                        // 确保不在enable列表中 (虽然这种情况不应该发生)
+                                        if (enabledIndex > -1) {
+                                            showNotification('此房间已在AI启用列表中', 'error');
+                                        }
+                                    } else {
+                                        // Turning AI OFF for this room - add to disable list if not present
+                                        if (disabledIndex === -1) {
+                                            updatedDisabledRooms.push(roomId);
+                                        }
+                                        
+                                        // 检查是否在enable列表中 (不应该在这里出现)
+                                        if (enabledIndex > -1) {
+                                            showNotification('警告：房间ID同时存在于启用和禁用列表', 'error');
+                                        }
                                     }
+
+                                    // Update parent's disabled rooms
+                                    if (onDisabledRoomsChange) {
+                                        onDisabledRoomsChange(updatedDisabledRooms);
+                                    }
+
+                                    // Post to API
+                                    await postDisableAIReplyListApi(
+                                        selectedAccount?.name || '',
+                                        selectedAccount?.wxid || '',
+                                        updatedDisabledRooms
+                                    );
                                 } else {
-                                    const index = currentRooms.indexOf(conversation.room_id);
-                                    if (index > -1) {
-                                        currentRooms.splice(index, 1);
+                                    // Global setting is OFF
+                                    if (newAIEnabled) {
+                                        // Turning AI ON for this room - add to enable list if not present
+                                        if (enabledIndex === -1) {
+                                            updatedEnabledRooms.push(roomId);
+                                        } else {
+                                            showNotification('此房间已在AI启用列表中', 'error');
+                                        }
+
+                                        // Also remove from disable list if present (to maintain consistency)
+                                        if (disabledIndex > -1) {
+                                            updatedDisabledRooms.splice(disabledIndex, 1);
+
+                                            // Update parent's disabled rooms
+                                            if (onDisabledRoomsChange) {
+                                                onDisabledRoomsChange(updatedDisabledRooms);
+                                            }
+
+                                            await postDisableAIReplyListApi(
+                                                selectedAccount?.name || '',
+                                                selectedAccount?.wxid || '',
+                                                updatedDisabledRooms
+                                            );
+                                        }
+                                    } else {
+                                        // Turning AI OFF for this room - remove from enable list if present
+                                        if (enabledIndex > -1) {
+                                            updatedEnabledRooms.splice(enabledIndex, 1);
+                                        }
+                                        
+                                        // 检查是否在disable列表中 (不应该在这里出现)
+                                        if (disabledIndex > -1) {
+                                            showNotification('警告：房间ID同时存在于启用和禁用列表', 'error');
+                                        }
                                     }
+
+                                    // Update parent's enabled rooms
+                                    if (onEnabledRoomsChange) {
+                                        onEnabledRoomsChange(updatedEnabledRooms);
+                                    }
+
+                                    // Post to API
+                                    await postAIReplyListApi(
+                                        selectedAccount?.name || '',
+                                        selectedAccount?.wxid || '',
+                                        updatedEnabledRooms
+                                    );
                                 }
-                                
-                                enabledRoomsRef.current = currentRooms;
-                                await postAIReplyListApi(
-                                    selectedAccount?.name || '', 
-                                    selectedAccount?.wxid || '', 
-                                    currentRooms
-                                );
                             } catch (error) {
-                                console.error('Error updating AI enabled rooms:', error);
+                                console.error('Error updating AI rooms lists:', error);
                                 setIsAIEnabled(!newAIEnabled);
                             }
                         }}
@@ -283,7 +402,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
             </div>
 
             {/* Messages */}
-            <div 
+            <div
                 className="flex-1 overflow-y-auto p-4 space-y-4"
                 ref={messageContainerRef}
             >
@@ -330,9 +449,9 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                         className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
                                         title={message.senderName}
                                     >
-                                        <img 
-                                            src={avatarList.find(avatar => avatar.wxid === message.senderId)?.smallHeadImgUrl} 
-                                            alt={message.senderName} 
+                                        <img
+                                            src={avatarList.find(avatar => avatar.wxid === message.senderId)?.smallHeadImgUrl}
+                                            alt={message.senderName}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
@@ -341,7 +460,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                                 const parent = target.parentElement;
                                                 if (parent) {
                                                     parent.classList.add(
-                                                        'flex', 'items-center', 'justify-center', 
+                                                        'flex', 'items-center', 'justify-center',
                                                         'text-sm', 'font-medium', 'text-white',
                                                         message.isUser ? 'bg-purple-500' : 'bg-gray-400'
                                                     );
@@ -372,7 +491,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({ conversation, selectedAc
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">
-                                        {message.msgType === 3 || message.msgType === 34 ? 
+                                        {message.msgType === 3 || message.msgType === 34 ?
                                             <MessageContent content={message.content} msgType={message.msgType} /> :
                                             getMessageContent(message.msgType || 0, message.content)
                                         }

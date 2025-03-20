@@ -1,8 +1,16 @@
-import React, {  useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage } from '../api/mysql';
 import { getMessageContent } from '../utils/messageTypes';
+import { 
+    getWxAccountSingleChatApi, 
+    getWxAccountGroupChatApi, 
+    updateWxAccountSingleChatApi, 
+    updateWxAccountGroupChatApi,
+    getAIReplyListApi,
+    getDisableAIReplyListApi
+} from '../api/airflow';
 
 interface AvatarData {
     wxid: string;
@@ -18,13 +26,68 @@ interface DialogListProps {
     avatarList?: AvatarData[];
     humanList?: string[];
     selectedDialog?: RoomListMessage | null;
+    userName?: string;
+    wxid?: string;
+    // AI settings props from parent
+    singleChatEnabled?: boolean;
+    groupChatEnabled?: boolean;
+    enabledRooms?: string[];
+    disabledRooms?: string[];
+    updateSingleChatSetting?: (value: boolean) => Promise<void>;
+    updateGroupChatSetting?: (value: boolean) => Promise<void>;
+    isLoadingSettings?: boolean;
 }
 
-export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDialog, isLoading = false, avatarList = [], humanList = [], selectedDialog = null }) => {
+export const DialogList: React.FC<DialogListProps> = ({ 
+    dialogs = [], 
+    onSelectDialog, 
+    isLoading = false, 
+    avatarList = [], 
+    humanList = [], 
+    selectedDialog = null, 
+    userName = '', 
+    wxid = '',
+    // AI settings from parent
+    singleChatEnabled: parentSingleChatEnabled = false,
+    groupChatEnabled: parentGroupChatEnabled = false,
+    enabledRooms: parentEnabledRooms = [],
+    disabledRooms: parentDisabledRooms = [],
+    updateSingleChatSetting,
+    updateGroupChatSetting,
+    isLoadingSettings = false
+}) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(selectedDialog?.msg_id || null);
     const [showHumanDialog, setShowHumanDialog] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
+    
+    // Use parent state instead of local state
+    const singleChatEnabled = parentSingleChatEnabled;
+    const groupChatEnabled = parentGroupChatEnabled;
+    const enabledRooms = parentEnabledRooms;
+    const disabledRooms = parentDisabledRooms;
+
+    // Remove the useEffect that fetched AI settings - now using parent props instead
+
+    // Handle toggle for single chat AI
+    const handleSingleChatToggle = () => {
+        if (updateSingleChatSetting) {
+            updateSingleChatSetting(!singleChatEnabled)
+                .catch(error => {
+                    console.error('Error updating single chat settings:', error);
+                });
+        }
+    };
+
+    // Handle toggle for group chat AI
+    const handleGroupChatToggle = () => {
+        if (updateGroupChatSetting) {
+            updateGroupChatSetting(!groupChatEnabled)
+                .catch(error => {
+                    console.error('Error updating group chat settings:', error);
+                });
+        }
+    };
 
     const formattedHumanList = humanList.map(wxid => {
         const dialog = dialogs.find(conv => conv.room_id === wxid);
@@ -48,6 +111,9 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
 
     const handleDialogClick = (dialog: RoomListMessage) => {
         setSelectedId(dialog.msg_id);
+        
+        // Pass the dialog to the parent without modification
+        // The DialogPage now gets AI settings directly from parent
         onSelectDialog?.(dialog);
     };
 
@@ -150,59 +216,176 @@ export const DialogList: React.FC<DialogListProps> = ({ dialogs = [], onSelectDi
                             <p>没有记录</p>
                         </div>
                     ) : (
-                        <div className="space-y-1 p-1">
-                            {filteredDialogs.map(dialog => (
-                                <div
-                                    key={dialog.msg_id}
-                                    className={clsx(
-                                        'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
-                                        (selectedDialog?.msg_id === dialog.msg_id || selectedId === dialog.msg_id) ? 'bg-purple-100' : 'hover:bg-gray-100'
-                                    )}
-                                    onClick={() => handleDialogClick(dialog)}
-                                >
-                                    {/* Avatar */}
-                                    {avatarList.find(avatar => avatar.wxid === dialog.room_id) ? (
-                                        <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden">
-                                            <img
-                                                src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl}
-                                                alt={dialog.room_name || dialog.sender_name || 'Chat'}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement;
-                                                    target.onerror = null;
-                                                    target.style.display = 'none';
-                                                    const parent = target.parentElement;
-                                                    if (parent) {
-                                                        parent.classList.add('bg-purple-500', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold');
-                                                        parent.textContent = getAvatarText(dialog.room_name || dialog.sender_name || 'Chat');
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                                            {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
-                                        </div>
-                                    )}
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0 flex flex-col">
-                                        <div className="flex-1">
-                                            <h3 className="text-sm font-medium text-gray-900 truncate">
-                                                {dialog.room_name || dialog.sender_name || 'Chat'}
-                                            </h3>
-                                            <div className="text-xs text-gray-500 truncate">
-                                                {dialog.msg_content ? getMessageContent(dialog.msg_type, dialog.msg_content) : '没有消息'}
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end">
-                                            <span className="text-xs text-gray-500">
-                                                {formatTime(new Date(dialog.msg_datetime).getTime() / 1000)}
-                                            </span>
-                                        </div>
+                        <div className="h-full flex flex-col p-1">
+                            {/* 私聊部分 - 50%高度 */}
+                            <div className="flex-1 flex flex-col h-1/2 mb-2 overflow-hidden">
+                                <div className="px-3 py-2 bg-gray-50 text-gray-600 text-sm font-medium rounded flex justify-between items-center">
+                                    <span>私聊</span>
+                                    <div className="flex items-center">
+                                        {isLoadingSettings ? (
+                                            <span className="loading loading-spinner loading-xs mr-2"></span>
+                                        ) : (
+                                            <label className="cursor-pointer flex items-center">
+                                                <span className="mr-1 text-xs">{singleChatEnabled ? 'ON' : 'OFF'}</span>
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="toggle toggle-primary toggle-sm" 
+                                                    checked={singleChatEnabled}
+                                                    onChange={handleSingleChatToggle}
+                                                    disabled={!userName || !wxid}
+                                                />
+                                                <span className="ml-1 text-xs">开关</span>
+                                            </label>
+                                        )}
                                     </div>
                                 </div>
-                            ))}
+                                <div className="flex-1 overflow-y-auto space-y-1 mt-1">
+                                    {filteredDialogs
+                                        .filter(dialog => !dialog.is_group)
+                                        .map(dialog => (
+                                            <div
+                                                key={dialog.msg_id}
+                                                className={clsx(
+                                                    'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
+                                                    (selectedDialog?.msg_id === dialog.msg_id || selectedId === dialog.msg_id) ? 'bg-purple-100' : 'hover:bg-gray-100'
+                                                )}
+                                                onClick={() => handleDialogClick(dialog)}
+                                            >
+                                                {/* Avatar */}
+                                                {avatarList.find(avatar => avatar.wxid === dialog.room_id) ? (
+                                                    <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden">
+                                                        <img
+                                                            src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl}
+                                                            alt={dialog.room_name || dialog.sender_name || 'Chat'}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.onerror = null;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent) {
+                                                                    parent.classList.add('bg-purple-500', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold');
+                                                                    parent.textContent = getAvatarText(dialog.room_name || dialog.sender_name || 'Chat');
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                                        {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
+                                                    </div>
+                                                )}
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                            {dialog.room_name || dialog.sender_name || 'Chat'}
+                                                        </h3>
+                                                        <div className="text-xs text-gray-500 truncate">
+                                                            {dialog.msg_content ? getMessageContent(dialog.msg_type, dialog.msg_content) : '没有消息'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-end">
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatTime(new Date(dialog.msg_datetime).getTime() / 1000)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    {filteredDialogs.filter(dialog => !dialog.is_group).length === 0 && (
+                                        <div className="text-center py-2 text-sm text-gray-500">
+                                            没有私聊记录
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 群聊部分 - 50%高度 */}
+                            <div className="flex-1 flex flex-col h-1/2">
+                                <div className="px-3 py-2 bg-gray-50 text-gray-600 text-sm font-medium rounded flex justify-between items-center">
+                                    <span>群聊</span>
+                                    <div className="flex items-center">
+                                        {isLoadingSettings ? (
+                                            <span className="loading loading-spinner loading-xs mr-2"></span>
+                                        ) : (
+                                            <label className="cursor-pointer flex items-center">
+                                                <span className="mr-1 text-xs">{groupChatEnabled ? 'ON' : 'OFF'}</span>
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="toggle toggle-primary toggle-sm" 
+                                                    checked={groupChatEnabled}
+                                                    onChange={handleGroupChatToggle}
+                                                    disabled={!userName || !wxid}
+                                                />
+                                                <span className="ml-1 text-xs">开关</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1 mt-1">
+                                    {filteredDialogs
+                                        .filter(dialog => dialog.is_group)
+                                        .map(dialog => (
+                                            <div
+                                                key={dialog.msg_id}
+                                                className={clsx(
+                                                    'flex items-center space-x-1 p-3 rounded-lg cursor-pointer transition-colors',
+                                                    (selectedDialog?.msg_id === dialog.msg_id || selectedId === dialog.msg_id) ? 'bg-purple-100' : 'hover:bg-gray-100'
+                                                )}
+                                                onClick={() => handleDialogClick(dialog)}
+                                            >
+                                                {/* Avatar */}
+                                                {avatarList.find(avatar => avatar.wxid === dialog.room_id) ? (
+                                                    <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden">
+                                                        <img
+                                                            src={avatarList.find(avatar => avatar.wxid === dialog.room_id)?.smallHeadImgUrl}
+                                                            alt={dialog.room_name || dialog.sender_name || 'Chat'}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.onerror = null;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent) {
+                                                                    parent.classList.add('bg-purple-500', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold');
+                                                                    parent.textContent = getAvatarText(dialog.room_name || dialog.sender_name || 'Chat');
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                                        {getAvatarText(dialog.room_name || dialog.sender_name || 'Chat')}
+                                                    </div>
+                                                )}
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                            {dialog.room_name || dialog.sender_name || 'Chat'}
+                                                        </h3>
+                                                        <div className="text-xs text-gray-500 truncate">
+                                                            {dialog.msg_content ? getMessageContent(dialog.msg_type, dialog.msg_content) : '没有消息'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-end">
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatTime(new Date(dialog.msg_datetime).getTime() / 1000)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    {filteredDialogs.filter(dialog => dialog.is_group).length === 0 && (
+                                        <div className="text-center py-2 text-sm text-gray-500">
+                                            没有群聊记录
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
