@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import UserManagement from './userManagement/UserManagement';
 import IndustryManagement from './industry/IndustryManagement';
+import InvitationCodeManagement from './invitationCode/invitationCode';
 import { getDatasetsApi, Dataset } from '../api/dify';
 import { supabase } from '../auth/supabaseConfig';
 import * as IndustryService from './industry/industryService';
@@ -8,7 +9,7 @@ import { UserData } from '../context/type';
 import { Industry } from './industry/industryService';
 
 // Tab类型定义
-type TabType = 'users' | 'industry';
+type TabType = 'users' | 'industry' | 'invitation';
 
 const ManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('users');
@@ -127,8 +128,6 @@ const ManagementPage: React.FC = () => {
     fetchIndustries();
   }, []);
 
-
-
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold mb-6">系统管理</h1>
@@ -156,6 +155,16 @@ const ManagementPage: React.FC = () => {
           >
             行业管理
           </button>
+          <button
+            onClick={() => setActiveTab('invitation')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'invitation'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            邀请码管理
+          </button>
         </nav>
       </div>
 
@@ -181,6 +190,9 @@ const ManagementPage: React.FC = () => {
             externalIndustriesError={industriesError}
             externalRefetchIndustries={fetchIndustries}
           />
+        )}
+        {activeTab === 'invitation' && (
+          <InvitationCodeManagement />
         )}
       </div>
     </div>
