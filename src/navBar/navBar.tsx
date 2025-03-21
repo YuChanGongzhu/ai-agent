@@ -4,15 +4,14 @@ import { supabase } from '../auth/supabaseConfig';
 import { logoutUser } from '../auth/authService';
 import { useUser } from '../context/UserContext';
 
-import calenderSVG from '../img/nav/calender.svg';
 import employeeSVG from '../img/nav/employee.svg';
 import dialogSVG from '../img/nav/dialog.svg';
 import taskSVG from '../img/nav/task.svg';
 import dashboardSVG from '../img/nav/dashboard.svg';
 import databaseSVG from '../img/nav/database.svg';
 import groupSVG from '../img/nav/group.svg';
-import serverSVG from '../img/nav/server.svg';
 import usersSVG from '../img/nav/employee.svg'; 
+import connectSVG from '../img/nav/connect.svg';
 
 interface SubNavItem {
   name: string;
@@ -55,7 +54,7 @@ const navItems: NavItem[] = [
   },
   { 
     name: '渠道接入', 
-    icon: serverSVG, 
+    icon: connectSVG, 
     url: '/channels',
     subItems: [
       { name: '个人微信', url: '/channels/personal' },
