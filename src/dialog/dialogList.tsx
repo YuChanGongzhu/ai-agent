@@ -1,16 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import clsx from 'clsx';
 
 import { RoomListMessage } from '../api/mysql';
 import { getMessageContent } from '../utils/messageTypes';
-import { 
-    getWxAccountSingleChatApi, 
-    getWxAccountGroupChatApi, 
-    updateWxAccountSingleChatApi, 
-    updateWxAccountGroupChatApi,
-    getAIReplyListApi,
-    getDisableAIReplyListApi
-} from '../api/airflow';
 
 interface AvatarData {
     wxid: string;
@@ -61,15 +53,9 @@ export const DialogList: React.FC<DialogListProps> = ({
     const [showHumanDialog, setShowHumanDialog] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
     
-    // Use parent state instead of local state
     const singleChatEnabled = parentSingleChatEnabled;
     const groupChatEnabled = parentGroupChatEnabled;
-    const enabledRooms = parentEnabledRooms;
-    const disabledRooms = parentDisabledRooms;
 
-    // Remove the useEffect that fetched AI settings - now using parent props instead
-
-    // Handle toggle for single chat AI
     const handleSingleChatToggle = () => {
         if (updateSingleChatSetting) {
             updateSingleChatSetting(!singleChatEnabled)
@@ -79,7 +65,6 @@ export const DialogList: React.FC<DialogListProps> = ({
         }
     };
 
-    // Handle toggle for group chat AI
     const handleGroupChatToggle = () => {
         if (updateGroupChatSetting) {
             updateGroupChatSetting(!groupChatEnabled)
@@ -234,7 +219,7 @@ export const DialogList: React.FC<DialogListProps> = ({
                                                     onChange={handleSingleChatToggle}
                                                     disabled={!userName || !wxid}
                                                 />
-                                                <span className="ml-1 text-xs">开关</span>
+                                                <span className="ml-1 text-xs">AI</span>
                                             </label>
                                         )}
                                     </div>
@@ -319,7 +304,7 @@ export const DialogList: React.FC<DialogListProps> = ({
                                                     onChange={handleGroupChatToggle}
                                                     disabled={!userName || !wxid}
                                                 />
-                                                <span className="ml-1 text-xs">开关</span>
+                                                <span className="ml-1 text-xs">AI</span>
                                             </label>
                                         )}
                                     </div>

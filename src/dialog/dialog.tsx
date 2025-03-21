@@ -129,25 +129,18 @@ export const Dialog = () => {
         }
     }
     
-    // Function to fetch AI settings (global toggles and room lists)
     const fetchAISettings = async () => {
         if (!selectedAccount) return;
         
         setLoadingAISettings(true);
         try {
-            // Fetch all settings in parallel
             const [singleChatResponse, groupChatResponse, enabledRoomsResponse, disabledRoomsResponse] = await Promise.all([
-                // Single chat setting
                 getWxAccountSingleChatApi(selectedAccount.name, selectedAccount.wxid),
-                // Group chat setting
                 getWxAccountGroupChatApi(selectedAccount.name, selectedAccount.wxid),
-                // Enabled rooms list
                 getAIReplyListApi(selectedAccount.name, selectedAccount.wxid),
-                // Disabled rooms list
                 getDisableAIReplyListApi(selectedAccount.name, selectedAccount.wxid)
             ]);
             
-            // Update state with fetched values
             setSingleChatEnabled(singleChatResponse.value === 'on');
             setGroupChatEnabled(groupChatResponse.value === 'on');
             
@@ -237,16 +230,9 @@ export const Dialog = () => {
                                     setSelectedAccount(account);
                                 }}>
                                 <span>{account.name}</span>
-                                <button
-                                    className="ml-2 w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowAIDropdown(prev => ({
-                                            ...prev,
-                                            [account.wxid]: !prev[account.wxid]
-                                        }));
-                                    }}
-                                >AI</button>
+                                <span
+                                    className={`ml-2 w-6 h-6 rounded-full ${selectedAccount?.name === account.name ? 'bg-white text-purple-600' : 'bg-purple-600 text-white'} flex items-center justify-center text-xs`}
+                                >AI</span>
                             </button>
                             {showAIDropdown[account.wxid] && (
                                 <div className="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-lg py-2 z-10">
