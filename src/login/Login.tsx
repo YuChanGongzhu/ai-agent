@@ -89,7 +89,6 @@ const Login: React.FC = () => {
               {error && (
                 <div className="rounded-md bg-red-50 p-4">
                   <div className="text-sm text-red-700">{error}</div>
-
                 </div>
               )}
               
@@ -119,9 +118,7 @@ const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-
               </div>
-
 
               <div className="flex items-center">
                 <input
@@ -144,6 +141,18 @@ const Login: React.FC = () => {
                 {loading ? '登录中...' : '登录'}
               </button>
             </form>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                还没有账号？{' '}
+                <button
+                  onClick={() => navigate('/register')}
+                  className="font-medium text-purple-600 hover:text-purple-500"
+                >
+                  立即注册
+                </button>
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { EmployeeEdit } from './employee/employeeEdit';
 import { Dialog } from './dialog/dialog';
 import { CalendarComponent } from './calendar/calender';
 import Login from './login/Login';
+import Register from './login/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import TaskPage from './task/task';
 import PersonSelector from './task/person';
@@ -24,6 +25,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route
           path="/*"
           element={
