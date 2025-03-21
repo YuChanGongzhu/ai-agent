@@ -12,6 +12,10 @@ import TaskPage from './task/task';
 import PersonSelector from './task/person';
 import ServerManage from './server/serverManage';
 import ManagementPage from './management/ManagementPage';
+import FileManagement from './knowledge/FileManagement';
+import DatasetManagement from './knowledge/DatasetManagement';
+import OfficialAccount from './channels/OfficialAccount';
+import EnterpriseWeChat from './channels/EnterpriseWeChat';
 import { UserProvider } from './context/UserContext';
 import { WxAccountProvider } from './context/WxAccountContext';
 
@@ -24,9 +28,7 @@ function App() {
           path="/*"
           element={
             <ProtectedRoute>
-              {/* 使用UserProvider包装整个应用，提供用户配置上下文 */}
               <UserProvider>
-                {/* 使用WxAccountProvider提供微信账号上下文 */}
                 <WxAccountProvider>
                   <div className="flex">
                     <NavBar />
@@ -40,8 +42,12 @@ function App() {
                         <Route path="/task" element={<TaskPage />} />
                         <Route path="/task/invite" element={<PersonSelector />} />
                         <Route path="/calendar" element={<CalendarComponent />} />
-                        <Route path="/server" element={<ServerManage />} />
+                        <Route path="/channels/personal" element={<ServerManage />} />
+                        <Route path="/channels/official" element={<OfficialAccount />} />
+                        <Route path="/channels/enterprise" element={<EnterpriseWeChat />} />
                         <Route path="/manage" element={<ManagementPage />} />
+                        <Route path="/knowledge/files" element={<FileManagement />} />
+                        <Route path="/knowledge/datasets" element={<DatasetManagement />} />
                       </Routes>
                     </div>
                   </div>

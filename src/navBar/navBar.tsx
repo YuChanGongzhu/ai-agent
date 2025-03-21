@@ -9,30 +9,82 @@ import employeeSVG from '../img/nav/employee.svg';
 import dialogSVG from '../img/nav/dialog.svg';
 import taskSVG from '../img/nav/task.svg';
 import dashboardSVG from '../img/nav/dashboard.svg';
+import databaseSVG from '../img/nav/database.svg';
 import groupSVG from '../img/nav/group.svg';
 import serverSVG from '../img/nav/server.svg';
-import usersSVG from '../img/nav/employee.svg'; // 暂时复用员工图标
+import usersSVG from '../img/nav/employee.svg'; 
+
+interface SubNavItem {
+  name: string;
+  url: string;
+  adminOnly?: boolean;
+}
 
 interface NavItem {
   name: string;
   icon: string;
   url: string;
   adminOnly?: boolean;
+  subItems?: SubNavItem[];
+  expanded?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { name: '仪表盘', icon: dashboardSVG, url: '/dashboard' },
-  { name: '员工', icon: employeeSVG, url: '/employee' },
-  { name: '对话', icon: dialogSVG, url: '/dialog' },
-  { name: '任务', icon: taskSVG, url: '/task' },
-  { name: '日历', icon: calenderSVG, url: '/calendar' },
-  { name: '服务器', icon: serverSVG, url: '/server' },
+  { name: '数据视图', icon: dashboardSVG, url: '/dashboard' },
+  { 
+    name: '知识库', 
+    icon: databaseSVG, 
+    url: '/knowledge', 
+    subItems: [
+      { name: '文件管理', url: '/knowledge/files' },
+      { name: '知识库管理', url: '/knowledge/datasets' }
+    ],
+    expanded: false
+  },
+  { name: '员工列表', icon: employeeSVG, url: '/employee' },
+  { name: '对话管理', icon: dialogSVG, url: '/dialog' },
+  { 
+    name: '代办事项', 
+    icon: taskSVG, 
+    url: '/todo',
+    subItems: [
+      { name: '任务', url: '/task' },
+      { name: '日历', url: '/calendar' }
+    ],
+    expanded: false
+  },
+  { 
+    name: '渠道接入', 
+    icon: serverSVG, 
+    url: '/channels',
+    subItems: [
+      { name: '个人微信', url: '/channels/personal' },
+      { name: '公众号', url: '/channels/official' },
+      { name: '企业微信', url: '/channels/enterprise' }
+    ],
+    expanded: false
+  },
   { name: '系统管理', icon: usersSVG, url: '/manage', adminOnly: true },
 ];
 
 const NavBar: React.FC = () => {
   const findSelectedNavItem = (path: string) => {
     const currentPath = path.endsWith('/') ? path.slice(0, -1) : path;
+    
+    // First try to find a matching sub-item
+    for (const item of navItems) {
+      if (item.subItems) {
+        const matchingSubItem = item.subItems.find(subItem => 
+          currentPath === subItem.url || 
+          (currentPath.startsWith(subItem.url) && subItem.url !== '/dashboard')
+        );
+        if (matchingSubItem) {
+          return matchingSubItem.name;
+        }
+      }
+    }
+    
+    // Then try to find a matching main item
     const matchingItem = navItems.find(item => 
       currentPath === item.url || 
       (currentPath.startsWith(item.url) && item.url !== '/dashboard')
@@ -45,6 +97,7 @@ const NavBar: React.FC = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   // 使用UserContext获取用户信息和管理员状态
   const { userProfile, isAdmin } = useUser();
   const [userData, setUserData] = useState<{displayName: string | null; email: string | null}>({
@@ -109,9 +162,23 @@ const NavBar: React.FC = () => {
     }
   }, [userProfile]);
 
-  const handleClick = (itemName: string, url: string) => {
-    setSelected(itemName);
-    navigate(url);
+  const handleClick = (item: NavItem) => {
+    if (item.subItems && item.subItems.length > 0) {
+      // Toggle expanded state for items with sub-items
+      setExpandedItems(prev => ({
+        ...prev,
+        [item.name]: !prev[item.name]
+      }));
+    } else {
+      // Navigate to the item's URL for items without sub-items
+      setSelected(item.name);
+      navigate(item.url);
+    }
+  };
+  
+  const handleSubItemClick = (parentName: string, subItem: SubNavItem) => {
+    setSelected(subItem.name);
+    navigate(subItem.url);
   };
 
   // 处理用户退出登录
@@ -156,14 +223,45 @@ const NavBar: React.FC = () => {
             {navItems
               .filter(item => !item.adminOnly || (item.adminOnly && isAdmin))
               .map((item) => (
-                <div
-                  key={item.name}
-                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
-                    ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                  onClick={() => handleClick(item.name, item.url)}
-                >
-                  <img src={item.icon} alt={item.name} className="w-5 h-5" />
-                  {!isCollapsed && <span className="text-base font-medium">{item.name}</span>}
+                <div key={item.name} className="w-full">
+                  <div
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
+                      ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                    onClick={() => handleClick(item)}
+                  >
+                    <img src={item.icon} alt={item.name} className="w-5 h-5" />
+                    {!isCollapsed && (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-base font-medium">{item.name}</span>
+                        {item.subItems && item.subItems.length > 0 && (
+                          <span className="text-xs ml-1">
+                            {expandedItems[item.name] ? '▼' : '►'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Sub-items dropdown */}
+                  {!isCollapsed && item.subItems && item.subItems.length > 0 && expandedItems[item.name] && (
+                    <div className="ml-5 mt-1 mb-1 flex flex-col space-y-1">
+                      {item.subItems
+                        .filter(subItem => !subItem.adminOnly || (subItem.adminOnly && isAdmin))
+                        .map(subItem => (
+                          <div
+                            key={subItem.name}
+                            className={`flex items-center px-3 py-2 rounded-lg cursor-pointer
+                              ${selected === subItem.name ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubItemClick(item.name, subItem);
+                            }}
+                          >
+                            <span className="text-sm">{subItem.name}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               ))}
           </div>
