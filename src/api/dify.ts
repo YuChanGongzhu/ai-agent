@@ -1,17 +1,18 @@
 import axios from 'axios';
+import { ConfigKey } from './airflow';
 
 const BASE_URL = process.env.REACT_APP_DIFY_BASE_URL;
 const DATASET_API_KEY = process.env.REACT_APP_DIFY_DATASET_API_KEY;
 
 export const getApiKey = (config?: string) => {
   switch(config) {
-    case 'config1':
+    case ConfigKey.SALES:
       return process.env.REACT_APP_DIFY_API_SALES;
-    case 'config2':
+    case ConfigKey.HEALTH:
       return process.env.REACT_APP_DIFY_API_HEALTH;
-    case 'config3':
+    case ConfigKey.BEAUTY:
       return process.env.REACT_APP_DIFY_API_BEAUTY;
-    case 'config4':
+    case ConfigKey.FINANCE:
       return process.env.REACT_APP_DIFY_API_KEY_FINANCE;
     default:
       return process.env.REACT_APP_DIFY_API_BEAUTY;

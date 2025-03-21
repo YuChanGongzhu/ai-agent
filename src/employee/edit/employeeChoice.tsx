@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import { WxAccount } from '../../api/airflow';
-import type { ConfigKey } from '../../api/airflow';
+import { WxAccount, ConfigKey } from '../../api/airflow';
 
 interface ConfigCard {
-    id: ConfigKey;
+    id: string;
     title: string;
     description: string;
 }
@@ -20,28 +19,28 @@ export const EmployeeChoice: React.FC<EmployeeChoiceProps> = ({ className, wxAcc
 
     const configCards: ConfigCard[] = [
         {
-            id: 'config1',
+            id: ConfigKey.SALES,
             title: '销售顾问配置',
             description: '品牌护肤品的线上销售顾问，专业解答护肤品相关问题'
         },
         {
-            id: 'config2',
+            id: ConfigKey.HEALTH,
             title: '健康顾问配置',
             description: '针对健康场景，帮助客户解决健康管理方面的问题，比如营养调理、身体养护、抗衰'
         },
         {
-            id: 'config3',
+            id: ConfigKey.BEAUTY,
             title: '医美客服配置',
             description: '医美的客服顾问，帮助客户解答皮肤管理、抗衰、轮廓塑形等医美相关的问题'
         },
         {
-            id: 'config4',
+            id: ConfigKey.FINANCE,
             title: '金融顾问配置',
             description: '金融领域的客服顾问，帮助客户解答理财、投资、保险等金融相关的问题'
         }
     ];
 
-    const handleCardClick = (cardId: ConfigKey) => {
+    const handleCardClick = (cardId: string) => {
         setSelectedConfig(cardId);
     };
 

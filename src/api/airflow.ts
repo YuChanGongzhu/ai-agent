@@ -117,20 +117,39 @@ export const getWxCountactHeadListApi = async (name: string, wxid: string): Prom
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
 }
 
-export type ConfigKey = 'config1' | 'config2' | 'config3' | 'config4';
+export enum ConfigKey {
+  SALES = 'sales',
+  HEALTH = 'health',
+  BEAUTY = 'beauty',
+  FINANCE = 'finance',
+  DEFAULT = 'beauty', // 默认使用beauty
+  LUCY = 'lucy',
+  LUCY_GROUP = 'lucy_group'
+}
 
-const keyMap: Record<ConfigKey, string | undefined> = {
-  'config1': process.env.REACT_APP_DIFY_API_SALES,
-  'config2': process.env.REACT_APP_DIFY_API_HEALTH,
-  'config3': process.env.REACT_APP_DIFY_API_BEAUTY,
-  'config4': process.env.REACT_APP_DIFY_API_KEY_FINANCE
+const keyMap: Record<string, string | undefined> = {
+  [ConfigKey.SALES]: process.env.REACT_APP_DIFY_API_SALES,
+  [ConfigKey.HEALTH]: process.env.REACT_APP_DIFY_API_HEALTH,
+  [ConfigKey.BEAUTY]: process.env.REACT_APP_DIFY_API_BEAUTY,
+  [ConfigKey.FINANCE]: process.env.REACT_APP_DIFY_API_KEY_FINANCE,
+  [ConfigKey.LUCY]: process.env.REACT_APP_DIFY_API_LUCY,
+  [ConfigKey.LUCY_GROUP]: process.env.REACT_APP_DIFY_API_LUCY_GROUP
 }
 export const updateWxDifyReplyApi = async (wxid: string, name: string, config?: string): Promise<VariableResponse> => {
-  console.log(wxid, name, config, config ? keyMap[config as ConfigKey] : keyMap['config3']);
+  console.log(wxid, name, config, config ? keyMap[config] : keyMap[ConfigKey.BEAUTY]);
   return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: config ? keyMap[config as ConfigKey] : keyMap['config3'],
+    value: config ? keyMap[config] : keyMap[ConfigKey.BEAUTY],
     key: `${name}_${wxid}_dify_api_key`,
     description: `${name}-自定义回复`
+  }));
+}
+
+export const updateWxDifyGroupReplyApi = async (wxid: string, name: string, config?: string): Promise<VariableResponse> => {
+  console.log(wxid, name, config, config ? keyMap[config] : keyMap[ConfigKey.BEAUTY]);
+  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
+    value: config ? keyMap[config] : keyMap[ConfigKey.BEAUTY],
+    key: `${name}_${wxid}_group_dify_api_key`,
+    description: `${name}-群回复`
   }));
 }
 
