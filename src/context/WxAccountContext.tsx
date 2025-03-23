@@ -78,9 +78,10 @@ export const WxAccountProvider: React.FC<{ children: ReactNode }> = ({ children 
         console.log(`处理地域 ${regionId} 的服务器，数量：`, servers.length);
         allServerCount += servers.length;
         
-        // 查找名称包含用户邮箱的服务器
+        // 查找名称包含用户完整邮箱的服务器
         const userRelatedServers = servers.filter(server => {
-          const isMatch = server.name && server.name.toLowerCase().includes(userEmail);
+          // 使用直接字符串匹配找完整邮箱，而不是匹配子字符串
+          const isMatch = server.name && server.name.toLowerCase().indexOf(userEmail) !== -1;
           if (isMatch) {
             console.log(`找到匹配的服务器：${server.name}，IP: 公网=${server.publicIp}，内网=${server.privateIp}`);
           }
@@ -291,8 +292,6 @@ export const WxAccountProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // 更新服务器列表的方法（由ServerManage组件调用，可选使用）
   const updateServerList = (newServerList: Map<string, any[]>) => {
-    console.log('ServerManage组件更新了服务器列表');
-    // 转换为WindowsServer类型
     const typedServerList = new Map<string, WindowsServer[]>();
     
     newServerList.forEach((servers, regionId) => {
@@ -304,7 +303,6 @@ export const WxAccountProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     // 如果微信账号列表已加载，立即更新过滤
     if (wxAccountList.length > 0 && !userLoading) {
-      console.log('根据新的服务器列表更新微信账号过滤');
       setTimeout(() => {
         // 延迟执行，确保服务器列表状态已更新
         const filtered = filterWxAccounts(wxAccountList, userProfile, isAdmin, typedServerList);
