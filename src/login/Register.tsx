@@ -232,12 +232,13 @@ const Register: React.FC = () => {
   return (
     <div style={{ 
       display: 'flex', 
+      flexDirection: 'column',
       justifyContent: 'center', 
       alignItems: 'center', 
       minHeight: '100vh',
       background: '#f0f2f5'
     }}>
-      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={2}>注册账号</Title>
         </div>
@@ -338,6 +339,7 @@ const Register: React.FC = () => {
               loading={loading}
               block
               size="large"
+              style={{ backgroundColor: 'rgba(108, 93, 211, 1)', borderColor: 'rgba(108, 93, 211, 1)' }}
             >
               注册
             </Button>
@@ -345,12 +347,35 @@ const Register: React.FC = () => {
 
           <div style={{ textAlign: 'center' }}>
             已有账号？{' '}
-            <Button type="link" onClick={() => navigate('/login')}>
+            <Button type="link" onClick={() => navigate('/login')} style={{ color: 'rgba(108, 93, 211, 1)' }}>
               立即登录
             </Button>
           </div>
         </Form>
       </Card>
+      
+      {/* Contact Information Footer */}
+      <div style={{ 
+        width: '400px', 
+        backgroundColor: 'rgba(108, 93, 211, 1)', 
+        color: 'white', 
+        padding: '16px 32px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '32px',
+        borderRadius: '0 0 8px 8px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>电话: 19864781028</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>微信: 19864781028</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>邮箱: lucy@lucyai.ai</span>
+        </div>
+      </div>
     </div>
   );
 };
