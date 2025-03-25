@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import groupIcon from '../img/nav/group.svg';
 import loginImage from '../img/login.png';
 import { loginUser } from '../auth/authService';
 
@@ -70,7 +69,6 @@ const Login: React.FC = () => {
         {/* Left Side - Images */}
         <div className="flex-1 bg-[rgba(108,93,211,0.05)] p-12 flex flex-col items-center justify-center">
           <div className="flex items-center gap-2 mb-8">
-            <img src={groupIcon} alt="Lucy AI Icon" className="w-8 h-8" />
             <h1 className="text-[rgba(108,93,211,1)] text-2xl font-medium">LUCY AI</h1>
           </div>
           <img src={loginImage} alt="Login Illustration" className="w-96 mb-8" />

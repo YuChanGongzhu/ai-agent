@@ -19,6 +19,9 @@ import OfficialAccount from './channels/OfficialAccount';
 import EnterpriseWeChat from './channels/EnterpriseWeChat';
 import { UserProvider } from './context/UserContext';
 import { WxAccountProvider } from './context/WxAccountContext';
+// Placeholder components for new routes
+const VideoAnalysis = () => <div className="p-8"><h1 className="text-2xl font-bold mb-4">视频号直播监控</h1><p>此功能正在开发中...</p></div>;
+const FriendTest = () => <div className="p-8"><h1 className="text-2xl font-bold mb-4">朋友圈分析</h1><p>此功能正在开发中...</p></div>;
 
 function App() {
   return (
@@ -50,6 +53,9 @@ function App() {
                         <Route path="/manage" element={<ManagementPage />} />
                         <Route path="/knowledge/files" element={<FileManagement />} />
                         <Route path="/knowledge/datasets" element={<DatasetManagement />} />
+                        {/* New AI feature routes */}
+                        <Route path="/ai/video" element={<VideoAnalysis />} />
+                        <Route path="/ai/legal" element={<FriendTest />} />
                       </Routes>
                     </div>
                   </div>
