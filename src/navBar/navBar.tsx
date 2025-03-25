@@ -163,25 +163,20 @@ const NavBar: React.FC = () => {
   // 使用UserContext中的用户配置信息
   useEffect(() => {
     if (userProfile) {
-      // 当用户配置信息加载完成后，优先使用用户配置中的显示名称
       setUserData(prev => ({
         ...prev,
         displayName: userProfile.display_name || prev.displayName
       }));
-      
-      console.log('NavBar: 从UserContext获取用户配置信息', userProfile.display_name);
     }
   }, [userProfile]);
 
   const handleClick = (item: NavItem) => {
     if (item.subItems && item.subItems.length > 0) {
-      // Toggle expanded state for items with sub-items
       setExpandedItems(prev => ({
         ...prev,
         [item.name]: !prev[item.name]
       }));
     } else {
-      // Navigate to the item's URL for items without sub-items
       setSelected(item.name);
       navigate(item.url);
     }
