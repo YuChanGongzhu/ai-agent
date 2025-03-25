@@ -403,7 +403,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                             <h3 className="text-md font-medium text-gray-700">已选择的文件</h3>
                             <button
                                 onClick={handleUpload}
-                                className="px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
+                                className="px-3 py-1 bg-[rgba(108,93,211,1)] text-white rounded-md hover:bg-[rgba(98,83,201,1)] transition-colors text-sm"
                             >
                                 上传全部
                             </button>
@@ -463,7 +463,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                         
                         {datasetsLoading ? (
                             <div className="flex justify-center py-4">
-                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[rgba(108,93,211,1)]"></div>
                             </div>
                         ) : (
                             <div className="mb-4">
@@ -496,7 +496,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                                                             onClick={() => setSelectedDataset(dataset.id)}
                                                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded-md flex items-center"
                                                         >
-                                                            <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <svg className="w-5 h-5 mr-2 text-[rgba(108,93,211,1)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                                             </svg>
                                                             {dataset.name}
@@ -520,7 +520,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                             <button
                                 onClick={addSelectedFilesToDify}
                                 disabled={!selectedDataset || selectedFiles.length === 0 || isAddingToDify}
-                                className={`px-4 py-2 rounded text-sm text-white bg-blue-500 hover:bg-blue-600
+                                className={`px-4 py-2 rounded text-sm text-white bg-[rgba(108,93,211,1)] hover:bg-[rgba(98,83,201,1)]
                                     ${(!selectedDataset || selectedFiles.length === 0 || isAddingToDify) ? 'opacity-50 cursor-not-allowed' : ''}
                                 `}
                             >
@@ -566,13 +566,13 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {uploadedFiles.map((file) => (
-                                    <tr key={file.key} className={selectedFiles.includes(file.key) ? 'bg-purple-50' : 'hover:bg-gray-50'}>
+                                    <tr key={file.key} className={selectedFiles.includes(file.key) ? 'bg-[rgba(108,93,211,0.1)]' : 'hover:bg-gray-50'}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedFiles.includes(file.key)}
                                                 onChange={() => toggleFileSelection(file.key)}
-                                                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                                className="h-4 w-4 text-[rgba(108,93,211,1)] border-gray-300 rounded focus:ring-[rgba(108,93,211,1)]"
                                             />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -591,7 +591,7 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
                                             <div className="flex space-x-2">
                                                 <button 
                                                     onClick={() => window.open(file.url, '_blank')}
-                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                    className="text-[rgba(108,93,211,1)] hover:text-[rgba(88,73,191,1)]"
                                                     title="查看文件"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -45,7 +45,7 @@ export const EmployeeEdit: React.FC = () => {
             <div className="flex items-center space-x-4">
                 <button
                     onClick={handleReturn}
-                    className="btn btn-outline btn-sm btn-primary"
+                    className="btn btn-outline btn-sm text-[rgba(108,93,211,1)] border-[rgba(108,93,211,1)] hover:bg-[rgba(108,93,211,1)] hover:text-white"
                 >
                     <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -73,7 +73,7 @@ export const EmployeeEdit: React.FC = () => {
                         <div className="flex border-b border-gray-200">
                             <button
                                 onClick={() => setActiveTab('fileManager')}
-                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'fileManager' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'fileManager' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 <div className="flex items-center">
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -84,7 +84,7 @@ export const EmployeeEdit: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('materialUpload')}
-                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'materialUpload' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'materialUpload' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 <div className="flex items-center">
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

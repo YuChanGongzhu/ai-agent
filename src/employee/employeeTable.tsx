@@ -82,7 +82,7 @@ export const EmployeeTable: React.FC = () => {
                 <button 
                     onClick={handleRefresh}
                     disabled={isLoading || isRefreshing}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                    className="px-4 py-2 bg-[rgba(108,93,211,1)] text-white rounded-lg hover:bg-[rgba(108,93,211,0.9)] focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,0.5)] focus:ring-opacity-50 transition-colors duration-200 flex items-center"
                 >
                     {isRefreshing ? (
                         <>
@@ -102,7 +102,7 @@ export const EmployeeTable: React.FC = () => {
             
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[rgba(108,93,211,1)]"></div>
                     <span className="ml-3 text-x s text-gray-600">加载中...</span>
                 </div>
             ) : (
@@ -146,7 +146,7 @@ export const EmployeeTable: React.FC = () => {
                                             <td className="py-2 px-1">
                                                 <div className="relative">
                                                     <select 
-                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
                                                         onChange={(e) => handleUpdatePrivateApi(wxAccount, e.target.value)}
                                                         disabled={isUpdating[wxAccount.wxid + '_private']}
                                                     >
@@ -157,7 +157,7 @@ export const EmployeeTable: React.FC = () => {
                                                     </select>
                                                     {isUpdating[wxAccount.wxid + '_private'] && (
                                                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                                            <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -165,7 +165,7 @@ export const EmployeeTable: React.FC = () => {
                                             <td className="py-2 px-1">
                                                 <div className="relative">
                                                     <select 
-                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
                                                         onChange={(e) => handleUpdateGroupApi(wxAccount, e.target.value)}
                                                         disabled={isUpdating[wxAccount.wxid + '_group']}
                                                     >
@@ -176,7 +176,7 @@ export const EmployeeTable: React.FC = () => {
                                                     </select>
                                                     {isUpdating[wxAccount.wxid + '_group'] && (
                                                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                                            <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -186,7 +186,7 @@ export const EmployeeTable: React.FC = () => {
                                     <td className="py-2 px-1">
                                         <button
                                             onClick={() => handleEdit(wxAccount)}
-                                            className="text-purple-600 hover:text-purple-700 text-base font-medium"
+                                            className="text-[rgba(108,93,211,1)] hover:text-[rgba(108,93,211,0.8)] text-base font-medium"
                                         >
                                             编辑
                                         </button>
