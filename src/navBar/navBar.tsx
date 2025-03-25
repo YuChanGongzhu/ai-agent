@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../auth/supabaseConfig';
 import { logoutUser } from '../auth/authService';
 import { useUser } from '../context/UserContext';
+import lucyaiLogo from '../img/lucyai.png';
 
 // Import regular SVG icons
 import dashboardSVG from '../img/nav/dashboard.svg';
@@ -218,8 +219,8 @@ const NavBar: React.FC = () => {
   return (
       <div className={`bg-[rgba(108,93,211,1)] p-2 ${isCollapsed ? 'w-[6vw]' : 'w-[12vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base text-white`}>
         {/* Logo Section */}
-        <div className="flex items-center space-x-2 mb-8 px-2">
-          <img src={employeeSVG} alt="LUCYAI" className="w-8 h-8" />
+        <div className="flex items-center justify-center space-x-2 mb-2 px-2">
+          <img src={lucyaiLogo} alt="LUCYAI" className="w-8 h-8" />
           {!isCollapsed && <span className="text-2xl font-semibold text-white">LUCYAI</span>}
         </div>
 
