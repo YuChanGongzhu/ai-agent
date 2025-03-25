@@ -1,10 +1,13 @@
 import { DialogList } from './dialogList';
 import { DialogPage } from './dialogPage';
+import { WxMpDialogList } from './wxMpDialogList';
+import { WxMpDialogPage } from './wxMpDialogPage';
 import Memory from './memory';
 import { useEffect, useState, useRef } from 'react';
-import { getUserMsgCountApi, WxAccount, getWxCountactHeadListApi, getWxHumanListApi, getWxAccountSingleChatApi, getWxAccountGroupChatApi, updateWxAccountSingleChatApi, updateWxAccountGroupChatApi, getAIReplyListApi, getDisableAIReplyListApi } from '../api/airflow';
-import { getRoomListMessagesApi, RoomListMessage } from '../api/mysql';
+import { getUserMsgCountApi, WxAccount, WxMpAccount, getWxCountactHeadListApi, getWxHumanListApi, getWxAccountSingleChatApi, getWxAccountGroupChatApi, updateWxAccountSingleChatApi, updateWxAccountGroupChatApi, getAIReplyListApi, getDisableAIReplyListApi, getWxMpAccountListApi } from '../api/airflow';
+import { getRoomListMessagesApi, RoomListMessage, getMpRoomListApi, MpRoomListMessage } from '../api/mysql';
 import { useWxAccount } from '../context/WxAccountContext';
+import { useUser } from '../context/UserContext';
 
 
 
@@ -16,13 +19,15 @@ interface AvatarData {
 }
 
 export const Dialog = () => {
+    const { isAdmin } = useUser();
+    
+    // Regular WeChat account states
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
     const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
     const [humanList, setHumanList] = useState<string[]>([]);
     const { filteredWxAccountList, isLoading: isLoadingAccounts } = useWxAccount();
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
-    const [showAIDropdown, setShowAIDropdown] = useState<{ [key: string]: boolean }>({});
     const [messageCount, setMessageCount] = useState<string>('');
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const [singleChatEnabled, setSingleChatEnabled] = useState(false);
@@ -31,6 +36,15 @@ export const Dialog = () => {
     const [disabledRooms, setDisabledRooms] = useState<string[]>([]);
     const [loadingAISettings, setLoadingAISettings] = useState(false);
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+    
+    // MP account states
+    const [wxMpAccountList, setWxMpAccountList] = useState<WxMpAccount[]>([]);
+    const [isLoadingMpAccounts, setIsLoadingMpAccounts] = useState(false);
+    const [selectedMpAccount, setSelectedMpAccount] = useState<WxMpAccount | null>(null);
+    const [mpConversations, setMpConversations] = useState<MpRoomListMessage[]>([]);
+    const [selectedMpConversation, setSelectedMpConversation] = useState<MpRoomListMessage | null>(null);
+    const [isLoadingMpConversations, setIsLoadingMpConversations] = useState(false);
+    const [viewMode, setViewMode] = useState<'regular' | 'mp'>('regular'); // Toggle between regular and MP view
 
     const getHumanList = async () => {//获取微信转人工列表
         try {
@@ -178,7 +192,6 @@ export const Dialog = () => {
         }
     };
     
-    // Function to update group chat global setting
     const updateGroupChatSetting = async (newValue: boolean) => {
         if (!selectedAccount) return;
         
@@ -202,19 +215,82 @@ export const Dialog = () => {
             getHeadList();
             getConversations();
             getHumanList();
-            fetchAISettings(); // Also fetch AI settings when account changes
+            fetchAISettings(); 
         }
     }, [selectedAccount]);
 
+    const fetchMpAccounts = async () => {
+        if (!isAdmin) return;
+        
+        setIsLoadingMpAccounts(true);
+        try {
+            const accounts = await getWxMpAccountListApi();
+            setWxMpAccountList(accounts);
+        } catch (error) {
+            console.error('Failed to fetch WeChat MP accounts:', error);
+        } finally {
+            setIsLoadingMpAccounts(false);
+        }
+    };
+    
+    const getMpConversations = async () => {
+        if (!selectedMpAccount) return;
+        
+        setIsLoadingMpConversations(true);
+        try {
+            const res = await getMpRoomListApi({
+                gh_user_id: selectedMpAccount.gh_user_id
+            });
+            
+            if (res.code === 0) {
+                setMpConversations(res.data);
+            } else {
+                console.error('Failed to fetch MP conversations:', res.message);
+            }
+        } catch (error) {
+            console.error('Error fetching MP conversations:', error);
+        } finally {
+            setIsLoadingMpConversations(false);
+        }
+    };
+    
+    useEffect(() => {
+        if (isAdmin) {
+            fetchMpAccounts();
+        }
+    }, [isAdmin]);
+    
+    useEffect(() => {
+        if (selectedMpAccount) {
+            getMpConversations();
+            setViewMode('mp');
+        }
+    }, [selectedMpAccount]);
+
+    // Handle clicking regular WeChat account button
+    const handleWxAccountClick = (account: WxAccount) => {
+        setSelectedAccount(account);
+        setSelectedMpAccount(null);
+        setViewMode('regular');
+    };
+    
+    // Handle clicking MP account button
+    const handleMpAccountClick = (account: WxMpAccount) => {
+        setSelectedMpAccount(account);
+        setSelectedAccount(null);
+        setViewMode('mp');
+    };
+    
     return (
         <div className="h-screen p-2 flex flex-col space-y-4">
-            <div className="flex space-x-2 mb-2 h-[5vh]">
-                {isLoadingAccounts ? (
+            <div className="flex flex-wrap space-x-2 mb-2 min-h-[5vh]">
+                {/* Loading indicator */}
+                {isLoadingAccounts || isLoadingMpAccounts ? (
                     <div className="flex items-center justify-center py-2">
                         <span className="loading loading-spinner loading-md"></span>
                         <span className="ml-2 text-gray-500">加载中...</span>
                     </div>
-                ) : !filteredWxAccountList.length ? (
+                ) : (!filteredWxAccountList.length && !wxMpAccountList.length) ? (
                     <div className="flex items-center justify-center w-full py-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                             <span className="text-gray-500 block mb-1">暂无可用的微信账号</span>
@@ -222,81 +298,109 @@ export const Dialog = () => {
                         </div>
                     </div>
                 ) : (
-                    filteredWxAccountList.map((account) => (
-                        <div key={account.wxid} className="relative">
+                    <>
+                        {/* Regular WeChat accounts */}
+                        {filteredWxAccountList.length > 0 && filteredWxAccountList.map((account) => (
+                        <div key={account.wxid} className="relative mb-2">
                             <button
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                                onClick={() => {
-                                    setSelectedAccount(account);
-                                }}>
+                                onClick={() => handleWxAccountClick(account)}>
                                 <span>{account.name}</span>
                                 <span
                                     className={`ml-2 w-6 h-6 rounded-full ${selectedAccount?.name === account.name ? 'bg-white text-purple-600' : 'bg-purple-600 text-white'} flex items-center justify-center text-xs`}
                                 >AI</span>
                             </button>
-                            {showAIDropdown[account.wxid] && (
-                                <div className="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-lg py-2 z-10">
+                        </div>
+                    ))}
+                    
+                    {/* MP Account buttons - visible to admins */}
+                    {isAdmin && wxMpAccountList.length > 0 && (
+                        <div className="flex flex-wrap ml-2">
+                            {wxMpAccountList.map((mpAccount) => (
+                                <div key={mpAccount.gh_user_id} className="mb-2 mr-2">
                                     <button
-                                        className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
-                                        onClick={() => { setShowAIDropdown(prev => ({ ...prev, [account.wxid]: false })) }}>
-                                        <div className="w-4 h-4 rounded-full border-2 border-purple-600 flex items-center justify-center">
-                                            <div className="w-2 h-2 rounded-full bg-purple-600"></div>
-                                        </div>
-                                        <span>全部开启</span>
-                                    </button>
-                                    <button
-                                        className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
-                                        onClick={() => {
-                                            setShowAIDropdown(prev => ({ ...prev, [account.wxid]: false }));
-                                        }}
+                                        className={`flex items-center px-4 py-2 rounded-lg ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                        onClick={() => handleMpAccountClick(mpAccount)}
                                     >
-                                        <div className="w-4 h-4 rounded-full border-2 border-gray-300"></div>
-                                        <span>全部关闭</span>
+                                        <span>{mpAccount.name}</span>
+                                        <span 
+                                            className={`ml-2 w-5 h-5 rounded-full ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-white text-green-600' : 'bg-green-600 text-white'} flex items-center justify-center text-xs`}
+                                        >MP</span>
                                     </button>
                                 </div>
-                            )}
+                            ))}
                         </div>
-                    )))}
+                    )}
+                    </>
+                )}
             </div>
 
             <div className="flex space-x-6 flex-1">
-                <div className="w-[13vw] flex-shrink-0 h-[90vh]">
-                    <div className="h-full w-full">
-                        <DialogList
-                            dialogs={conversations}
-                            onSelectDialog={setSelectedConversation}
-                            isLoading={isLoadingConversations}
-                            avatarList={avatarList}
-                            humanList={humanList}
-                            selectedDialog={selectedConversation}
-                            userName={selectedAccount?.name || ''}
-                            wxid={selectedAccount?.wxid || ''}
-                            singleChatEnabled={singleChatEnabled}
-                            groupChatEnabled={groupChatEnabled}
-                            enabledRooms={enabledRooms}
-                            disabledRooms={disabledRooms}
-                            updateSingleChatSetting={updateSingleChatSetting}
-                            updateGroupChatSetting={updateGroupChatSetting}
-                            isLoadingSettings={loadingAISettings}
-                        />
-                    </div>
-                </div>
+                {viewMode === 'regular' ? (
+                    <>
+                        <div className="w-[13vw] flex-shrink-0 h-[90vh]">
+                            <div className="h-full w-full">
+                                <DialogList
+                                    dialogs={conversations}
+                                    onSelectDialog={setSelectedConversation}
+                                    isLoading={isLoadingConversations}
+                                    avatarList={avatarList}
+                                    humanList={humanList}
+                                    selectedDialog={selectedConversation}
+                                    userName={selectedAccount?.name || ''}
+                                    wxid={selectedAccount?.wxid || ''}
+                                    singleChatEnabled={singleChatEnabled}
+                                    groupChatEnabled={groupChatEnabled}
+                                    enabledRooms={enabledRooms}
+                                    disabledRooms={disabledRooms}
+                                    updateSingleChatSetting={updateSingleChatSetting}
+                                    updateGroupChatSetting={updateGroupChatSetting}
+                                    isLoadingSettings={loadingAISettings}
+                                />
+                            </div>
+                        </div>
 
-                <div className="h-[90vh] w-[50vw] overflow-y-auto">
-                    <DialogPage
-                        conversation={selectedConversation}
-                        selectedAccount={selectedAccount}
-                        avatarList={avatarList}
-                        refreshHumanList={refreshHumanList}
-                        humanList={humanList}
-                        singleChatEnabled={singleChatEnabled}
-                        groupChatEnabled={groupChatEnabled}
-                        enabledRooms={enabledRooms}
-                        disabledRooms={disabledRooms}
-                        onEnabledRoomsChange={setEnabledRooms}
-                        onDisabledRoomsChange={setDisabledRooms}
-                    />
-                </div>
+                        <div className="h-[90vh] w-[50vw] overflow-y-auto">
+                            <DialogPage
+                                conversation={selectedConversation}
+                                selectedAccount={selectedAccount}
+                                avatarList={avatarList}
+                                refreshHumanList={refreshHumanList}
+                                humanList={humanList}
+                                singleChatEnabled={singleChatEnabled}
+                                groupChatEnabled={groupChatEnabled}
+                                enabledRooms={enabledRooms}
+                                disabledRooms={disabledRooms}
+                                onEnabledRoomsChange={setEnabledRooms}
+                                onDisabledRoomsChange={setDisabledRooms}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    // MP account view
+                    <>
+                        <div className="w-[13vw] flex-shrink-0 h-[90vh]">
+                            <div className="h-full w-full">
+                                <WxMpDialogList
+                                    dialogs={mpConversations}
+                                    onSelectDialog={setSelectedMpConversation}
+                                    isLoading={isLoadingMpConversations}
+                                    selectedDialog={selectedMpConversation}
+                                    mpAccountName={selectedMpAccount?.name || ''}
+                                    mpAccountId={selectedMpAccount?.gh_user_id || ''}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="h-[90vh] w-[50vw] overflow-y-auto">
+                            <WxMpDialogPage
+                                conversation={selectedMpConversation}
+                                mpAccountId={selectedMpAccount?.gh_user_id || ''}
+                                mpAccountName={selectedMpAccount?.name || ''}
+                            />
+                        </div>
+                    </>
+                )}
 
                 <div className="flex-1">
                     <div className="h-[80vh] flex flex-col space-y-2">
