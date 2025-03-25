@@ -54,8 +54,8 @@ function App() {
                         <Route path="/knowledge/files" element={<FileManagement />} />
                         <Route path="/knowledge/datasets" element={<DatasetManagement />} />
                         {/* New AI feature routes */}
-                        <Route path="/ai/video" element={<VideoAnalysis />} />
-                        <Route path="/ai/legal" element={<FriendTest />} />
+                        <Route path="/pay/video" element={<VideoAnalysis />} />
+                        <Route path="/pay/analysis" element={<FriendTest />} />
                       </Routes>
                     </div>
                   </div>

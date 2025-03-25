@@ -78,8 +78,8 @@ const channelItems: NavItemWithIcons[] = [
 ];
 
 const aiItems: NavItemWithIcons[] = [
-  { name: '视频号直播监控', icon: videoSVG, activeIcon: videoActiveSVG, url: '/ai/video' },
-  { name: '朋友圈分析', icon: friendSVG, activeIcon: friendActiveSVG, url: '/ai/legal' },
+  { name: '视频号直播监控', icon: videoSVG, activeIcon: videoActiveSVG, url: '/pay/video' },
+  { name: '朋友圈分析', icon: friendSVG, activeIcon: friendActiveSVG, url: '/pay/analysis' },
 ];
 
 const NavBar: React.FC = () => {
