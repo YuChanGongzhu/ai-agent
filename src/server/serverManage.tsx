@@ -393,6 +393,8 @@ export const ServerManage: React.FC = () => {
     setIsDeleteDialogOpen(false);
     setServerToDelete(null);
     setDeleteError(null);
+    setDeletePhase(null);
+    setServerCurrentStatus(null);
     // 如果删除成功，刷新服务器列表
     if (deleteSuccess) {
       fetchAllRegionInstances();
@@ -426,6 +428,26 @@ export const ServerManage: React.FC = () => {
     setServerCurrentStatus(serverToDelete.status || '未知');
 
     try {
+      // 首先获取实例的最新状态，确保我们有最准确的信息
+      try {
+        const instancesByRegion = await tencentCloudService.getAllRegionInstances();
+        const regionInstances = instancesByRegion.get(region) || [];
+        const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
+        
+        if (instance) {
+          // 更新当前状态显示
+          setServerCurrentStatus(instance.InstanceState);
+          
+          // 如果最新状态已经是SHUTDOWN，直接走销毁流程
+          if (instance.InstanceState === 'SHUTDOWN') {
+            serverToDelete.status = 'SHUTDOWN';  // 更新本地对象状态
+          }
+        }
+      } catch (error) {
+        // 如果获取最新状态失败，继续使用当前已知状态
+        console.error('获取实例最新状态失败，使用当前已知状态:', error);
+      }
+      
       // 如果实例已经是SHUTDOWN状态，直接执行销毁操作
       if (serverToDelete.status === 'SHUTDOWN') {
         try {
@@ -447,10 +469,9 @@ export const ServerManage: React.FC = () => {
             setRegionServers(updatedServers);
           }
 
-          // 3秒后自动关闭对话框
-          setTimeout(() => {
-            closeDeleteDialog();
-          }, 3000);
+          // 立即自动关闭对话框
+          closeDeleteDialog();
+          return;
         } catch (terminateError) {
           console.error('销毁实例失败:', terminateError);
           const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
@@ -459,7 +480,7 @@ export const ServerManage: React.FC = () => {
             // 如果是操作未完成错误，提示用户稍后手动销毁
             setDeleteError('实例正在执行其他操作，请稍后手动尝试销毁操作');
           } else {
-            setDeleteError(`销毁实例失败: ${errorMessage}`);
+            setDeleteError(`销毁实例失败，请稍后重试`);
           }
         }
         setIsDeleting(false);
@@ -469,10 +490,56 @@ export const ServerManage: React.FC = () => {
 
       // 对于非SHUTDOWN状态，先隔离实例（退还实例）
       setDeletePhase('isolating');
-      await tencentCloudService.isolateInstances([instanceId], region);
-      
-      // 设置状态为正在隔离
-      setServerCurrentStatus('隔离中');
+      try {
+        await tencentCloudService.isolateInstances([instanceId], region);
+        
+        // 设置状态为正在隔离
+        setServerCurrentStatus('隔离中');
+      } catch (isolateError) {
+        console.error('隔离实例失败:', isolateError);
+        const errorMessage = isolateError instanceof Error ? isolateError.message : String(isolateError);
+        
+        // 如果错误信息表明实例已经是SHUTDOWN状态
+        if (errorMessage.includes('is in `SHUTDOWN` state')) {
+          // 实例已经是SHUTDOWN状态，直接尝试销毁
+          setServerCurrentStatus('SHUTDOWN');
+          setDeletePhase('terminating');
+          
+          try {
+            await tencentCloudService.terminateInstances([instanceId], region);
+            setDeleteSuccess(true);
+            
+            // 更新服务器状态（从列表中移除）
+            const updatedServers = new Map(regionServers);
+            const servers = updatedServers.get(region);
+            
+            if (servers && Array.isArray(servers)) {
+              const updatedServersArray = servers.filter(server =>
+                server.instanceId !== instanceId
+              );
+              updatedServers.set(region, updatedServersArray);
+              setRegionServers(updatedServers);
+            }
+            
+            // 3秒后自动关闭对话框
+            setTimeout(() => {
+              closeDeleteDialog();
+            }, 3000);
+          } catch (terminateError) {
+            console.error('销毁实例失败:', terminateError);
+            setDeleteError('实例删除失败，请稍后重试');
+          }
+          setIsDeleting(false);
+          setDeletePhase(null);
+          return;
+        } else {
+          // 其他类型的错误
+          setDeleteError('隔离实例失败，请稍后重试');
+          setIsDeleting(false);
+          setDeletePhase(null);
+          return;
+        }
+      }
 
       // 延迟检查实例状态，等待其变为 SHUTDOWN
       let retryCount = 0;
@@ -505,9 +572,8 @@ export const ServerManage: React.FC = () => {
               setRegionServers(updatedServers);
             }
 
-            setTimeout(() => {
-              closeDeleteDialog();
-            }, 3000);
+            // 立即自动关闭对话框
+            closeDeleteDialog();
             return;
           }
 
@@ -565,16 +631,9 @@ export const ServerManage: React.FC = () => {
                   closeDeleteDialog();
                 }, 3000);
               } catch (terminateError) {
-                // 如果销毁失败，检查是否是操作未完成的错误
+                // 如果销毁失败，不显示具体错误信息
                 console.error('销毁实例失败:', terminateError);
-                const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
-
-                if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
-                  // 如果是操作未完成错误，提示用户稍后手动销毁
-                  setDeleteError('实例正在执行隔离操作，请稍后手动尝试销毁操作');
-                } else {
-                  setDeleteError(`销毁实例失败: ${errorMessage}`);
-                }
+                setDeleteError('销毁实例失败，请稍后重试');
                 setDeletePhase(null);
               }
             }, 10000); // 额外等待10秒再执行销毁操作
@@ -584,12 +643,12 @@ export const ServerManage: React.FC = () => {
             setTimeout(checkInstanceStatus, checkIntervalTime);
           } else {
             // 如果超过最大重试次数，则提示错误
-            throw new Error('等待实例状态变更超时，请手动检查实例状态并尝试再次删除');
+            throw new Error('等待实例状态变更超时');
           }
         } catch (error) {
           console.error('检查实例状态失败:', error);
+          setDeleteError('删除操作未完成，请稍后重试');
           setDeletePhase(null);
-          throw error;
         }
       };
 
@@ -597,8 +656,7 @@ export const ServerManage: React.FC = () => {
       setTimeout(checkInstanceStatus, initialWaitTime);
     } catch (error) {
       console.error('删除服务器失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '删除服务器失败，请稍后重试';
-      setDeleteError(errorMessage);
+      setDeleteError('删除服务器失败，请稍后重试');
       setDeleteSuccess(false);
       setDeletePhase(null);
     } finally {
@@ -1027,13 +1085,22 @@ export const ServerManage: React.FC = () => {
                   </p>
                   <ul className="list-disc pl-5 text-sm text-gray-600">
                     <li>先隔离实例（将实例退还，不再计费）</li>
-                    <li>等待隔离完成后，销毁实例（彻底删除数据）</li>
+                    <li>等待隔离完成后，自动销毁实例（彻底删除数据）</li>
+                    <li>整个过程将自动完成，无需二次确认</li>
                   </ul>
                 </div>
 
                 {deleteError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {deleteError}
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={closeDeleteDialog}
+                        className="bg-red-200 hover:bg-red-300 text-red-800 font-medium py-1 px-3 rounded text-sm"
+                      >
+                        关闭
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1055,15 +1122,11 @@ export const ServerManage: React.FC = () => {
                         <p className="text-sm text-blue-600">
                           当前状态: {serverCurrentStatus || '未知'}
                         </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          删除过程自动进行，完成后将自动关闭此窗口
+                        </p>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {deleteSuccess && (
-                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    <p>删除实例请求成功！</p>
-                    <p className="text-sm">实例已成功删除</p>
                   </div>
                 )}
 
@@ -1073,13 +1136,12 @@ export const ServerManage: React.FC = () => {
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
                     disabled={isDeleting}
                   >
-                    {deleteSuccess ? '关闭' : '取消'}
+                    取消
                   </button>
-                  {!deleteSuccess && !isDeleting && (
+                  {!isDeleting && !deleteError && (
                     <button
                       onClick={deleteServer}
                       className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded flex items-center"
-                      disabled={isDeleting}
                     >
                       确认删除
                     </button>
