@@ -45,6 +45,9 @@ export const ServerManage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false);
+  // 添加删除状态和阶段跟踪
+  const [deletePhase, setDeletePhase] = useState<'isolating' | 'terminating' | null>(null);
+  const [serverCurrentStatus, setServerCurrentStatus] = useState<string | null>(null);
 
   // 使用UserContext提供的用户信息
   const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
@@ -420,11 +423,15 @@ export const ServerManage: React.FC = () => {
 
     setIsDeleting(true);
     setDeleteError(null);
+    setServerCurrentStatus(serverToDelete.status || '未知');
 
     try {
       // 如果实例已经是SHUTDOWN状态，直接执行销毁操作
       if (serverToDelete.status === 'SHUTDOWN') {
         try {
+          setDeletePhase('terminating');
+          setServerCurrentStatus('SHUTDOWN');
+          
           await tencentCloudService.terminateInstances([instanceId], region);
           setDeleteSuccess(true);
 
@@ -456,17 +463,22 @@ export const ServerManage: React.FC = () => {
           }
         }
         setIsDeleting(false);
+        setDeletePhase(null);
         return;
       }
 
       // 对于非SHUTDOWN状态，先隔离实例（退还实例）
+      setDeletePhase('isolating');
       await tencentCloudService.isolateInstances([instanceId], region);
+      
+      // 设置状态为正在隔离
+      setServerCurrentStatus('隔离中');
 
       // 延迟检查实例状态，等待其变为 SHUTDOWN
       let retryCount = 0;
-      const maxRetry = 15; // 增加最大重试次数
-      const initialWaitTime = 15000; // 首次等待30秒，给予足够时间让操作开始执行
-      const checkIntervalTime = 5000; // 每次检查间隔增加到5秒
+      const maxRetry = 20; // 增加最大重试次数
+      const initialWaitTime = 15000; // 首次等待15秒
+      const checkIntervalTime = 5000; // 每次检查间隔5秒
 
       const checkInstanceStatus = async () => {
         try {
@@ -478,6 +490,8 @@ export const ServerManage: React.FC = () => {
           if (!instance) {
             // 如果实例已不存在，可能已经被删除了，直接认为成功
             setDeleteSuccess(true);
+            setServerCurrentStatus('已删除');
+            setDeletePhase(null);
 
             // 更新服务器状态（从列表中移除）
             const updatedServers = new Map(regionServers);
@@ -497,10 +511,14 @@ export const ServerManage: React.FC = () => {
             return;
           }
 
+          // 更新当前状态显示
+          setServerCurrentStatus(instance.InstanceState || '未知');
+
           // 检查是否有正在进行的操作
           if (instance.LatestOperation === 'IsolateInstances' &&
             instance.LatestOperationState === 'OPERATING') {
-            // 如果操作仍在进行中，继续等待
+            // 如果隔离操作仍在进行中，继续等待
+            setServerCurrentStatus(`${instance.InstanceState} (隔离中...)`);
             if (retryCount < maxRetry) {
               retryCount++;
               setTimeout(checkInstanceStatus, checkIntervalTime);
@@ -510,50 +528,58 @@ export const ServerManage: React.FC = () => {
             }
           }
 
-          if (instance.InstanceState === 'SHUTDOWN') {
-            try {
-              // 销毁前额外等待一段时间，确保隔离操作完全结束
-              setTimeout(async () => {
-                try {
-                  // 如果实例状态为 SHUTDOWN，则执行销毁操作
-                  await tencentCloudService.terminateInstances([instanceId], region);
-                  setDeleteSuccess(true);
+          // 特别检查：确保最后一次操作是隔离并且已经成功完成
+          if (instance.LatestOperation === 'IsolateInstances' && 
+              instance.LatestOperationState === 'SUCCESS' &&
+              instance.InstanceState === 'SHUTDOWN') {
+            
+            // 隔离操作已完成，状态已是SHUTDOWN，可以执行销毁操作
+            // 额外等待10秒确保隔离完全生效
+            setServerCurrentStatus('隔离完成，准备销毁...');
+            
+            setTimeout(async () => {
+              try {
+                // 执行销毁操作
+                setDeletePhase('terminating');
+                setServerCurrentStatus('正在销毁...');
+                
+                await tencentCloudService.terminateInstances([instanceId], region);
+                setDeleteSuccess(true);
+                setServerCurrentStatus('已销毁');
+                setDeletePhase(null);
 
-                  // 更新服务器状态（从列表中移除）
-                  const updatedServers = new Map(regionServers);
-                  const servers = updatedServers.get(region);
+                // 更新服务器状态（从列表中移除）
+                const updatedServers = new Map(regionServers);
+                const servers = updatedServers.get(region);
 
-                  if (servers && Array.isArray(servers)) {
-                    const updatedServersArray = servers.filter(server =>
-                      server.instanceId !== instanceId
-                    );
-                    updatedServers.set(region, updatedServersArray);
-                    setRegionServers(updatedServers);
-                  }
-
-                  // 3秒后自动关闭对话框
-                  setTimeout(() => {
-                    closeDeleteDialog();
-                  }, 3000);
-                } catch (terminateError) {
-                  // 如果销毁失败，检查是否是操作未完成的错误
-                  console.error('销毁实例失败:', terminateError);
-                  const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
-
-                  if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
-                    // 如果是操作未完成错误，提示用户稍后手动销毁
-                    setDeleteError('实例正在执行隔离操作，请稍后手动尝试销毁操作');
-                  } else {
-                    setDeleteError(`销毁实例失败: ${errorMessage}`);
-                  }
+                if (servers && Array.isArray(servers)) {
+                  const updatedServersArray = servers.filter(server =>
+                    server.instanceId !== instanceId
+                  );
+                  updatedServers.set(region, updatedServersArray);
+                  setRegionServers(updatedServers);
                 }
-              }, 5000); // 额外等待5秒再执行销毁操作
-            } catch (error) {
-              console.error('销毁实例失败:', error);
-              throw error;
-            }
+
+                // 3秒后自动关闭对话框
+                setTimeout(() => {
+                  closeDeleteDialog();
+                }, 3000);
+              } catch (terminateError) {
+                // 如果销毁失败，检查是否是操作未完成的错误
+                console.error('销毁实例失败:', terminateError);
+                const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
+
+                if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
+                  // 如果是操作未完成错误，提示用户稍后手动销毁
+                  setDeleteError('实例正在执行隔离操作，请稍后手动尝试销毁操作');
+                } else {
+                  setDeleteError(`销毁实例失败: ${errorMessage}`);
+                }
+                setDeletePhase(null);
+              }
+            }, 10000); // 额外等待10秒再执行销毁操作
           } else if (retryCount < maxRetry) {
-            // 如果状态不是 SHUTDOWN 且未超过重试次数，则继续等待
+            // 如果状态不是期望的状态且未超过重试次数，则继续等待
             retryCount++;
             setTimeout(checkInstanceStatus, checkIntervalTime);
           } else {
@@ -562,6 +588,7 @@ export const ServerManage: React.FC = () => {
           }
         } catch (error) {
           console.error('检查实例状态失败:', error);
+          setDeletePhase(null);
           throw error;
         }
       };
@@ -573,8 +600,11 @@ export const ServerManage: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : '删除服务器失败，请稍后重试';
       setDeleteError(errorMessage);
       setDeleteSuccess(false);
+      setDeletePhase(null);
     } finally {
-      setIsDeleting(false);
+      if (!deletePhase) { // 只有在流程完全结束时才设置isDeleting为false
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -995,6 +1025,10 @@ export const ServerManage: React.FC = () => {
                   <p className="text-gray-700 mb-2">
                     您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
                   </p>
+                  <ul className="list-disc pl-5 text-sm text-gray-600">
+                    <li>先隔离实例（将实例退还，不再计费）</li>
+                    <li>等待隔离完成后，销毁实例（彻底删除数据）</li>
+                  </ul>
                 </div>
 
                 {deleteError && (
@@ -1003,10 +1037,33 @@ export const ServerManage: React.FC = () => {
                   </div>
                 )}
 
+                {isDeleting && (
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-4">
+                    <div className="flex items-center">
+                      <div className="mr-3">
+                        <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-blue-700">
+                          {deletePhase === 'isolating' ? '正在隔离实例...' : 
+                          deletePhase === 'terminating' ? '正在销毁实例...' : 
+                          '处理中...'}
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          当前状态: {serverCurrentStatus || '未知'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {deleteSuccess && (
                   <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                     <p>删除实例请求成功！</p>
-                    <p className="text-sm">实例正在删除中...</p>
+                    <p className="text-sm">实例已成功删除</p>
                   </div>
                 )}
 
@@ -1018,23 +1075,13 @@ export const ServerManage: React.FC = () => {
                   >
                     {deleteSuccess ? '关闭' : '取消'}
                   </button>
-                  {!deleteSuccess && (
+                  {!deleteSuccess && !isDeleting && (
                     <button
                       onClick={deleteServer}
                       className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded flex items-center"
                       disabled={isDeleting}
                     >
-                      {isDeleting ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          删除中...
-                        </>
-                      ) : (
-                        '确认删除'
-                      )}
+                      确认删除
                     </button>
                   )}
                 </div>
