@@ -390,11 +390,15 @@ export const ServerManage: React.FC = () => {
 
   // 关闭删除确认对话框
   const closeDeleteDialog = () => {
+    // 无论在什么情况下，重置所有状态
     setIsDeleteDialogOpen(false);
     setServerToDelete(null);
     setDeleteError(null);
     setDeletePhase(null);
     setServerCurrentStatus(null);
+    setIsDeleting(false);
+    setDeleteSuccess(false);
+    
     // 如果删除成功，刷新服务器列表
     if (deleteSuccess) {
       fetchAllRegionInstances();
@@ -423,8 +427,10 @@ export const ServerManage: React.FC = () => {
       return;
     }
 
+    // 开始删除流程，重置错误状态
     setIsDeleting(true);
     setDeleteError(null);
+    setDeleteSuccess(false);
     setServerCurrentStatus(serverToDelete.status || '未知');
 
     try {
@@ -469,7 +475,8 @@ export const ServerManage: React.FC = () => {
             setRegionServers(updatedServers);
           }
 
-          // 立即自动关闭对话框
+          // 立即自动关闭对话框并刷新实例列表
+          fetchAllRegionInstances();
           closeDeleteDialog();
           return;
         } catch (terminateError) {
@@ -478,19 +485,20 @@ export const ServerManage: React.FC = () => {
 
           if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
             // 如果是操作未完成错误，提示用户稍后手动销毁
-            setDeleteError('实例正在执行其他操作，请稍后手动尝试销毁操作');
+            setDeleteError('实例正在执行其他操作，请稍后再尝试删除');
           } else {
-            setDeleteError(`销毁实例失败，请稍后重试`);
+            setDeleteError('销毁实例失败，请稍后重试');
           }
+          setIsDeleting(false);
+          setDeletePhase(null);
+          return;
         }
-        setIsDeleting(false);
-        setDeletePhase(null);
-        return;
       }
 
       // 对于非SHUTDOWN状态，先隔离实例（退还实例）
       setDeletePhase('isolating');
       try {
+        // 执行隔离操作
         await tencentCloudService.isolateInstances([instanceId], region);
         
         // 设置状态为正在隔离
@@ -521,17 +529,17 @@ export const ServerManage: React.FC = () => {
               setRegionServers(updatedServers);
             }
             
-            // 3秒后自动关闭对话框
-            setTimeout(() => {
-              closeDeleteDialog();
-            }, 3000);
+            // 立即自动关闭对话框并刷新实例列表
+            fetchAllRegionInstances();
+            closeDeleteDialog();
+            return;
           } catch (terminateError) {
             console.error('销毁实例失败:', terminateError);
             setDeleteError('实例删除失败，请稍后重试');
+            setIsDeleting(false);
+            setDeletePhase(null);
+            return;
           }
-          setIsDeleting(false);
-          setDeletePhase(null);
-          return;
         } else {
           // 其他类型的错误
           setDeleteError('隔离实例失败，请稍后重试');
@@ -572,7 +580,8 @@ export const ServerManage: React.FC = () => {
               setRegionServers(updatedServers);
             }
 
-            // 立即自动关闭对话框
+            // 立即自动关闭对话框并刷新实例列表 
+            fetchAllRegionInstances();
             closeDeleteDialog();
             return;
           }
@@ -626,15 +635,15 @@ export const ServerManage: React.FC = () => {
                   setRegionServers(updatedServers);
                 }
 
-                // 3秒后自动关闭对话框
-                setTimeout(() => {
-                  closeDeleteDialog();
-                }, 3000);
+                // 立即自动关闭对话框并刷新实例列表
+                fetchAllRegionInstances();
+                closeDeleteDialog();
               } catch (terminateError) {
                 // 如果销毁失败，不显示具体错误信息
                 console.error('销毁实例失败:', terminateError);
                 setDeleteError('销毁实例失败，请稍后重试');
                 setDeletePhase(null);
+                setIsDeleting(false);
               }
             }, 10000); // 额外等待10秒再执行销毁操作
           } else if (retryCount < maxRetry) {
@@ -649,6 +658,7 @@ export const ServerManage: React.FC = () => {
           console.error('检查实例状态失败:', error);
           setDeleteError('删除操作未完成，请稍后重试');
           setDeletePhase(null);
+          setIsDeleting(false);
         }
       };
 
@@ -659,10 +669,7 @@ export const ServerManage: React.FC = () => {
       setDeleteError('删除服务器失败，请稍后重试');
       setDeleteSuccess(false);
       setDeletePhase(null);
-    } finally {
-      if (!deletePhase) { // 只有在流程完全结束时才设置isDeleting为false
-        setIsDeleting(false);
-      }
+      setIsDeleting(false);
     }
   };
 
@@ -1079,28 +1086,19 @@ export const ServerManage: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full">
                 <h3 className="text-xl font-semibold mb-4">确认删除服务器</h3>
-                <div className="mb-4">
-                  <p className="text-gray-700 mb-2">
-                    您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
-                  </p>
-                  <ul className="list-disc pl-5 text-sm text-gray-600">
-                    <li>先隔离实例（将实例退还，不再计费）</li>
-                    <li>等待隔离完成后，自动销毁实例（彻底删除数据）</li>
-                    <li>整个过程将自动完成，无需二次确认</li>
-                  </ul>
-                </div>
+                
+                {!isDeleting && !deleteError && (
+                  <div className="mb-4">
+                    <p className="text-gray-700 mb-2">
+                      您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
+                    </p>
+                  </div>
+                )}
 
                 {deleteError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {deleteError}
-                    <div className="flex justify-end mt-2">
-                      <button
-                        onClick={closeDeleteDialog}
-                        className="bg-red-200 hover:bg-red-300 text-red-800 font-medium py-1 px-3 rounded text-sm"
-                      >
-                        关闭
-                      </button>
-                    </div>
+                    <p>{deleteError}</p>
+                    <p className="text-sm mt-2">请稍后再试或联系管理员</p>
                   </div>
                 )}
 
@@ -1131,13 +1129,14 @@ export const ServerManage: React.FC = () => {
                 )}
 
                 <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={closeDeleteDialog}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
-                    disabled={isDeleting}
-                  >
-                    取消
-                  </button>
+                  {!isDeleting && (
+                    <button
+                      onClick={closeDeleteDialog}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+                    >
+                      {deleteError ? '关闭' : '取消'}
+                    </button>
+                  )}
                   {!isDeleting && !deleteError && (
                     <button
                       onClick={deleteServer}
