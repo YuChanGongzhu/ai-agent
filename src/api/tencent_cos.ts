@@ -66,9 +66,10 @@ class TencentCOSService {
    * @param file 要上传的文件
    * @param path 保存路径（不包含文件名）
    * @param onProgress 上传进度回调
+   * @param bucket 可选的存储桶名称，默认使用配置中的值
    * @returns 返回上传结果，包含文件URL
    */
-  async uploadFile(file: File, path: string, onProgress?: UploadProgressCallback): Promise<{ url: string; key: string }> {
+  async uploadFile(file: File, path: string, onProgress?: UploadProgressCallback, bucket?: string): Promise<{ url: string; key: string }> {
     // 确保路径末尾有斜杠
     const normalizedPath = path ? (path.endsWith('/') ? path : `${path}/`) : '';
     
@@ -80,7 +81,7 @@ class TencentCOSService {
         // 使用简单上传方法，对于小文件更简单有效
         if (file.size < 1024 * 1024 * 10) { // 小于10MB的文件使用简单上传
           this.cos.putObject({
-            Bucket: this.config.Bucket,
+            Bucket: bucket || this.config.Bucket,
             Region: this.config.Region,
             Key: key,
             Body: file,
@@ -102,7 +103,7 @@ class TencentCOSService {
             
             // 使用SDK提供的方法获取文件URL，避免域名不一致问题
             this.cos.getObjectUrl({
-              Bucket: this.config.Bucket,
+              Bucket: bucket || this.config.Bucket,
               Region: this.config.Region,
               Key: key,
               Expires: 7200, // URL有效期：2小时
@@ -111,7 +112,7 @@ class TencentCOSService {
               if (err) {
                 console.warn('获取文件URL失败，使用默认URL构建方式:', err);
                 // 备用URL构建方式
-                const url = `https://${this.config.Bucket}.cos.${this.config.Region}.myqcloud.com/${key}`;
+                const url = `https://${bucket || this.config.Bucket}.cos.${this.config.Region}.myqcloud.com/${key}`;
                 resolve({ url, key });
               } else {
                 resolve({ url: data.Url, key });
@@ -121,7 +122,7 @@ class TencentCOSService {
         } else {
           // 大文件使用分块上传
           this.cos.uploadFile({
-            Bucket: this.config.Bucket,
+            Bucket: bucket || this.config.Bucket,
             Region: this.config.Region,
             Key: key,
             Body: file,
@@ -144,7 +145,7 @@ class TencentCOSService {
             
             // 使用SDK提供的方法获取文件URL，避免域名不一致问题
             this.cos.getObjectUrl({
-              Bucket: this.config.Bucket,
+              Bucket: bucket || this.config.Bucket,
               Region: this.config.Region,
               Key: key,
               Expires: 7200, // URL有效期：2小时
@@ -153,7 +154,7 @@ class TencentCOSService {
               if (err) {
                 console.warn('获取文件URL失败，使用默认URL构建方式:', err);
                 // 备用URL构建方式
-                const url = `https://${this.config.Bucket}.cos.${this.config.Region}.myqcloud.com/${key}`;
+                const url = `https://${bucket || this.config.Bucket}.cos.${this.config.Region}.myqcloud.com/${key}`;
                 resolve({ url, key });
               } else {
                 resolve({ url: data.Url, key });
@@ -171,12 +172,13 @@ class TencentCOSService {
   /**
    * 删除COS中的文件
    * @param key 文件路径
+   * @param bucket 可选的存储桶名称，默认使用配置中的值
    * @returns 
    */
-  async deleteFile(key: string): Promise<void> {
+  async deleteFile(key: string, bucket?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.cos.deleteObject({
-        Bucket: this.config.Bucket,
+        Bucket: bucket || this.config.Bucket,
         Region: this.config.Region,
         Key: key,
       }, (err: any, data: any) => {
@@ -194,12 +196,13 @@ class TencentCOSService {
    * 获取用户上传的文件列表
    * @param prefix 文件路径前缀，通常是用户名
    * @param maxKeys 最大返回数量
+   * @param bucket 可选的存储桶名称，默认使用配置中的值
    * @returns 文件列表
    */
-  async listFiles(prefix: string = '', maxKeys: number = 1000): Promise<CosFileItem[]> {
+  async listFiles(prefix: string = '', maxKeys: number = 1000, bucket?: string): Promise<CosFileItem[]> {
     return new Promise((resolve, reject) => {
       this.cos.getBucket({
-        Bucket: this.config.Bucket,
+        Bucket: bucket || this.config.Bucket,
         Region: this.config.Region,
         Prefix: prefix,
         MaxKeys: maxKeys
