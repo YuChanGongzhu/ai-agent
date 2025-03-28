@@ -21,12 +21,13 @@ export default function Contact() {
         </div>
         
         <div className="pdf-container bg-white rounded-lg shadow-md p-1 md:p-2">
-          <iframe 
-            src={pdfUrl}
-            className="w-full h-[calc(100vh-250px)] border-none" 
-            title="LucyAI 联系方式"
-            loading="eager"
-          ></iframe>
+          <object
+            data={pdfUrl}
+            type="application/pdf"
+            className="w-full h-[calc(100vh-250px)]"
+          >
+            <p className="text-center py-4">您的浏览器无法显示PDF，<a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">点击下载</a></p>
+          </object>
         </div>
       </section>
       

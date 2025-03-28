@@ -52,11 +52,16 @@ html, body {
     @apply bg-white rounded-lg shadow-md p-1 md:p-2 w-full mx-auto overflow-hidden;
   }
 
-  /* PDF iframe样式 */
-  .pdf-container iframe {
+  /* PDF object样式 */
+  .pdf-container object {
     @apply w-full border-none bg-white;
     min-height: 70vh;
     display: block;
+  }
+
+  /* 支持PDF下载的链接样式 */
+  .pdf-container a {
+    @apply text-blue-600 hover:text-blue-800 underline;
   }
 
   /* 导航样式 */
@@ -74,7 +79,7 @@ html, body {
 
   /* 移动设备上的特殊处理 */
   @media (max-width: 640px) {
-    .pdf-container iframe {
+    .pdf-container object {
       height: calc(100vh - 120px);
     }
   }

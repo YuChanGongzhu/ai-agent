@@ -14,12 +14,13 @@ export default function Home() {
       
       <section className="flex-grow container-section py-0 md:py-1 overflow-hidden w-full">
         <div className="pdf-container max-w-full mx-auto w-full overflow-hidden bg-white rounded-lg shadow-md p-1 md:p-2">
-          <iframe 
-            src={pdfUrl}
-            className="w-full h-[calc(100vh-120px)] border-none" 
-            title="LucyAI PDF文档"
-            loading="eager"
-          ></iframe>
+          <object
+            data={pdfUrl}
+            type="application/pdf"
+            className="w-full h-[calc(100vh-120px)]"
+          >
+            <p className="text-center py-4">您的浏览器无法显示PDF，<a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">点击下载</a></p>
+          </object>
         </div>
       </section>
       
