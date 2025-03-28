@@ -5,10 +5,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 export default function About() {
-  // 定义PDF URL
-  const pdfUrl = 'https://lucyai-1347723456.cos.ap-guangzhou.myqcloud.com/LucyAI%2020250327.pdf';
-  // 完整的PDF查看器URL（包括PDF URL作为参数）
-  const pdfViewerUrl = `/pdfviewer.html?file=${encodeURIComponent(pdfUrl)}`;
+  // 使用图片URL代替PDF
+  const imageUrl = 'https://lucyai-1347723456.cos.ap-guangzhou.myqcloud.com/aboutus.png';
   
   return (
     <main className="min-h-screen flex flex-col">
@@ -22,16 +20,12 @@ export default function About() {
           </p>
         </div>
         
-        <div className="pdf-container bg-white rounded-lg shadow-md p-1 md:p-2">
-          <iframe
-            src={pdfViewerUrl}
-            className="w-full h-[calc(100vh-250px)]"
-            frameBorder="0"
-            allowFullScreen
-          ></iframe>
-          <div className="text-center py-2 text-sm">
-            如果无法查看PDF，请<a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">点击此处下载</a>
-          </div>
+        <div className="image-container bg-white rounded-lg shadow-md p-1 md:p-4 text-center">
+          <img 
+            src={imageUrl} 
+            alt="关于LucyAI" 
+            className="max-w-full h-auto mx-auto rounded"
+          />
         </div>
       </section>
       

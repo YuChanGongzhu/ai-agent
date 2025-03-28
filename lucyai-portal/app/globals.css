@@ -57,6 +57,22 @@ body {
     background-color: white;
   }
 
+  /* 图片容器样式 */
+  .image-container {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: white;
+  }
+  
+  .image-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
   /* PDF object样式 */
   .pdf-container object {
     @apply w-full border-none bg-white;

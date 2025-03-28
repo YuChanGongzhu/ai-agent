@@ -28,12 +28,6 @@ const Header = () => {
               <Link href="/about" className={`nav-tab ${pathname === '/about' ? 'nav-tab-active' : ''}`}>
                 关于我们
               </Link>
-              <Link href="/solutions" className={`nav-tab ${pathname === '/solutions' ? 'nav-tab-active' : ''}`}>
-                解决方案
-              </Link>
-              <Link href="/docs" className={`nav-tab ${pathname === '/docs' ? 'nav-tab-active' : ''}`}>
-                文档中心
-              </Link>
               <Link href="/contact" className={`nav-tab ${pathname === '/contact' ? 'nav-tab-active' : ''}`}>
                 联系我们
               </Link>
