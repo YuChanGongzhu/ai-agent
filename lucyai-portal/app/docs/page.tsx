@@ -5,8 +5,10 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 export default function Docs() {
-  // 使用在线PDF链接
+  // 定义PDF URL
   const pdfUrl = 'https://lucyai-1347723456.cos.ap-guangzhou.myqcloud.com/LucyAI%2020250327.pdf';
+  // 完整的PDF查看器URL（包括PDF URL作为参数）
+  const pdfViewerUrl = `/pdfviewer.html?file=${encodeURIComponent(pdfUrl)}`;
   
   return (
     <main className="min-h-screen flex flex-col">
@@ -16,18 +18,20 @@ export default function Docs() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">文档中心</h1>
           <p className="text-gray-600">
-            了解 LucyAI 智能客服系统的详细信息
+            查阅 LucyAI 产品的详细文档和使用指南
           </p>
         </div>
         
         <div className="pdf-container bg-white rounded-lg shadow-md p-1 md:p-2">
-          <object
-            data={pdfUrl}
-            type="application/pdf"
+          <iframe
+            src={pdfViewerUrl}
             className="w-full h-[calc(100vh-250px)]"
-          >
-            <p className="text-center py-4">您的浏览器无法显示PDF，<a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">点击下载</a></p>
-          </object>
+            frameBorder="0"
+            allowFullScreen
+          ></iframe>
+          <div className="text-center py-2 text-sm">
+            如果无法查看PDF，请<a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">点击此处下载</a>
+          </div>
         </div>
       </section>
       
