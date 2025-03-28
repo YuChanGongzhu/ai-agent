@@ -217,11 +217,27 @@ const NavBar: React.FC = () => {
   }, []);
 
   return (
-      <div className={`bg-[rgba(108,93,211,1)] p-2 ${isCollapsed ? 'w-[6vw]' : 'w-[12vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base text-white`}>
+      <div className={`bg-[rgba(108,93,211,1)] p-2 ${isCollapsed ? 'w-[4.5vw]' : 'w-[10vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base text-white`}>
         {/* Logo Section */}
-        <div className="flex items-center justify-center space-x-2 mb-2 px-2">
-          <img src={lucyaiLogo} alt="LUCYAI" className="w-8 h-8" />
-          {!isCollapsed && <span className="text-2xl font-semibold text-white">LUCYAI</span>}
+        <div className="flex items-center justify-between mb-2 px-2">
+          <div className="flex items-center space-x-2">
+            <img src={lucyaiLogo} alt="LUCYAI" className="w-8 h-8" />
+            {!isCollapsed && <span className="text-2xl font-semibold text-white">LUCYAI</span>}
+          </div>
+          <button 
+            onClick={toggleCollapse}
+            className="text-white/70 hover:text-white"
+          >
+            {isCollapsed ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m15 19.5-7.5-7.5 7.5-7.5" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Navigation Items */}
@@ -327,7 +343,11 @@ const NavBar: React.FC = () => {
         {/* User Profile Section */}
         <div className="mt-auto pt-4 border-t border-white/20 relative">
           <div className="flex items-center justify-between px-2">
-            <div className="flex items-center space-x-2">
+            <div 
+              className="flex items-center space-x-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)] rounded-lg p-1 w-full" 
+              onClick={() => setShowLogoutDialog(!showLogoutDialog)}
+              title="点击显示选项"
+            >
               <img
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.displayName || userData.email || 'User'}`}
                 alt="User"
@@ -339,29 +359,14 @@ const NavBar: React.FC = () => {
                     {userData.displayName || userData.email?.split('@')[0] || '用户'}
                   </div>
                   <div 
-                    className="text-xs text-white/70 cursor-pointer hover:text-white truncate"
+                    className="text-xs text-white/70 truncate"
                     title={userData.email || '账号'}
-                    onClick={() => setShowLogoutDialog(!showLogoutDialog)}
                   >
                     {userData.email || '账号'}
                   </div>
                 </div>
               )}
             </div>
-            <button 
-              onClick={toggleCollapse}
-              className="text-white/70 hover:text-white"
-            >
-              {isCollapsed ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m15 19.5-7.5-7.5 7.5-7.5" />
-                </svg>
-              )}
-            </button>
           </div>
 
           {showLogoutDialog && !isCollapsed && (
