@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 250, 250, 250;
+  --background-end-rgb: 255, 255, 255;
+  --primary-dark: #4b34a7;
+  --primary-mid: #6a5abe;
+  --primary-light: #5c3eb2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 10, 10, 30;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer components {
+  .btn-primary {
+    @apply py-2 px-4 bg-primary-600 text-white font-semibold rounded-lg shadow-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-opacity-75 transition duration-300;
+  }
+  
+  .container-section {
+    @apply max-w-7xl mx-auto px-2 sm:px-3 lg:px-4 py-1 sm:py-2;
+  }
+
+  /* PDF相关样式 */
+  .pdf-container {
+    @apply bg-white rounded-lg shadow-md p-1 md:p-2;
+  }
+
+  .pdf-viewer {
+    @apply w-full;
+  }
+
+  /* 长图模式下PDF页面的样式 */
+  .pdf-viewer .react-pdf__Document {
+    @apply w-full;
+  }
+
+  .pdf-viewer .react-pdf__Page {
+    @apply shadow-md bg-white mb-2 max-w-full;
+  }
+
+  .pdf-viewer .react-pdf__Page__canvas {
+    @apply max-w-full h-auto !important;
+  }
+
+  /* 导航样式 */
+  .nav-tabs {
+    @apply flex;
+  }
+
+  .nav-tab {
+    @apply py-2 px-3 text-sm border-b-2 border-transparent hover:border-white/80 hover:text-white transition-colors font-medium text-gray-100/90;
+  }
+
+  .nav-tab-active {
+    @apply border-white text-white font-semibold;
+  }
+} 
