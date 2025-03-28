@@ -3,7 +3,6 @@
 import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import PDFViewer from '../components/PDFViewer';
 
 export default function About() {
   // 使用在线PDF链接
@@ -21,8 +20,13 @@ export default function About() {
           </p>
         </div>
         
-        <div className="pdf-container">
-          <PDFViewer pdfUrl={pdfUrl} title="LucyAI 公司介绍" />
+        <div className="pdf-container bg-white rounded-lg shadow-md p-1 md:p-2">
+          <iframe 
+            src={pdfUrl}
+            className="w-full h-[calc(100vh-250px)] border-none" 
+            title="LucyAI 公司介绍"
+            loading="eager"
+          ></iframe>
         </div>
       </section>
       

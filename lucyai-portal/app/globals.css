@@ -34,7 +34,6 @@ html, body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  position: relative;
   max-width: 100vw;
   overflow-x: hidden;
 }
@@ -53,52 +52,11 @@ html, body {
     @apply bg-white rounded-lg shadow-md p-1 md:p-2 w-full mx-auto overflow-hidden;
   }
 
-  .pdf-viewer {
-    @apply w-full mx-auto;
-  }
-
-  /* 长图模式下PDF页面的样式 */
-  .pdf-viewer .react-pdf__Document {
-    @apply w-full mx-auto;
-  }
-
-  .pdf-viewer .react-pdf__Page {
-    @apply shadow-md bg-white mb-2 max-w-full mx-auto;
-  }
-
-  .pdf-viewer .react-pdf__Page__canvas {
-    @apply max-w-full h-auto mx-auto;
-    max-width: 100% !important;
-    height: auto !important;
-  }
-
-  /* 优化移动端PDF浏览体验 */
-  .pdf-viewer .overflow-y-auto {
-    @apply overscroll-none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    width: 100% !important; 
-    max-width: 100vw !important;
-    overflow-y: auto !important; /* 确保垂直滚动始终可用 */
-  }
-  
-  /* 确保内容居中填充，防止右侧空白 */
-  .react-pdf__Document, 
-  .react-pdf__Page {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-  }
-  
-  /* 防止任何横向溢出 */
-  .pdf-container,
-  .pdf-viewer, 
-  .react-pdf__Document,
-  .react-pdf__Page {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
+  /* PDF iframe样式 */
+  .pdf-container iframe {
+    @apply w-full border-none bg-white;
+    min-height: 70vh;
+    display: block;
   }
 
   /* 导航样式 */
@@ -112,5 +70,12 @@ html, body {
 
   .nav-tab-active {
     @apply border-white text-white font-semibold;
+  }
+
+  /* 移动设备上的特殊处理 */
+  @media (max-width: 640px) {
+    .pdf-container iframe {
+      height: calc(100vh - 120px);
+    }
   }
 } 
