@@ -63,7 +63,7 @@ export default function Home() {
       </div>
       
       <section className="flex-grow container-section py-0 md:py-1">
-        <div className="pdf-container max-w-6xl mx-auto">
+        <div className="pdf-container max-w-6xl mx-auto touch-none">
           <PDFViewer pdfUrl={pdfPath} title="" longPageMode={true} />
         </div>
       </section>

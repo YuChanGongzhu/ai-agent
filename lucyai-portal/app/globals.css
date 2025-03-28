@@ -27,6 +27,8 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  /* 防止移动端下拉刷新 */
+  overscroll-behavior: none;
 }
 
 @layer components {
@@ -58,6 +60,12 @@ body {
 
   .pdf-viewer .react-pdf__Page__canvas {
     @apply max-w-full h-auto !important;
+  }
+
+  /* 优化移动端PDF浏览体验 */
+  .pdf-viewer .overflow-y-auto {
+    @apply overscroll-none;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* 导航样式 */

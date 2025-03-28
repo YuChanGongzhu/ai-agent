@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, TouchEvent } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -21,12 +21,13 @@ interface PDFViewerProps {
   longPageMode?: boolean; // 添加长图模式选项
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, title, longPageMode = false }) => {
+const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1);
   const [fullscreen, setFullscreen] = useState<boolean>(false);
   const [pages, setPages] = useState<number[]>([]);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -37,7 +38,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, title, longPageMode = fal
 
   const changePage = (offset: number) => {
     if (numPages === null) return;
-    setPageNumber(prevPageNumber => {
+    setPageNumber((prevPageNumber: number) => {
       const newPageNumber = prevPageNumber + offset;
       return Math.max(1, Math.min(numPages, newPageNumber));
     });
@@ -46,17 +47,46 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, title, longPageMode = fal
   const previousPage = () => changePage(-1);
   const nextPage = () => changePage(1);
 
-  const zoomIn = () => setScale(prevScale => Math.min(2.5, prevScale + 0.1));
-  const zoomOut = () => setScale(prevScale => Math.max(0.5, prevScale - 0.1));
+  const zoomIn = () => setScale((prevScale: number) => Math.min(2.5, prevScale + 0.1));
+  const zoomOut = () => setScale((prevScale: number) => Math.max(0.5, prevScale - 0.1));
 
   const toggleFullscreen = () => {
     setFullscreen(!fullscreen);
   };
 
+  // 阻止触摸事件默认行为，防止在移动设备上意外刷新
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    if (!touchStartY) return;
+    
+    const container = e.currentTarget;
+    const touchY = e.touches[0].clientY;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+    
+    // 在顶部且向下拉动时阻止默认行为，防止触发页面刷新
+    if (scrollTop === 0 && touchY > touchStartY) {
+      e.preventDefault();
+    }
+    
+    // 在底部且向上拉动时阻止默认行为，防止不必要的弹性效果
+    if (scrollTop + clientHeight >= scrollHeight && touchY < touchStartY) {
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchStartY(null);
+  };
+
   // 长图模式下的页面渲染
   const renderLongPageMode = () => (
     <div className="flex flex-col items-center space-y-1">
-      {pages.map(pageNum => (
+      {pages.map((pageNum: number) => (
         <Page
           key={`page_${pageNum}`}
           pageNumber={pageNum}
@@ -135,8 +165,16 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, title, longPageMode = fal
       
       {renderControls()}
       
-      <div className={`flex justify-center ${longPageMode ? 'overflow-y-auto' : ''}`} 
-           style={longPageMode ? { maxHeight: 'calc(100vh - 120px)' } : {}}>
+      <div 
+        className={`flex justify-center ${longPageMode ? 'overflow-y-auto overscroll-none' : ''}`} 
+        style={longPageMode ? { 
+          maxHeight: 'calc(100vh - 120px)',
+          WebkitOverflowScrolling: 'touch' 
+        } : {}}
+        onTouchStart={longPageMode ? handleTouchStart : undefined}
+        onTouchMove={longPageMode ? handleTouchMove : undefined}
+        onTouchEnd={longPageMode ? handleTouchEnd : undefined}
+      >
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
