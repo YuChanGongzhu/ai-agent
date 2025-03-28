@@ -66,7 +66,9 @@ html, body {
   }
 
   .pdf-viewer .react-pdf__Page__canvas {
-    @apply max-w-full h-auto !important mx-auto;
+    @apply max-w-full h-auto mx-auto;
+    max-width: 100% !important;
+    height: auto !important;
   }
 
   /* 优化移动端PDF浏览体验 */
