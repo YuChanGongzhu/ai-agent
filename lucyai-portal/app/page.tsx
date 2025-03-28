@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import PDFViewer from './components/PDFViewer';
@@ -13,8 +13,22 @@ export default function Home() {
   // 模拟选项卡状态
   const [activeTab, setActiveTab] = useState('home');
   
+  // 禁用移动端的下拉刷新
+  useEffect(() => {
+    const preventPull = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    
+    // 对文档和body添加触摸事件处理
+    document.addEventListener('touchmove', preventPull, { passive: false });
+    
+    return () => {
+      document.removeEventListener('touchmove', preventPull);
+    };
+  }, []);
+  
   return (
-    <main className="min-h-screen flex flex-col bg-gray-50">
+    <main className="min-h-screen flex flex-col bg-gray-50 overflow-hidden max-w-screen">
       {/* 单行导航区域 */}
       <div className="bg-gradient-to-r from-[#5c3eb2] via-[#6a5abe] to-[#4b34a7] shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-2 sm:px-3">
@@ -62,8 +76,8 @@ export default function Home() {
         </div>
       </div>
       
-      <section className="flex-grow container-section py-0 md:py-1">
-        <div className="pdf-container max-w-6xl mx-auto touch-none">
+      <section className="flex-grow container-section py-0 md:py-1 overflow-hidden w-full">
+        <div className="pdf-container max-w-full mx-auto touch-none w-full overflow-hidden">
           <PDFViewer pdfUrl={pdfPath} title="" longPageMode={true} />
         </div>
       </section>

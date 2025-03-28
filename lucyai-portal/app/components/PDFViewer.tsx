@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, TouchEvent } from 'react';
+import React from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -22,12 +22,52 @@ interface PDFViewerProps {
 }
 
 const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1);
-  const [fullscreen, setFullscreen] = useState<boolean>(false);
-  const [pages, setPages] = useState<number[]>([]);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [numPages, setNumPages] = React.useState<number | null>(null);
+  const [pageNumber, setPageNumber] = React.useState<number>(1);
+  const [scale, setScale] = React.useState<number>(1);
+  const [fullscreen, setFullscreen] = React.useState<boolean>(false);
+  const [pages, setPages] = React.useState<number[]>([]);
+  const [touchStartY, setTouchStartY] = React.useState<number | null>(null);
+  const [isMobile, setIsMobile] = React.useState<boolean>(false);
+
+  // 检测是否为移动设备
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+      
+      // 如果是移动设备，自动调整缩放比例以适应屏幕宽度
+      if (window.innerWidth <= 768) {
+        // 移动设备上使用更合适的缩放比例
+        setScale(window.innerWidth / 1000); // 根据移动设备屏幕宽度自动计算缩放比例
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    // 阻止移动设备上的弹性滚动行为
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.position = 'fixed';
+    document.documentElement.style.width = '100%';
+    document.documentElement.style.height = '100%';
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      // 组件卸载时恢复正常滚动行为
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.documentElement.style.width = '';
+      document.documentElement.style.height = '';
+    };
+  }, []);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -54,12 +94,17 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
     setFullscreen(!fullscreen);
   };
 
-  // 阻止触摸事件默认行为，防止在移动设备上意外刷新
-  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+  // 增强的触摸事件处理，彻底阻止下拉刷新
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    // 始终阻止默认行为，防止任何可能的刷新
+    e.preventDefault();
     setTouchStartY(e.touches[0].clientY);
   };
 
-  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    // 彻底阻止默认行为，防止触发下拉刷新
+    e.preventDefault();
+    
     if (!touchStartY) return;
     
     const container = e.currentTarget;
@@ -68,14 +113,13 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
     const scrollHeight = container.scrollHeight;
     const clientHeight = container.clientHeight;
     
-    // 在顶部且向下拉动时阻止默认行为，防止触发页面刷新
-    if (scrollTop === 0 && touchY > touchStartY) {
-      e.preventDefault();
-    }
-    
-    // 在底部且向上拉动时阻止默认行为，防止不必要的弹性效果
-    if (scrollTop + clientHeight >= scrollHeight && touchY < touchStartY) {
-      e.preventDefault();
+    // 计算并手动控制滚动
+    if (touchY < touchStartY && scrollTop < scrollHeight - clientHeight) {
+      // 向上滑动且未到达底部
+      container.scrollTop = scrollTop + (touchStartY - touchY) * 0.5;
+    } else if (touchY > touchStartY && scrollTop > 0) {
+      // 向下滑动且未到达顶部
+      container.scrollTop = scrollTop - (touchY - touchStartY) * 0.5;
     }
   };
 
@@ -85,7 +129,7 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
 
   // 长图模式下的页面渲染
   const renderLongPageMode = () => (
-    <div className="flex flex-col items-center space-y-1">
+    <div className="flex flex-col items-center space-y-1 w-full">
       {pages.map((pageNum: number) => (
         <Page
           key={`page_${pageNum}`}
@@ -94,7 +138,8 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
           renderAnnotationLayer
           renderTextLayer
           loading={<div className="text-center py-1">加载页面中...</div>}
-          className="mb-1 shadow-md"
+          className="mb-1 shadow-md w-full"
+          width={isMobile ? window.innerWidth - 20 : undefined}
         />
       ))}
     </div>
@@ -109,6 +154,7 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
         renderAnnotationLayer
         renderTextLayer
         loading={<div className="text-center py-10">加载页面中...</div>}
+        width={isMobile ? window.innerWidth - 20 : undefined}
       />
       
       {numPages && (
@@ -166,10 +212,13 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
       {renderControls()}
       
       <div 
-        className={`flex justify-center ${longPageMode ? 'overflow-y-auto overscroll-none' : ''}`} 
+        className={`flex justify-center ${longPageMode ? 'overflow-y-auto overscroll-none touch-none w-full' : ''}`} 
         style={longPageMode ? { 
           maxHeight: 'calc(100vh - 120px)',
-          WebkitOverflowScrolling: 'touch' 
+          WebkitOverflowScrolling: 'touch',
+          width: '100%',
+          position: 'relative',
+          touchAction: 'none'
         } : {}}
         onTouchStart={longPageMode ? handleTouchStart : undefined}
         onTouchMove={longPageMode ? handleTouchMove : undefined}
@@ -180,6 +229,7 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
           onLoadSuccess={onDocumentLoadSuccess}
           loading={<div className="text-center py-4">加载中...</div>}
           error={<div className="text-center text-red-500 py-4">无法加载PDF文件</div>}
+          className="w-full"
         >
           {longPageMode ? renderLongPageMode() : renderPageMode()}
         </Document>
