@@ -7,23 +7,29 @@ import PDFViewer from './components/PDFViewer';
 import Link from 'next/link';
 
 export default function Home() {
-  // PDF文件路径
-  const pdfPath = '/pdfs/LucyAI 20250327.pdf';
+  // PDF文件路径改为在线URL
+  const pdfUrl = 'https://lucyai-1347723456.cos.ap-guangzhou.myqcloud.com/LucyAI%2020250327.pdf';
   
   // 模拟选项卡状态
   const [activeTab, setActiveTab] = useState('home');
   
-  // 禁用移动端的下拉刷新
+  // 只针对顶部下拉刷新进行处理，允许页面内滚动
   useEffect(() => {
-    const preventPull = (e: TouchEvent) => {
-      e.preventDefault();
+    const preventPullToRefresh = (e: TouchEvent) => {
+      // 只有在顶部下拉时才阻止默认行为
+      if (document.scrollingElement && document.scrollingElement.scrollTop <= 0) {
+        // 检查是否是向下拖动(下拉刷新手势)
+        if (e.touches && e.touches[0].clientY > 10) {
+          e.preventDefault();
+        }
+      }
     };
     
-    // 对文档和body添加触摸事件处理
-    document.addEventListener('touchmove', preventPull, { passive: false });
+    // 只监听document级别的touchmove，不阻止内部组件的滚动
+    document.addEventListener('touchmove', preventPullToRefresh, { passive: false });
     
     return () => {
-      document.removeEventListener('touchmove', preventPull);
+      document.removeEventListener('touchmove', preventPullToRefresh);
     };
   }, []);
   
@@ -77,8 +83,8 @@ export default function Home() {
       </div>
       
       <section className="flex-grow container-section py-0 md:py-1 overflow-hidden w-full">
-        <div className="pdf-container max-w-full mx-auto touch-none w-full overflow-hidden">
-          <PDFViewer pdfUrl={pdfPath} title="" longPageMode={true} />
+        <div className="pdf-container max-w-full mx-auto w-full overflow-hidden">
+          <PDFViewer pdfUrl={pdfUrl} title="" longPageMode={true} />
         </div>
       </section>
       

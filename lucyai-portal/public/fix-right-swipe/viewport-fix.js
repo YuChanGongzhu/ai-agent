@@ -15,11 +15,14 @@
       document.head.appendChild(newViewport);
     }
     
-    // 阻止整个文档的触摸滚动
+    // 阻止整个文档的触摸滚动，但允许PDF容器内部滚动
     const preventPull = function(e) {
       // 允许在指定的滚动容器内部滚动
-      if (e.target.closest('.overflow-y-auto')) {
-        return;
+      if (e.target.closest('.overflow-y-auto') || 
+          e.target.closest('.react-pdf__Document') || 
+          e.target.closest('.react-pdf__Page') ||
+          e.target.closest('.pdf-viewer')) {
+        return; // 不阻止，允许滚动
       }
       
       // 其他区域阻止默认滚动行为
@@ -39,7 +42,7 @@
       }
     }, { passive: false });
     
-    // 阻止页面的滚动，除非在overflow-y-auto容器内
+    // 阻止页面的滚动，除非在PDF相关容器内
     document.addEventListener('touchmove', preventPull, { passive: false });
     
     // 对所有PDF容器设置更严格的样式
@@ -60,6 +63,14 @@
       canvases.forEach(function(canvas) {
         canvas.style.margin = '0 auto';
         canvas.style.maxWidth = '100%';
+      });
+      
+      // 允许PDF容器内部滚动
+      const scrollContainers = document.querySelectorAll('.overflow-y-auto');
+      scrollContainers.forEach(function(container) {
+        container.style.overflowY = 'auto';
+        container.style.touchAction = 'pan-y';
+        container.style.webkitOverflowScrolling = 'touch';
       });
     };
     

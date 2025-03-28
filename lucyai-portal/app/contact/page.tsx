@@ -6,8 +6,8 @@ import Footer from '../components/Footer';
 import PDFViewer from '../components/PDFViewer';
 
 export default function Contact() {
-  // 使用同一个PDF文件
-  const pdfPath = '/pdfs/LucyAI 20250327.pdf';
+  // 使用在线PDF链接
+  const pdfUrl = 'https://lucyai-1347723456.cos.ap-guangzhou.myqcloud.com/LucyAI%2020250327.pdf';
   
   return (
     <main className="min-h-screen flex flex-col">
@@ -22,7 +22,7 @@ export default function Contact() {
         </div>
         
         <div className="pdf-container">
-          <PDFViewer pdfUrl={pdfPath} title="LucyAI 联系方式" />
+          <PDFViewer pdfUrl={pdfUrl} title="LucyAI 联系方式" />
         </div>
       </section>
       

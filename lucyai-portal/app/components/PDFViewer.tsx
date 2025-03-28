@@ -4,7 +4,7 @@ import React from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { Button, IconButton, Box, Typography } from '@mui/material';
+import { Button, IconButton, Box, Typography, CircularProgress } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
@@ -14,6 +14,13 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
 // 设置PDF.js worker路径
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+// 配置CORS策略，允许跨域加载PDF
+const pdfjsOptions = {
+  cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+  cMapPacked: true,
+  standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
+};
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -29,6 +36,8 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
   const [pages, setPages] = React.useState<number[]>([]);
   const [touchStartY, setTouchStartY] = React.useState<number | null>(null);
   const [isMobile, setIsMobile] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   // 检测是否为移动设备
   React.useEffect(() => {
@@ -44,36 +53,26 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
-
-    // 阻止移动设备上的弹性滚动行为
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.position = 'fixed';
-    document.documentElement.style.width = '100%';
-    document.documentElement.style.height = '100%';
     
+    // 不再完全锁定body滚动，让PDF容器内部可以滚动
     return () => {
       window.removeEventListener('resize', checkMobile);
-      // 组件卸载时恢复正常滚动行为
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.documentElement.style.width = '';
-      document.documentElement.style.height = '';
     };
   }, []);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setIsLoading(false);
+    setLoadError(null);
     if (longPageMode) {
       setPages(Array.from(new Array(numPages), (_, index) => index + 1));
     }
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF加载错误:', error);
+    setIsLoading(false);
+    setLoadError(`无法加载PDF文件: ${error.message}`);
   };
 
   const changePage = (offset: number) => {
@@ -94,32 +93,21 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
     setFullscreen(!fullscreen);
   };
 
-  // 增强的触摸事件处理，彻底阻止下拉刷新
+  // 修改触摸事件处理，允许正常滚动但防止下拉刷新
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    // 始终阻止默认行为，防止任何可能的刷新
-    e.preventDefault();
     setTouchStartY(e.touches[0].clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    // 彻底阻止默认行为，防止触发下拉刷新
-    e.preventDefault();
-    
     if (!touchStartY) return;
     
     const container = e.currentTarget;
     const touchY = e.touches[0].clientY;
     const scrollTop = container.scrollTop;
-    const scrollHeight = container.scrollHeight;
-    const clientHeight = container.clientHeight;
     
-    // 计算并手动控制滚动
-    if (touchY < touchStartY && scrollTop < scrollHeight - clientHeight) {
-      // 向上滑动且未到达底部
-      container.scrollTop = scrollTop + (touchStartY - touchY) * 0.5;
-    } else if (touchY > touchStartY && scrollTop > 0) {
-      // 向下滑动且未到达顶部
-      container.scrollTop = scrollTop - (touchY - touchStartY) * 0.5;
+    // 仅在顶部下拉时阻止默认行为，防止触发刷新
+    if (scrollTop <= 0 && touchY > touchStartY) {
+      e.preventDefault();
     }
   };
 
@@ -212,27 +200,51 @@ const PDFViewer = ({ pdfUrl, title, longPageMode = false }: PDFViewerProps) => {
       {renderControls()}
       
       <div 
-        className={`flex justify-center ${longPageMode ? 'overflow-y-auto overscroll-none touch-none w-full' : ''}`} 
+        className={`flex justify-center ${longPageMode ? 'overflow-y-auto overscroll-none w-full' : ''}`} 
         style={longPageMode ? { 
           maxHeight: 'calc(100vh - 120px)',
           WebkitOverflowScrolling: 'touch',
           width: '100%',
           position: 'relative',
-          touchAction: 'none'
+          touchAction: 'pan-y'
         } : {}}
         onTouchStart={longPageMode ? handleTouchStart : undefined}
         onTouchMove={longPageMode ? handleTouchMove : undefined}
         onTouchEnd={longPageMode ? handleTouchEnd : undefined}
       >
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={<div className="text-center py-4">加载中...</div>}
-          error={<div className="text-center text-red-500 py-4">无法加载PDF文件</div>}
-          className="w-full"
-        >
-          {longPageMode ? renderLongPageMode() : renderPageMode()}
-        </Document>
+        {isLoading && !loadError && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <CircularProgress size={40} />
+            <p className="mt-2 text-gray-600">加载PDF中，请稍候...</p>
+          </div>
+        )}
+        
+        {loadError && (
+          <div className="text-center text-red-500 py-4 px-4">
+            <p>无法加载PDF文件</p>
+            <p className="text-sm mt-2">{loadError}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              重新加载
+            </button>
+          </div>
+        )}
+        
+        {!loadError && (
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={<div className="text-center py-4">加载中...</div>}
+            error={<div className="text-center text-red-500 py-4">无法加载PDF文件</div>}
+            className="w-full"
+            options={pdfjsOptions}
+          >
+            {numPages > 0 && (longPageMode ? renderLongPageMode() : renderPageMode())}
+          </Document>
+        )}
       </div>
     </div>
   );
