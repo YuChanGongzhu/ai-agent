@@ -38,7 +38,6 @@ interface Message {
     senderId?: string;
 }
 
-// Component for directly displaying COS images in message content
 interface DirectImageMessageContentProps {
     content: string;
     msgType: number;
@@ -50,7 +49,9 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ c
     const [showPreview, setShowPreview] = React.useState(false);
     
     // 检查是否是图片类型的消息（msgType为3或是路径形式）
-    const isImagePath = content.includes('/tmp/image_downloads/');
+    const isTmpImagePath = content.includes('/tmp/image_downloads/');
+    const isDirectCosPath = content.includes('/') && !content.includes('/tmp/image_downloads/');
+    const isImagePath = isTmpImagePath || isDirectCosPath || msgType === 3;
     
     // 打开预览
     const openPreview = () => {
@@ -65,33 +66,29 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ c
     
     // 获取COS图片的URL
     const getImageUrl = (): string => {
-        // 默认图片URL，如果无法生成则返回空字符串
-        if (!conversation || !isImagePath) return '';
+        if (!conversation) return '';
         
         try {
-            // 提取文件名部分
-            const fileName = content.split('/tmp/image_downloads/')[1];
-            if (!fileName) return '';
-            
-            // 用户信息
-            const wxId = conversation.wx_user_id || '';
-            const wxUserName = conversation.wx_user_name || '';
-            const roomId = conversation.room_id || '';
-            
-            // 确保文件名有正确的后缀
-            const completeFileName = fileName.includes('.') ? fileName : `${fileName}.jpg`;
-            
-            // 根据腾讯云文档格式构建对象存储路径
-            const cosKey = `${wxUserName}_${wxId}/${roomId}/${completeFileName}`;
-            
-            // 特定的bucket和区域
             const bucket = 'wx-records-1347723456';
             const region = 'ap-guangzhou';
             
-            // 实现特定校验规则的时间戳参数（可选）
-            // 通常COS的静态网站访问不需要实现校验，如果存储桶已配置为公共读取
-            const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(cosKey)}`;
-            return url;
+            if (isTmpImagePath) {
+                const fileName = content.split('/tmp/image_downloads/')[1];
+                if (!fileName) return '';
+                const wxId = conversation.wx_user_id || '';
+                const wxUserName = conversation.wx_user_name || '';
+                const roomId = conversation.room_id || '';
+                const completeFileName = fileName.includes('.') ? fileName : `${fileName}.jpg`;
+                const cosKey = `${wxUserName}_${wxId}/${roomId}/${completeFileName}`;
+                const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(cosKey)}`;
+                return url;
+
+            } else if (isDirectCosPath) {
+                const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(content)}`;
+                return url;
+            }
+            
+            return '';
         } catch (error) {
             console.error('构建图片URL时出错:', error);
             return '';
@@ -101,7 +98,6 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ c
     // 如果是图片路径，直接展示图片
     if (isImagePath) {
         const imageUrl = getImageUrl();
-        
         if (imageUrl) {
             return (
                 <div className="image-container relative">
@@ -112,24 +108,13 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ c
                         style={{ maxHeight: '200px' }}
                         onClick={openPreview}
                     />
-                    <div className="text-xs text-blue-500 mt-1">点击预览大图</div>
-                    
+                                        
                     {/* 全屏预览模式 */}
                     {showPreview && (
-                        <div 
-                            className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
-                            onClick={closePreview}
-                        >
+                        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={closePreview}>
                             <div className="relative max-w-4xl max-h-full">
-                                <img 
-                                    src={imageUrl} 
-                                    alt="原始图片" 
-                                    className="max-w-full max-h-[90vh] object-contain"
-                                />
-                                <button 
-                                    className="absolute top-2 right-2 bg-white rounded-full p-1 text-gray-900 hover:bg-gray-200"
-                                    onClick={closePreview}
-                                >
+                                <img src={imageUrl} alt="原始图片" className="max-w-full max-h-[90vh] object-contain" />
+                                <button className="absolute top-2 right-2 bg-white rounded-full p-1 text-gray-900 hover:bg-gray-200" onClick={closePreview}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -140,7 +125,6 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ c
                 </div>
             );
         } else {
-            // 没有有效URL时显示原始内容
             return <MessageContent content={content} msgType={msgType} />;
         }
     }
