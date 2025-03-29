@@ -384,6 +384,11 @@ const FileManager: React.FC<FileManagerProps> = ({ wxAccount }) => {
             
             {/* 文件上传区域 */}
             <div className="mb-6">
+                {/* 上传速度提示 */}
+                <div className="p-4 border rounded-lg bg-blue-50 mb-4">
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">上传资料说明</h3>
+                    <p className="text-sm text-blue-600">上传的资料需要等待3-5个工作日处理。</p>
+                </div>
                 <div
                     {...getRootProps()}
                     className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer"
