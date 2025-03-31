@@ -163,9 +163,16 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
         }
     };
     
-    const userProfileTags = Object.entries(userProfile).map(([key, value]) => ({
-        text: value
-    }));
+    // 将用户画像对象转换为标签数组
+    const userProfileTags = Object.entries(userProfile || {}).map(([key, value]) => {
+        // 确保值是字符串类型
+        const textValue = typeof value === 'string' ? value : 
+                          (value !== null && typeof value === 'object') ? JSON.stringify(value) : 
+                          String(value);
+        return {
+            text: `${key}: ${textValue}`
+        };
+    });
 
     const memoryEvents = chatKeyEvents.map(event => ({
         date: event.time,

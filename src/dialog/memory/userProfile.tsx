@@ -18,8 +18,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ tags, className = '' }) => {
       
       <div className="flex flex-wrap gap-2">
         {(() => {
+          // 确保tags是一个数组
+          if (!Array.isArray(tags)) {
+            return <div className="text-gray-500 text-sm">暂无标签</div>;
+          }
+          
           // Filter out tags with value "未知"
-          const validTags = tags.filter(tag => tag.text !== "未知");
+          const validTags = tags.filter(tag => 
+            typeof tag === 'object' && 
+            tag !== null && 
+            typeof tag.text === 'string' && 
+            tag.text !== "未知"
+          );
           
           if (validTags.length > 0) {
             return validTags.map((tag, index) => (
