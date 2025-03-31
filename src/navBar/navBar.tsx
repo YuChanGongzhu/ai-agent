@@ -380,6 +380,12 @@ const NavBar: React.FC = () => {
               >
                 退出登录
               </button>
+              <button
+                onClick={() => navigate('/charge')}
+                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-[rgba(108,93,211,1)]"
+              >
+                充值中心
+              </button>
             </div>
           )}
         </div>
