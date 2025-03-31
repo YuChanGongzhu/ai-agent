@@ -3,15 +3,37 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../auth/supabaseConfig';
 import { logoutUser } from '../auth/authService';
 import { useUser } from '../context/UserContext';
+import lucyaiLogo from '../img/lucyai.png';
 
+// Import regular SVG icons
+import dashboardSVG from '../img/nav/dashboard.svg';
 import employeeSVG from '../img/nav/employee.svg';
 import dialogSVG from '../img/nav/dialog.svg';
+import systemSVG from '../img/nav/system.svg';
 import taskSVG from '../img/nav/task.svg';
-import dashboardSVG from '../img/nav/dashboard.svg';
-import databaseSVG from '../img/nav/database.svg';
-import groupSVG from '../img/nav/group.svg';
-import usersSVG from '../img/nav/employee.svg'; 
-import connectSVG from '../img/nav/connect.svg';
+import calendarSVG from '../img/nav/calender.svg';
+import fileSVG from '../img/nav/file.svg';
+import knowledgeSVG from '../img/nav/knowledge.svg';
+import wechatSVG from '../img/nav/wechat.svg';
+import businessSVG from '../img/nav/business.svg';
+import mpwxSVG from '../img/nav/mpwx.svg';
+import videoSVG from '../img/nav/video.svg';
+import friendSVG from '../img/nav/friend.svg';
+
+// Import active SVG icons
+import dashboardActiveSVG from '../img/active/dashboard.svg';
+import employeeActiveSVG from '../img/active/employee.svg';
+import dialogActiveSVG from '../img/active/dialog.svg';
+import systemActiveSVG from '../img/active/system.svg';
+import taskActiveSVG from '../img/active/task.svg';
+import calendarActiveSVG from '../img/active/calender.svg';
+import fileActiveSVG from '../img/active/file.svg';
+import knowledgeActiveSVG from '../img/active/knowledge.svg';
+import wechatActiveSVG from '../img/active/wechat.svg';
+import businessActiveSVG from '../img/active/business.svg';
+import mpwxActiveSVG from '../img/active/mpwx.svg';
+import videoActiveSVG from '../img/active/video.svg';
+import friendActiveSVG from '../img/active/friend.svg';
 
 interface SubNavItem {
   name: string;
@@ -28,67 +50,58 @@ interface NavItem {
   expanded?: boolean;
 }
 
-const navItems: NavItem[] = [
-  { name: '数据视图', icon: dashboardSVG, url: '/dashboard' },
-  { 
-    name: '知识库', 
-    icon: databaseSVG, 
-    url: '/knowledge', 
-    subItems: [
-      { name: '文件管理', url: '/knowledge/files' },
-      { name: '知识库管理', url: '/knowledge/datasets' }
-    ],
-    expanded: false
-  },
-  { name: '员工列表', icon: employeeSVG, url: '/employee' },
-  { name: '对话管理', icon: dialogSVG, url: '/dialog' },
-  { 
-    name: '代办事项', 
-    icon: taskSVG, 
-    url: '/todo',
-    subItems: [
-      { name: '任务', url: '/task' },
-      { name: '日历', url: '/calendar' }
-    ],
-    expanded: false
-  },
-  { 
-    name: '渠道接入', 
-    icon: connectSVG, 
-    url: '/channels',
-    subItems: [
-      { name: '个人微信', url: '/channels/personal' },
-      { name: '公众号', url: '/channels/official' },
-      { name: '企业微信', url: '/channels/enterprise' }
-    ],
-    expanded: false
-  },
-  { name: '系统管理', icon: usersSVG, url: '/manage', adminOnly: true },
+interface NavItemWithIcons extends NavItem {
+  activeIcon: string;
+}
+
+// Define navigation categories and items
+const basicItems: NavItemWithIcons[] = [
+  { name: '数据视图', icon: dashboardSVG, activeIcon: dashboardActiveSVG, url: '/dashboard' },
+  { name: '员工列表', icon: employeeSVG, activeIcon: employeeActiveSVG, url: '/employee' },
+  { name: '对话管理', icon: dialogSVG, activeIcon: dialogActiveSVG, url: '/dialog' },
+  { name: '系统管理', icon: systemSVG, activeIcon: systemActiveSVG, url: '/manage', adminOnly: true },
+];
+
+const officeItems: NavItemWithIcons[] = [
+  { name: '任务列表', icon: taskSVG, activeIcon: taskActiveSVG, url: '/task' },
+  { name: '日历看板', icon: calendarSVG, activeIcon: calendarActiveSVG, url: '/calendar' },
+];
+
+const knowledgeItems: NavItemWithIcons[] = [
+  { name: '文件管理', icon: fileSVG, activeIcon: fileActiveSVG, url: '/knowledge/files' },
+  { name: '知识库', icon: knowledgeSVG, activeIcon: knowledgeActiveSVG, url: '/knowledge/datasets' },
+];
+
+const channelItems: NavItemWithIcons[] = [
+  { name: '个人微信', icon: wechatSVG, activeIcon: wechatActiveSVG, url: '/channels/personal' },
+  { name: '企业微信', icon: businessSVG, activeIcon: businessActiveSVG, url: '/channels/enterprise' },
+  { name: '公众号', icon: mpwxSVG, activeIcon: mpwxActiveSVG, url: '/channels/official' },
+];
+
+const aiItems: NavItemWithIcons[] = [
+  { name: '视频号直播监控', icon: videoSVG, activeIcon: videoActiveSVG, url: '/pay/video' },
+  { name: '朋友圈分析', icon: friendSVG, activeIcon: friendActiveSVG, url: '/pay/analysis' },
 ];
 
 const NavBar: React.FC = () => {
+  // Combine all navigation items for route matching
+  const allNavItems: NavItemWithIcons[] = [
+    ...basicItems,
+    ...officeItems,
+    ...knowledgeItems,
+    ...channelItems,
+    ...aiItems
+  ];
+
   const findSelectedNavItem = (path: string) => {
     const currentPath = path.endsWith('/') ? path.slice(0, -1) : path;
     
-    // First try to find a matching sub-item
-    for (const item of navItems) {
-      if (item.subItems) {
-        const matchingSubItem = item.subItems.find(subItem => 
-          currentPath === subItem.url || 
-          (currentPath.startsWith(subItem.url) && subItem.url !== '/dashboard')
-        );
-        if (matchingSubItem) {
-          return matchingSubItem.name;
-        }
-      }
-    }
-    
-    // Then try to find a matching main item
-    const matchingItem = navItems.find(item => 
+    // Find a matching item in all navigation categories
+    const matchingItem = allNavItems.find(item => 
       currentPath === item.url || 
       (currentPath.startsWith(item.url) && item.url !== '/dashboard')
     );
-    return matchingItem ? matchingItem.name : '仪表盘';
+    return matchingItem ? matchingItem.name : '数据视图';
   };
   const location = useLocation();
   const navigate = useNavigate();
@@ -151,25 +164,20 @@ const NavBar: React.FC = () => {
   // 使用UserContext中的用户配置信息
   useEffect(() => {
     if (userProfile) {
-      // 当用户配置信息加载完成后，优先使用用户配置中的显示名称
       setUserData(prev => ({
         ...prev,
         displayName: userProfile.display_name || prev.displayName
       }));
-      
-      console.log('NavBar: 从UserContext获取用户配置信息', userProfile.display_name);
     }
   }, [userProfile]);
 
   const handleClick = (item: NavItem) => {
     if (item.subItems && item.subItems.length > 0) {
-      // Toggle expanded state for items with sub-items
       setExpandedItems(prev => ({
         ...prev,
         [item.name]: !prev[item.name]
       }));
     } else {
-      // Navigate to the item's URL for items without sub-items
       setSelected(item.name);
       navigate(item.url);
     }
@@ -209,101 +217,156 @@ const NavBar: React.FC = () => {
   }, []);
 
   return (
-      <div className={`bg-white p-2 ${isCollapsed ? 'w-[6vw]' : 'w-[12vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base`}>
+      <div className={`bg-[rgba(108,93,211,1)] p-2 ${isCollapsed ? 'w-[4.5vw]' : 'w-[10vw]'} rounded-lg shadow-lg h-screen flex flex-col transition-all duration-300 text-base text-white`}>
         {/* Logo Section */}
-        <div className="flex items-center space-x-2 mb-8">
-          <img src={groupSVG} alt="LUCYAI" className="w-10 h-10" />
-          {!isCollapsed && <span className="text-2xl font-semibold text-purple-600">LUCYAI</span>}
+        <div className="flex items-center justify-between mb-2 px-2">
+          <div className="flex items-center space-x-2">
+            <img src={lucyaiLogo} alt="LUCYAI" className="w-8 h-8" />
+            {!isCollapsed && <span className="text-2xl font-semibold text-white">LUCYAI</span>}
+          </div>
+          <button 
+            onClick={toggleCollapse}
+            className="text-white/70 hover:text-white"
+          >
+            {isCollapsed ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m15 19.5-7.5-7.5 7.5-7.5" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1">
-          <div className="flex flex-col items-start space-y-2">
-            {navItems
+        <div className="flex-1 overflow-y-auto">
+          {/* Basic Category */}
+          {!isCollapsed && <div className="text-sm font-medium px-4 py-2">基础配置</div>}
+          <div className="flex flex-col items-start space-y-1 mb-4">
+            {basicItems
               .filter(item => !item.adminOnly || (item.adminOnly && isAdmin))
               .map((item) => (
-                <div key={item.name} className="w-full">
+                <div key={item.name} className="w-full px-2">
                   <div
-                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-3 rounded-lg w-full
-                      ${selected === item.name ? 'bg-purple-100 text-purple-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-2 rounded-lg w-full
+                      ${selected === item.name ? 'bg-white text-[rgba(108,93,211,1)]' : 'text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
                     onClick={() => handleClick(item)}
                   >
-                    <img src={item.icon} alt={item.name} className="w-5 h-5" />
+                    <img src={selected === item.name ? item.activeIcon : item.icon} alt={item.name} className="w-5 h-5" />
                     {!isCollapsed && (
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-base font-medium">{item.name}</span>
-                        {item.subItems && item.subItems.length > 0 && (
-                          <span className="text-xs ml-1">
-                            {expandedItems[item.name] ? '▼' : '►'}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-sm font-medium">{item.name}</span>
                     )}
                   </div>
-                  
-                  {/* Sub-items dropdown */}
-                  {!isCollapsed && item.subItems && item.subItems.length > 0 && expandedItems[item.name] && (
-                    <div className="ml-5 mt-1 mb-1 flex flex-col space-y-1">
-                      {item.subItems
-                        .filter(subItem => !subItem.adminOnly || (subItem.adminOnly && isAdmin))
-                        .map(subItem => (
-                          <div
-                            key={subItem.name}
-                            className={`flex items-center px-3 py-2 rounded-lg cursor-pointer
-                              ${selected === subItem.name ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSubItemClick(item.name, subItem);
-                            }}
-                          >
-                            <span className="text-sm">{subItem.name}</span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
                 </div>
               ))}
+          </div>
+
+          {/* Office Category */}
+          {!isCollapsed && <div className="text-sm font-medium px-4 py-2">办公事项</div>}
+          <div className="flex flex-col items-start space-y-1 mb-4">
+            {officeItems.map((item) => (
+              <div key={item.name} className="w-full px-2">
+                <div
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-2 rounded-lg w-full
+                    ${selected === item.name ? 'bg-white text-[rgba(108,93,211,1)]' : 'text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+                  onClick={() => handleClick(item)}
+                >
+                  <img src={selected === item.name ? item.activeIcon : item.icon} alt={item.name} className="w-5 h-5" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">{item.name}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Knowledge Category */}
+          {!isCollapsed && <div className="text-sm font-medium px-4 py-2">知识库</div>}
+          <div className="flex flex-col items-start space-y-1 mb-4">
+            {knowledgeItems.map((item) => (
+              <div key={item.name} className="w-full px-2">
+                <div
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-2 rounded-lg w-full
+                    ${selected === item.name ? 'bg-white text-[rgba(108,93,211,1)]' : 'text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+                  onClick={() => handleClick(item)}
+                >
+                  <img src={selected === item.name ? item.activeIcon : item.icon} alt={item.name} className="w-5 h-5" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">{item.name}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Channels Category */}
+          {!isCollapsed && <div className="text-sm font-medium px-4 py-2">渠道接入</div>}
+          <div className="flex flex-col items-start space-y-1 mb-4">
+            {channelItems.map((item) => (
+              <div key={item.name} className="w-full px-2">
+                <div
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-2 rounded-lg w-full
+                    ${selected === item.name ? 'bg-white text-[rgba(108,93,211,1)]' : 'text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+                  onClick={() => handleClick(item)}
+                >
+                  <img src={selected === item.name ? item.activeIcon : item.icon} alt={item.name} className="w-5 h-5" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">{item.name}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* AI Features Category */}
+          {!isCollapsed && <div className="text-sm font-medium px-4 py-2">付费功能</div>}
+          <div className="flex flex-col items-start space-y-1 mb-4">
+            {aiItems.map((item) => (
+              <div key={item.name} className="w-full px-2">
+                <div
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer p-2 rounded-lg w-full
+                    ${selected === item.name ? 'bg-white text-[rgba(108,93,211,1)]' : 'text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+                  onClick={() => handleClick(item)}
+                >
+                  <img src={selected === item.name ? item.activeIcon : item.icon} alt={item.name} className="w-5 h-5" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">{item.name}</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* User Profile Section */}
-        <div className="mt-auto pt-4 border-t relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+        <div className="mt-auto pt-4 border-t border-white/20 relative">
+          <div className="flex items-center justify-between px-2">
+            <div 
+              className="flex items-center space-x-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)] rounded-lg p-1 w-full" 
+              onClick={() => setShowLogoutDialog(!showLogoutDialog)}
+              title="点击显示选项"
+            >
               <img
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.displayName || userData.email || 'User'}`}
                 alt="User"
-                className="w-10 h-10 rounded-full"
+                className="w-8 h-8 rounded-full bg-white"
               />
               {!isCollapsed && (
-                <div className="max-w-[8vw] overflow-hidden">
-                  <div className="text-sm font-medium truncate">
+                <div className="max-w-[10vw] overflow-hidden">
+                  <div className="text-sm font-medium truncate text-white">
                     {userData.displayName || userData.email?.split('@')[0] || '用户'}
                   </div>
                   <div 
-                    className="text-sm text-gray-500 cursor-pointer hover:text-purple-600 truncate"
+                    className="text-xs text-white/70 truncate"
                     title={userData.email || '账号'}
-                    onClick={() => setShowLogoutDialog(!showLogoutDialog)}
                   >
                     {userData.email || '账号'}
                   </div>
                 </div>
               )}
             </div>
-            <button 
-              onClick={toggleCollapse}
-              className="text-gray-500 hover:text-purple-600 ml-2"
-            >
-              {isCollapsed ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
-                </svg>
-              )}
-            </button>
           </div>
 
           {showLogoutDialog && !isCollapsed && (
@@ -313,9 +376,15 @@ const NavBar: React.FC = () => {
             >
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-purple-600"
+                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-[rgba(108,93,211,1)]"
               >
                 退出登录
+              </button>
+              <button
+                onClick={() => navigate('/charge')}
+                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-[rgba(108,93,211,1)]"
+              >
+                充值中心
               </button>
             </div>
           )}

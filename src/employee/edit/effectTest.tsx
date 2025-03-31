@@ -138,7 +138,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
             <span className="loading loading-spinner"></span>
           </button>
         ) : (
-          <button className='btn btn-primary btn-sm btn-outline' onClick={savePrompt}>保存效果</button>
+          <button className='btn btn-sm btn-outline text-[rgba(108,93,211,1)] border-[rgba(108,93,211,1)] hover:bg-[rgba(108,93,211,1)] hover:text-white' onClick={savePrompt}>保存效果</button>
         )}
       </div>
 
@@ -153,7 +153,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
               'mb-4 max-w-[80%] rounded-lg p-3',
               message.isUser
                 ? 'bg-gray-100 text-gray-800 self-start'
-                : 'bg-purple-100 text-gray-800 self-end ml-auto'
+                : 'bg-[rgba(108,93,211,0.1)] text-gray-800 self-end ml-auto'
             )}
           >
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -164,7 +164,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
         ))}
 
         {currentStreamedMessage && (
-          <div className="mb-4 max-w-[80%] rounded-lg p-3 bg-purple-100 text-gray-800 self-end ml-auto">
+          <div className="mb-4 max-w-[80%] rounded-lg p-3 bg-[rgba(108,93,211,0.1)] text-gray-800 self-end ml-auto">
             <p className="whitespace-pre-wrap break-words">{currentStreamedMessage}</p>
             <span className="text-xs text-gray-500 mt-1 block text-right">
               {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -175,9 +175,9 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
         {isLoading && !currentStreamedMessage && (
           <div className="flex justify-center items-center py-2">
             <div className="animate-pulse flex space-x-1">
-              <div className="h-2 w-2 bg-purple-600 rounded-full"></div>
-              <div className="h-2 w-2 bg-purple-600 rounded-full"></div>
-              <div className="h-2 w-2 bg-purple-600 rounded-full"></div>
+              <div className="h-2 w-2 bg-[rgba(108,93,211,1)] rounded-full"></div>
+              <div className="h-2 w-2 bg-[rgba(108,93,211,1)] rounded-full"></div>
+              <div className="h-2 w-2 bg-[rgba(108,93,211,1)] rounded-full"></div>
             </div>
           </div>
         )}
@@ -191,7 +191,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
           placeholder="开始聊天测试..."
           className={clsx(
             'flex-1 resize-none rounded-lg border border-gray-200 bg-white py-2 px-3 text-sm/6 text-gray-900',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500'
+            'focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,1)]'
           )}
           rows={1}
           disabled={isLoading}
@@ -200,8 +200,8 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
           onClick={handleSendMessage}
           disabled={isLoading || !inputText.trim()}
           className={clsx(
-            'ml-3 rounded-lg bg-purple-600 px-3 py-2 text-white',
-            'hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500',
+            'ml-3 rounded-lg bg-[rgba(108,93,211,1)] px-3 py-2 text-white',
+            'hover:bg-[rgba(108,93,211,0.9)] focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,1)]',
             (isLoading || !inputText.trim()) && 'opacity-50 cursor-not-allowed'
           )}
         >

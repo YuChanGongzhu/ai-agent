@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import groupIcon from '../img/nav/group.svg';
 import loginImage from '../img/login.png';
 import { loginUser } from '../auth/authService';
 
@@ -65,16 +64,15 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl w-full flex bg-white rounded-2xl shadow-lg overflow-hidden">
         {/* Left Side - Images */}
-        <div className="flex-1 bg-[#F8F9FF] p-12 flex flex-col items-center justify-center">
+        <div className="flex-1 bg-[rgba(108,93,211,0.05)] p-12 flex flex-col items-center justify-center">
           <div className="flex items-center gap-2 mb-8">
-            <img src={groupIcon} alt="Lucy AI Icon" className="w-8 h-8" />
-            <h1 className="text-primary text-2xl font-medium">LUCY AI</h1>
+            <h1 className="text-[rgba(108,93,211,1)] text-2xl font-medium">LUCY AI</h1>
           </div>
           <img src={loginImage} alt="Login Illustration" className="w-96 mb-8" />
-          <h1 className="text-primary text-3xl font-semibold">LUCY AI</h1>
+          <h1 className="text-[rgba(108,93,211,1)] text-3xl font-semibold">LUCY AI</h1>
           <p className="text-gray-600 mt-4">企业成功的关键选择</p>
         </div>
 
@@ -103,7 +101,7 @@ const Login: React.FC = () => {
                   type="email"
                   required
                   placeholder="请输入邮箱地址"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,0.2)] focus:border-[rgba(108,93,211,1)] transition-colors"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -114,7 +112,7 @@ const Login: React.FC = () => {
                   type="password"
                   required
                   placeholder="请输入密码"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,0.2)] focus:border-[rgba(108,93,211,1)] transition-colors"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -124,7 +122,7 @@ const Login: React.FC = () => {
                 <input
                   type="checkbox"
                   id="remember-me"
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                  className="h-4 w-4 text-[rgba(108,93,211,1)] focus:ring-[rgba(108,93,211,1)] border-gray-300 rounded"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
@@ -135,25 +133,38 @@ const Login: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-primary text-white rounded-lg py-3 hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="w-full bg-[rgba(108,93,211,1)] text-white rounded-lg py-3 hover:bg-[rgba(108,93,211,0.9)] transition-colors disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? '登录中...' : '登录'}
               </button>
             </form>
 
-            <div className="text-center">
+            <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
                 还没有账号？{' '}
                 <button
                   onClick={() => navigate('/register')}
-                  className="font-medium text-purple-600 hover:text-purple-500"
+                  className="font-medium text-[rgba(108,93,211,1)] hover:text-[rgba(108,93,211,0.8)]"
                 >
                   立即注册
                 </button>
               </p>
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Contact Information Footer */}
+      <div className="max-w-6xl w-full bg-[rgba(108,93,211,1)] text-white py-4 px-8 mt-8 flex justify-center items-center gap-8 rounded-b-lg">
+        <div className="flex items-center gap-2">
+          <span>电话: 19864781028</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>微信: 19864781028</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>邮箱: lucy@lucyai.ai</span>
         </div>
       </div>
     </div>

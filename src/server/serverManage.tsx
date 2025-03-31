@@ -41,14 +41,17 @@ export const ServerManage: React.FC = () => {
   const [usedQuota, setUsedQuota] = useState<number>(0);
   // 删除实例相关状态
   const [serverToDelete, setServerToDelete] = useState<WindowsServer | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false); 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false);
-  
+  // 添加删除状态和阶段跟踪
+  const [deletePhase, setDeletePhase] = useState<'isolating' | 'terminating' | null>(null);
+  const [serverCurrentStatus, setServerCurrentStatus] = useState<string | null>(null);
+
   // 使用UserContext提供的用户信息
   const { userProfile, isAdmin, isLoading: userLoading, email } = useUser();
-  
+
   // 使用WxAccountContext提供的微信账号列表
   const { wxAccountList, isLoading: wxLoading, updateServerList } = useWxAccount();
 
@@ -56,14 +59,11 @@ export const ServerManage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // 等待用户上下文加载完成
         if (userLoading) {
           return; // 用户数据加载中，等待
         }
-
-        // 获取所有地域的服务器列表
-        console.log('正在从腾讯云API获取所有地域的服务器列表...');
         await fetchAllRegionInstances();
       } catch (err) {
         console.error('获取服务器列表时出错:', err);
@@ -81,36 +81,34 @@ export const ServerManage: React.FC = () => {
     if (regionServers.size === 0) return;
 
     const newFilteredServers = new Map<string, WindowsServer[]>();
-    
+
     regionServers.forEach((servers, regionId) => {
       if (isAdmin) {
-        // 管理员可以看到所有服务器
         newFilteredServers.set(regionId, servers);
       } else if (email) {
-        // 普通用户只能看到名称包含其邮箱的服务器
-        const userEmailParts = email.split('@')[0].toLowerCase();
-        const filteredServers = servers.filter(server => 
-          server.name.toLowerCase().includes(userEmailParts)
-        );
+        const userEmail = email.toLowerCase();
+        const filteredServers = servers.filter(server => {
+          return server.name && server.name.toLowerCase().indexOf(userEmail) !== -1;
+        });
         newFilteredServers.set(regionId, filteredServers);
       } else {
-        // 没有邮箱的用户不能看到任何服务器
         newFilteredServers.set(regionId, []);
       }
     });
-    
+    console.log('根据用户权限过滤后的服务器列表:', newFilteredServers);
+
     setFilteredRegionServers(newFilteredServers);
-    
+
     // 计算已使用的配额
     let totalUsedServers = 0;
     newFilteredServers.forEach((servers) => {
       totalUsedServers += servers.length;
     });
     setUsedQuota(totalUsedServers);
-    
+
     // 设置用户配额
     setServerQuota(isAdmin ? 50 : 2);
-    
+
   }, [regionServers, isAdmin, email]);
 
   // 检查是否超出配额
@@ -122,13 +120,13 @@ export const ServerManage: React.FC = () => {
     try {
       const instancesByRegion = await tencentCloudService.getAllRegionInstances();
       const serversByRegion = new Map<string, WindowsServer[]>();
-      
+
       instancesByRegion.forEach((instances, regionId) => {
         // 筛选仅保留Windows服务器
-        const windowsInstances = instances.filter((instance: LighthouseInstance) => 
+        const windowsInstances = instances.filter((instance: LighthouseInstance) =>
           instance.OsName && instance.OsName.toLowerCase().includes('windows')
         );
-        
+
         const servers: WindowsServer[] = windowsInstances.map((instance: LighthouseInstance) => ({
           ip: instance.PublicAddresses[0] || instance.PrivateAddresses[0] || '',
           publicIp: instance.PublicAddresses[0] || '',
@@ -139,20 +137,20 @@ export const ServerManage: React.FC = () => {
           status: instance.InstanceState,
           region: instance.Region
         }));
-        
+
         serversByRegion.set(regionId, servers);
       });
-      
+
       setRegionServers(serversByRegion);
-      
+
       // 将服务器列表传递给WxAccountContext
       updateServerList(serversByRegion);
-      
+
       let totalCount = 0;
       serversByRegion.forEach(servers => {
         totalCount += servers.length;
       });
-      
+
       console.log(`成功获取 ${totalCount} 台Windows服务器实例，分布在 ${serversByRegion.size} 个地域`);
     } catch (error) {
       console.error('获取腾讯云服务器列表失败:', error);
@@ -165,25 +163,25 @@ export const ServerManage: React.FC = () => {
       setConnectionError('无法连接VNC，缺少实例ID');
       return;
     }
-    
+
     if (server.status !== 'RUNNING') {
       setConnectionError(`无法连接VNC，实例当前状态为: ${server.status || '未知'}`);
       return;
     }
-    
+
     if (!server.region) {
       setConnectionError('无法连接VNC，缺少实例所在地域信息');
       return;
     }
-    
+
     setSelectedServer(server.ip);
     setServerToConnect(server);
     setConnecting(true);
     setConnectionError(null);
     setConnectionUrl(null);
-    
+
     console.log(`尝试连接到地域 ${server.region} 实例 ${server.instanceId} 的VNC终端`);
-    
+
     try {
       const vncUrl = await tencentCloudService.getInstanceVncUrl(server.instanceId, server.region);
       console.log(`获取到VNC URL: ${vncUrl}`);
@@ -228,30 +226,30 @@ export const ServerManage: React.FC = () => {
 
     try {
       await tencentCloudService.rebootInstances([serverToReboot.instanceId], serverToReboot.region);
-      
+
       // 更新服务器状态
       const updatedServers = new Map(regionServers);
       const regionServersArray = updatedServers.get(serverToReboot.region) || [];
-      
+
       const updatedServersArray = regionServersArray.map(server => {
         if (server.instanceId === serverToReboot.instanceId) {
           return { ...server, status: 'REBOOTING' };
         }
         return server;
       });
-      
+
       updatedServers.set(serverToReboot.region, updatedServersArray);
       setRegionServers(updatedServers);
-      
+
       // 关闭对话框
       setIsRebootDialogOpen(false);
       setServerToReboot(null);
-      
+
       // 延迟几秒后刷新服务器列表以获取最新状态
       setTimeout(() => {
         fetchAllRegionInstances();
       }, 5000);
-      
+
     } catch (error) {
       console.error('重启服务器失败:', error);
       const errorMessage = error instanceof Error ? error.message : '重启服务器失败，请稍后重试';
@@ -286,23 +284,22 @@ export const ServerManage: React.FC = () => {
         setCreateError(`您已达到服务器配额上限(${serverQuota})，无法创建更多实例`);
         return;
       }
-      
+
       setIsCreating(true);
       setCreateError(null);
       setCreateSuccess(false);
-      
+
       // 从环境变量获取Windows密码
       // 注意：环境变量必须以REACT_APP_开头才能在React前端访问
       const windowsPassword = process.env.REACT_APP_WINDOWS_PASSWORD;
-      
+
       // 检查密码是否存在
       if (!windowsPassword) {
         console.warn('未找到环境变量REACT_APP_WINDOWS_PASSWORD，将使用默认密码');
       }
-      
-      // 使用环境变量中的密码，如果不存在则使用默认强密码
+
       const password = windowsPassword;
-            
+
       // 设置创建实例参数
       const params = {
         BundleId: 'bundle_starter_mc_med2_01',
@@ -320,12 +317,12 @@ export const ServerManage: React.FC = () => {
         },
         region: selectedRegion
       };
-      
+
       const instanceIds = await tencentCloudService.createInstances(params);
-      
+
       setCreateSuccess(true);
       setCreatedInstanceIds(instanceIds);
-      
+
       // 创建成功后3秒自动关闭对话框
       setTimeout(() => {
         closeCreateDialog();
@@ -364,10 +361,10 @@ export const ServerManage: React.FC = () => {
   const getWechatStatusLabel = (server: WindowsServer) => {
     // 检查匹配当前服务器IP的所有微信账号
     const runningWxAccounts = wxAccountList.filter(
-      account => account.source_ip && 
-      (account.source_ip === server.publicIp || account.source_ip === server.privateIp)
+      account => account.source_ip &&
+        (account.source_ip === server.publicIp || account.source_ip === server.privateIp)
     );
-    
+
     if (runningWxAccounts.length > 0) {
       return {
         label: '微信运行中',
@@ -393,9 +390,15 @@ export const ServerManage: React.FC = () => {
 
   // 关闭删除确认对话框
   const closeDeleteDialog = () => {
+    // 无论在什么情况下，重置所有状态
     setIsDeleteDialogOpen(false);
     setServerToDelete(null);
     setDeleteError(null);
+    setDeletePhase(null);
+    setServerCurrentStatus(null);
+    setIsDeleting(false);
+    setDeleteSuccess(false);
+    
     // 如果删除成功，刷新服务器列表
     if (deleteSuccess) {
       fetchAllRegionInstances();
@@ -417,72 +420,101 @@ export const ServerManage: React.FC = () => {
       setDeleteError(`无法删除实例，当前状态为: ${serverToDelete.status || '未知'}，只有运行中、已停止或已关机的实例才能删除`);
       return;
     }
-    
+
     // 检查是否有微信账号在运行
     if (getWechatStatusLabel(serverToDelete).accounts.length > 0) {
       setDeleteError('无法删除实例，该实例上有微信账号正在运行');
       return;
     }
 
+    // 开始删除流程，重置错误状态
     setIsDeleting(true);
     setDeleteError(null);
+    setDeleteSuccess(false);
+    setServerCurrentStatus(serverToDelete.status || '未知');
 
     try {
+      // 首先获取实例的最新状态，确保我们有最准确的信息
+      try {
+        const instancesByRegion = await tencentCloudService.getAllRegionInstances();
+        const regionInstances = instancesByRegion.get(region) || [];
+        const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
+        
+        if (instance) {
+          // 更新当前状态显示
+          setServerCurrentStatus(instance.InstanceState);
+          
+          // 如果最新状态已经是SHUTDOWN，直接走销毁流程
+          if (instance.InstanceState === 'SHUTDOWN') {
+            serverToDelete.status = 'SHUTDOWN';  // 更新本地对象状态
+          }
+        }
+      } catch (error) {
+        // 如果获取最新状态失败，继续使用当前已知状态
+        console.error('获取实例最新状态失败，使用当前已知状态:', error);
+      }
+      
       // 如果实例已经是SHUTDOWN状态，直接执行销毁操作
       if (serverToDelete.status === 'SHUTDOWN') {
         try {
+          setDeletePhase('terminating');
+          setServerCurrentStatus('SHUTDOWN');
+          
           await tencentCloudService.terminateInstances([instanceId], region);
           setDeleteSuccess(true);
-          
+
           // 更新服务器状态（从列表中移除）
           const updatedServers = new Map(regionServers);
           const servers = updatedServers.get(region);
-          
+
           if (servers && Array.isArray(servers)) {
-            const updatedServersArray = servers.filter(server => 
+            const updatedServersArray = servers.filter(server =>
               server.instanceId !== instanceId
             );
             updatedServers.set(region, updatedServersArray);
             setRegionServers(updatedServers);
           }
-          
-          // 3秒后自动关闭对话框
-          setTimeout(() => {
-            closeDeleteDialog();
-          }, 3000);
+
+          // 立即自动关闭对话框并刷新实例列表
+          fetchAllRegionInstances();
+          closeDeleteDialog();
+          return;
         } catch (terminateError) {
           console.error('销毁实例失败:', terminateError);
           const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
-          
+
           if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
             // 如果是操作未完成错误，提示用户稍后手动销毁
-            setDeleteError('实例正在执行其他操作，请稍后手动尝试销毁操作');
+            setDeleteError('实例正在执行其他操作，请稍后再尝试删除');
           } else {
-            setDeleteError(`销毁实例失败: ${errorMessage}`);
+            setDeleteError('销毁实例失败，请稍后重试');
           }
+          setIsDeleting(false);
+          setDeletePhase(null);
+          return;
         }
-        setIsDeleting(false);
-        return;
       }
 
       // 对于非SHUTDOWN状态，先隔离实例（退还实例）
-      await tencentCloudService.isolateInstances([instanceId], region);
-      
-      // 延迟检查实例状态，等待其变为 SHUTDOWN
-      let retryCount = 0;
-      const maxRetry = 15; // 增加最大重试次数
-      const initialWaitTime = 15000; // 首次等待30秒，给予足够时间让操作开始执行
-      const checkIntervalTime = 5000; // 每次检查间隔增加到5秒
-      
-      const checkInstanceStatus = async () => {
-        try {
-          // 获取实例最新状态
-          const instancesByRegion = await tencentCloudService.getAllRegionInstances();
-          const regionInstances = instancesByRegion.get(region) || [];
-          const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
+      setDeletePhase('isolating');
+      try {
+        // 执行隔离操作
+        await tencentCloudService.isolateInstances([instanceId], region);
+        
+        // 设置状态为正在隔离
+        setServerCurrentStatus('隔离中');
+      } catch (isolateError) {
+        console.error('隔离实例失败:', isolateError);
+        const errorMessage = isolateError instanceof Error ? isolateError.message : String(isolateError);
+        
+        // 如果错误信息表明实例已经是SHUTDOWN状态
+        if (errorMessage.includes('is in `SHUTDOWN` state')) {
+          // 实例已经是SHUTDOWN状态，直接尝试销毁
+          setServerCurrentStatus('SHUTDOWN');
+          setDeletePhase('terminating');
           
-          if (!instance) {
-            // 如果实例已不存在，可能已经被删除了，直接认为成功
+          try {
+            await tencentCloudService.terminateInstances([instanceId], region);
             setDeleteSuccess(true);
             
             // 更新服务器状态（从列表中移除）
@@ -490,23 +522,78 @@ export const ServerManage: React.FC = () => {
             const servers = updatedServers.get(region);
             
             if (servers && Array.isArray(servers)) {
-              const updatedServersArray = servers.filter(server => 
+              const updatedServersArray = servers.filter(server =>
                 server.instanceId !== instanceId
               );
               updatedServers.set(region, updatedServersArray);
               setRegionServers(updatedServers);
             }
             
-            setTimeout(() => {
-              closeDeleteDialog();
-            }, 3000);
+            // 立即自动关闭对话框并刷新实例列表
+            fetchAllRegionInstances();
+            closeDeleteDialog();
+            return;
+          } catch (terminateError) {
+            console.error('销毁实例失败:', terminateError);
+            setDeleteError('实例删除失败，请稍后重试');
+            setIsDeleting(false);
+            setDeletePhase(null);
             return;
           }
-          
+        } else {
+          // 其他类型的错误
+          setDeleteError('隔离实例失败，请稍后重试');
+          setIsDeleting(false);
+          setDeletePhase(null);
+          return;
+        }
+      }
+
+      // 延迟检查实例状态，等待其变为 SHUTDOWN
+      let retryCount = 0;
+      const maxRetry = 20; // 增加最大重试次数
+      const initialWaitTime = 15000; // 首次等待15秒
+      const checkIntervalTime = 5000; // 每次检查间隔5秒
+
+      const checkInstanceStatus = async () => {
+        try {
+          // 获取实例最新状态
+          const instancesByRegion = await tencentCloudService.getAllRegionInstances();
+          const regionInstances = instancesByRegion.get(region) || [];
+          const instance = regionInstances.find(ins => ins.InstanceId === instanceId);
+
+          if (!instance) {
+            // 如果实例已不存在，可能已经被删除了，直接认为成功
+            setDeleteSuccess(true);
+            setServerCurrentStatus('已删除');
+            setDeletePhase(null);
+
+            // 更新服务器状态（从列表中移除）
+            const updatedServers = new Map(regionServers);
+            const servers = updatedServers.get(region);
+
+            if (servers && Array.isArray(servers)) {
+              const updatedServersArray = servers.filter(server =>
+                server.instanceId !== instanceId
+              );
+              updatedServers.set(region, updatedServersArray);
+              setRegionServers(updatedServers);
+            }
+
+            // 立即自动关闭对话框并刷新实例列表 
+            fetchAllRegionInstances();
+            closeDeleteDialog();
+            return;
+          }
+
+          // 更新当前状态显示
+          setServerCurrentStatus(instance.InstanceState || '未知');
+
           // 检查是否有正在进行的操作
-          if (instance.LatestOperation === 'IsolateInstances' && 
-              instance.LatestOperationState === 'OPERATING') {
-            // 如果操作仍在进行中，继续等待
+          if (instance.LatestOperation === 'IsolateInstances' &&
+            instance.LatestOperationState === 'OPERATING') {
+            // 如果隔离操作仍在进行中，继续等待
+            setServerCurrentStatus(`${instance.InstanceState} (隔离中...)`);
             if (retryCount < maxRetry) {
               retryCount++;
               setTimeout(checkInstanceStatus, checkIntervalTime);
@@ -515,71 +602,73 @@ export const ServerManage: React.FC = () => {
               throw new Error('隔离实例操作超时，请稍后手动尝试销毁操作');
             }
           }
-          
-          if (instance.InstanceState === 'SHUTDOWN') {
-            try {
-              // 销毁前额外等待一段时间，确保隔离操作完全结束
-              setTimeout(async () => {
-                try {
-                  // 如果实例状态为 SHUTDOWN，则执行销毁操作
-                  await tencentCloudService.terminateInstances([instanceId], region);
-                  setDeleteSuccess(true);
-                  
-                  // 更新服务器状态（从列表中移除）
-                  const updatedServers = new Map(regionServers);
-                  const servers = updatedServers.get(region);
-                  
-                  if (servers && Array.isArray(servers)) {
-                    const updatedServersArray = servers.filter(server => 
-                      server.instanceId !== instanceId
-                    );
-                    updatedServers.set(region, updatedServersArray);
-                    setRegionServers(updatedServers);
-                  }
-                  
-                  // 3秒后自动关闭对话框
-                  setTimeout(() => {
-                    closeDeleteDialog();
-                  }, 3000);
-                } catch (terminateError) {
-                  // 如果销毁失败，检查是否是操作未完成的错误
-                  console.error('销毁实例失败:', terminateError);
-                  const errorMessage = terminateError instanceof Error ? terminateError.message : String(terminateError);
-                  
-                  if (errorMessage.includes('UnsupportedOperation.LatestOperationUnfinished')) {
-                    // 如果是操作未完成错误，提示用户稍后手动销毁
-                    setDeleteError('实例正在执行隔离操作，请稍后手动尝试销毁操作');
-                  } else {
-                    setDeleteError(`销毁实例失败: ${errorMessage}`);
-                  }
+
+          // 特别检查：确保最后一次操作是隔离并且已经成功完成
+          if (instance.LatestOperation === 'IsolateInstances' && 
+              instance.LatestOperationState === 'SUCCESS' &&
+              instance.InstanceState === 'SHUTDOWN') {
+            
+            // 隔离操作已完成，状态已是SHUTDOWN，可以执行销毁操作
+            // 额外等待10秒确保隔离完全生效
+            setServerCurrentStatus('隔离完成，准备销毁...');
+            
+            setTimeout(async () => {
+              try {
+                // 执行销毁操作
+                setDeletePhase('terminating');
+                setServerCurrentStatus('正在销毁...');
+                
+                await tencentCloudService.terminateInstances([instanceId], region);
+                setDeleteSuccess(true);
+                setServerCurrentStatus('已销毁');
+                setDeletePhase(null);
+
+                // 更新服务器状态（从列表中移除）
+                const updatedServers = new Map(regionServers);
+                const servers = updatedServers.get(region);
+
+                if (servers && Array.isArray(servers)) {
+                  const updatedServersArray = servers.filter(server =>
+                    server.instanceId !== instanceId
+                  );
+                  updatedServers.set(region, updatedServersArray);
+                  setRegionServers(updatedServers);
                 }
-              }, 5000); // 额外等待5秒再执行销毁操作
-            } catch (error) {
-              console.error('销毁实例失败:', error);
-              throw error;
-            }
+
+                // 立即自动关闭对话框并刷新实例列表
+                fetchAllRegionInstances();
+                closeDeleteDialog();
+              } catch (terminateError) {
+                // 如果销毁失败，不显示具体错误信息
+                console.error('销毁实例失败:', terminateError);
+                setDeleteError('销毁实例失败，请稍后重试');
+                setDeletePhase(null);
+                setIsDeleting(false);
+              }
+            }, 10000); // 额外等待10秒再执行销毁操作
           } else if (retryCount < maxRetry) {
-            // 如果状态不是 SHUTDOWN 且未超过重试次数，则继续等待
+            // 如果状态不是期望的状态且未超过重试次数，则继续等待
             retryCount++;
             setTimeout(checkInstanceStatus, checkIntervalTime);
           } else {
             // 如果超过最大重试次数，则提示错误
-            throw new Error('等待实例状态变更超时，请手动检查实例状态并尝试再次删除');
+            throw new Error('等待实例状态变更超时');
           }
         } catch (error) {
           console.error('检查实例状态失败:', error);
-          throw error;
+          setDeleteError('删除操作未完成，请稍后重试');
+          setDeletePhase(null);
+          setIsDeleting(false);
         }
       };
-      
+
       // 开始检查实例状态，首次检查前等待时间更长
       setTimeout(checkInstanceStatus, initialWaitTime);
     } catch (error) {
       console.error('删除服务器失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '删除服务器失败，请稍后重试';
-      setDeleteError(errorMessage);
+      setDeleteError('删除服务器失败，请稍后重试');
       setDeleteSuccess(false);
-    } finally {
+      setDeletePhase(null);
       setIsDeleting(false);
     }
   };
@@ -597,8 +686,8 @@ export const ServerManage: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">服务器管理</h1>
         <p className="text-gray-600">
-          {isAdmin 
-            ? '管理员模式：显示所有服务器' 
+          {isAdmin
+            ? '管理员模式：显示所有服务器'
             : `普通用户模式：仅显示与您账号 (${email}) 相关的服务器`}
         </p>
         <p className="text-gray-600 mt-1">
@@ -632,7 +721,7 @@ export const ServerManage: React.FC = () => {
               断开连接
             </button>
           </div>
-          
+
           {/* 添加操作提示 */}
           <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm">
             <div className="flex">
@@ -651,7 +740,7 @@ export const ServerManage: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="relative h-full w-full border border-gray-300 rounded">
             {connecting ? (
               <div className="flex items-center justify-center h-full">
@@ -705,11 +794,10 @@ export const ServerManage: React.FC = () => {
             {SUPPORTED_REGIONS.map((region) => (
               <button
                 key={region.id}
-                className={`py-2 px-4 mr-2 font-medium text-sm focus:outline-none ${
-                  selectedRegion === region.id
+                className={`py-2 px-4 mr-2 font-medium text-sm focus:outline-none ${selectedRegion === region.id
                     ? 'border-b-2 border-purple-500 text-purple-600'
                     : 'text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300'
-                }`}
+                  }`}
                 onClick={() => setSelectedRegion(region.id)}
                 disabled={region.disabled}
               >
@@ -730,11 +818,10 @@ export const ServerManage: React.FC = () => {
             </button>
             {/* 添加创建实例按钮（对所有用户显示） */}
             <button
-              className={`ml-2 flex items-center font-medium py-1.5 px-3 rounded transition-colors ${
-                checkQuotaExceeded() 
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+              className={`ml-2 flex items-center font-medium py-1.5 px-3 rounded transition-colors ${checkQuotaExceeded()
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   : 'bg-green-100 hover:bg-green-200 text-green-700'
-              }`}
+                }`}
               onClick={openCreateDialog}
               disabled={checkQuotaExceeded()}
               title={checkQuotaExceeded() ? `已达到服务器配额上限(${serverQuota})` : '创建新实例'}
@@ -749,8 +836,8 @@ export const ServerManage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {getServersForSelectedRegion().length === 0 ? (
               <div className="col-span-3 py-8 text-center text-gray-500">
-                {isAdmin 
-                  ? `当前地域 ${getRegionName(selectedRegion)} 未发现服务器实例` 
+                {isAdmin
+                  ? `当前地域 ${getRegionName(selectedRegion)} 未发现服务器实例`
                   : `当前地域 ${getRegionName(selectedRegion)} 未发现与您关联的服务器实例`}
               </div>
             ) : (
@@ -765,7 +852,7 @@ export const ServerManage: React.FC = () => {
                     </svg>
                     <h3 className="text-lg font-semibold text-gray-800">{server.name}</h3>
                   </div>
-                  
+
                   {/* 将内网和外网IP显示在同一行 */}
                   <div className="mt-1 flex items-center flex-wrap gap-1">
                     {server.publicIp && (
@@ -781,25 +868,24 @@ export const ServerManage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {server.osName && (
                     <p className="text-gray-600 text-sm mt-2">{server.osName}</p>
                   )}
-                  
+
                   <div className="mt-2 flex flex-wrap gap-2">
                     {/* 添加服务器实例状态标签 */}
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      server.status === 'RUNNING' 
-                        ? 'bg-green-100 text-green-800' 
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${server.status === 'RUNNING'
+                        ? 'bg-green-100 text-green-800'
                         : server.status === 'REBOOTING'
                           ? 'bg-yellow-100 text-yellow-800'
                           : server.status === 'STOPPED'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-600'
-                    }`}>
+                      }`}>
                       状态: {server.status || '未知'}
                     </div>
-                    
+
                     {/* 微信状态标签 */}
                     {!wxLoading && server.status === 'RUNNING' && (
                       <>
@@ -807,7 +893,7 @@ export const ServerManage: React.FC = () => {
                           // 如果有微信账号在运行，为每个账号显示一个标签
                           getWechatStatusLabel(server).accounts.map((account, index) => (
                             <div key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              微信({account.name || account.wxid || account.mobile || `账号${index+1}`})运行中
+                              微信({account.name || account.wxid || account.mobile || `账号${index + 1}`})运行中
                             </div>
                           ))
                         ) : (
@@ -825,7 +911,7 @@ export const ServerManage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <button
                       className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded text-sm"
@@ -834,7 +920,7 @@ export const ServerManage: React.FC = () => {
                     >
                       登录系统
                     </button>
-                    
+
                     <button
                       className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-3 rounded text-sm"
                       onClick={() => showRebootConfirmation(server)}
@@ -845,21 +931,20 @@ export const ServerManage: React.FC = () => {
 
                     {/* 添加删除实例按钮 - 对所有用户显示 */}
                     <button
-                      className={`${
-                        !server.instanceId || 
-                        (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') || 
-                        getWechatStatusLabel(server).accounts.length > 0
-                          ? 'bg-gray-400 cursor-not-allowed' 
+                      className={`${!server.instanceId ||
+                          (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') ||
+                          getWechatStatusLabel(server).accounts.length > 0
+                          ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-red-600 hover:bg-red-700'
-                      } text-white font-semibold py-2 px-3 rounded text-sm`}
+                        } text-white font-semibold py-2 px-3 rounded text-sm`}
                       onClick={() => showDeleteConfirmation(server)}
-                      disabled={!server.instanceId || 
-                               (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') || 
-                               getWechatStatusLabel(server).accounts.length > 0}
-                      title={getWechatStatusLabel(server).accounts.length > 0 ? 
-                            "微信运行中的实例不能删除" : 
-                            (!server.instanceId || (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN')) ? 
-                            "只有运行中、已停止或已关机的实例才能删除" : "删除实例"}
+                      disabled={!server.instanceId ||
+                        (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN') ||
+                        getWechatStatusLabel(server).accounts.length > 0}
+                      title={getWechatStatusLabel(server).accounts.length > 0 ?
+                        "微信运行中的实例不能删除" :
+                        (!server.instanceId || (server.status !== 'RUNNING' && server.status !== 'STOPPED' && server.status !== 'SHUTDOWN')) ?
+                          "只有运行中、已停止或已关机的实例才能删除" : "删除实例"}
                     >
                       删除实例
                     </button>
@@ -883,13 +968,13 @@ export const ServerManage: React.FC = () => {
                 <p className="text-gray-700 mb-6">
                   您确定要重启服务器 <span className="font-semibold">{serverToReboot.name}</span> 吗？此操作可能会导致正在运行的应用程序中断。
                 </p>
-                
+
                 {rebootError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {rebootError}
                   </div>
                 )}
-                
+
                 <div className="flex justify-end space-x-4">
                   <button
                     onClick={closeRebootDialog}
@@ -946,13 +1031,13 @@ export const ServerManage: React.FC = () => {
                     <li><span className="font-medium">测试模式:</span> 否（实际创建实例）</li>
                   </ul>
                 </div>
-                
+
                 {createError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {createError}
                   </div>
                 )}
-                
+
                 {createSuccess && (
                   <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                     <p>创建实例请求成功！</p>
@@ -961,7 +1046,7 @@ export const ServerManage: React.FC = () => {
                     )}
                   </div>
                 )}
-                
+
                 <div className="flex justify-end space-x-4">
                   <button
                     onClick={closeCreateDialog}
@@ -1001,50 +1086,63 @@ export const ServerManage: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full">
                 <h3 className="text-xl font-semibold mb-4">确认删除服务器</h3>
-                <div className="mb-4">
-                  <p className="text-gray-700 mb-2">
-                    您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
-                  </p>
-                </div>
                 
+                {!isDeleting && !deleteError && (
+                  <div className="mb-4">
+                    <p className="text-gray-700 mb-2">
+                      您确定要删除服务器 <span className="font-semibold">{serverToDelete.name}</span> 吗？此操作<span className="text-red-600 font-bold">不可逆</span>，将会：
+                    </p>
+                  </div>
+                )}
+
                 {deleteError && (
                   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {deleteError}
+                    <p>{deleteError}</p>
+                    <p className="text-sm mt-2">请稍后再试或联系管理员</p>
                   </div>
                 )}
-                
-                {deleteSuccess && (
-                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    <p>删除实例请求成功！</p>
-                    <p className="text-sm">实例正在删除中...</p>
+
+                {isDeleting && (
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-4">
+                    <div className="flex items-center">
+                      <div className="mr-3">
+                        <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-blue-700">
+                          {deletePhase === 'isolating' ? '正在隔离实例...' : 
+                          deletePhase === 'terminating' ? '正在销毁实例...' : 
+                          '处理中...'}
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          当前状态: {serverCurrentStatus || '未知'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          删除过程自动进行，完成后将自动关闭此窗口
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-                
+
                 <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={closeDeleteDialog}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
-                    disabled={isDeleting}
-                  >
-                    {deleteSuccess ? '关闭' : '取消'}
-                  </button>
-                  {!deleteSuccess && (
+                  {!isDeleting && (
+                    <button
+                      onClick={closeDeleteDialog}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded"
+                    >
+                      {deleteError ? '关闭' : '取消'}
+                    </button>
+                  )}
+                  {!isDeleting && !deleteError && (
                     <button
                       onClick={deleteServer}
                       className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded flex items-center"
-                      disabled={isDeleting}
                     >
-                      {isDeleting ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          删除中...
-                        </>
-                      ) : (
-                        '确认删除'
-                      )}
+                      确认删除
                     </button>
                   )}
                 </div>

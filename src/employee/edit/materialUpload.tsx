@@ -280,7 +280,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
     <div className="bg-white shadow-md rounded-lg p-4">
       {/* 通知消息 */}
       {notification.show && (
-        <div className={`fixed top-4 right-4 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-md shadow-lg z-50`}>
+        <div className={`fixed top-4 right-4 ${notification.type === 'success' ? 'bg-[rgba(108,93,211,1)]' : 'bg-red-500'} text-white px-4 py-2 rounded-md shadow-lg z-50`}>
           {notification.message}
         </div>
       )}
@@ -304,7 +304,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                   id="dataset-name"
                   value={newDatasetName}
                   onChange={(e) => setNewDatasetName(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[rgba(108,93,211,1)] focus:ring-[rgba(108,93,211,1)] text-sm"
                   placeholder="例如：客户资料库"
                 />
               </div>
@@ -315,7 +315,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                   id="dataset-description"
                   value={newDatasetDescription}
                   onChange={(e) => setNewDatasetDescription(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[rgba(108,93,211,1)] focus:ring-[rgba(108,93,211,1)] text-sm"
                   rows={3}
                   placeholder="描述这个素材库的用途"
                 />
@@ -336,7 +336,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
               <button
                 onClick={handleCreateDataset}
                 disabled={!newDatasetName.trim() || isCreatingDataset}
-                className={`px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500
+                className={`px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-[rgba(108,93,211,1)] hover:bg-[rgba(98,83,201,1)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgba(108,93,211,1)]
                   ${(!newDatasetName.trim() || isCreatingDataset) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
@@ -400,7 +400,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
         {isAdmin && (
           <button
             onClick={() => setShowCreateDatasetModal(true)}
-            className="px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm flex items-center"
+            className="px-3 py-1 bg-[rgba(108,93,211,1)] text-white rounded-md hover:bg-[rgba(98,83,201,1)] transition-colors text-sm flex items-center"
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -413,7 +413,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
       {/* 数据集选择标签 */}
       {loading ? (
         <div className="flex justify-center items-center m-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[rgba(108,93,211,1)]"></div>
             <span className="ml-3 text-lg text-gray-600">加载中...</span>
         </div>
       ) : datasets.length === 0 ? (
@@ -433,7 +433,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
                         className={`
                             flex items-center px-4 py-2 rounded-full cursor-pointer transition-all whitespace-nowrap
                             ${datasetId === dataset.id
-                                ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                                ? 'bg-[rgba(108,93,211,0.1)] text-[rgba(108,93,211,1)] border border-[rgba(108,93,211,0.3)]'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
                         `}
                     >
@@ -461,7 +461,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
               <h4 className="text-lg font-medium text-gray-900">知识库文档</h4>
               <button 
                 onClick={fetchDocuments}
-                className="text-sm text-purple-600 hover:text-purple-800"
+                className="text-sm text-[rgba(108,93,211,1)] hover:text-[rgba(88,73,191,1)]"
               >
                 刷新
               </button>
@@ -469,7 +469,7 @@ export const MaterialUpload: React.FC<MaterialUploadProps> = ({ wxAccount }) => 
 
             {documentsLoading ? (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[rgba(108,93,211,1)]"></div>
               </div>
             ) : documents.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg">

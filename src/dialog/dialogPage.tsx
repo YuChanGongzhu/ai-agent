@@ -38,6 +38,101 @@ interface Message {
     senderId?: string;
 }
 
+interface DirectImageMessageContentProps {
+    content: string;
+    msgType: number;
+    conversation: RoomListMessage | null;
+}
+
+const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({ content, msgType, conversation }) => {
+    // 添加预览状态
+    const [showPreview, setShowPreview] = React.useState(false);
+    
+    // 检查是否是图片类型的消息（msgType为3或是路径形式）
+    const isTmpImagePath = content.includes('/tmp/image_downloads/');
+    const isDirectCosPath = content.includes('/') && !content.includes('/tmp/image_downloads/');
+    const isImagePath = isTmpImagePath || isDirectCosPath || msgType === 3;
+    
+    // 打开预览
+    const openPreview = () => {
+        setShowPreview(true);
+    };
+    
+    // 关闭预览
+    const closePreview = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setShowPreview(false);
+    };
+    
+    // 获取COS图片的URL
+    const getImageUrl = (): string => {
+        if (!conversation) return '';
+        
+        try {
+            const bucket = 'wx-records-1347723456';
+            const region = 'ap-guangzhou';
+            
+            if (isTmpImagePath) {
+                const fileName = content.split('/tmp/image_downloads/')[1];
+                if (!fileName) return '';
+                const wxId = conversation.wx_user_id || '';
+                const wxUserName = conversation.wx_user_name || '';
+                const roomId = conversation.room_id || '';
+                const completeFileName = fileName.includes('.') ? fileName : `${fileName}.jpg`;
+                const cosKey = `${wxUserName}_${wxId}/${roomId}/${completeFileName}`;
+                const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(cosKey)}`;
+                return url;
+
+            } else if (isDirectCosPath) {
+                const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(content)}`;
+                return url;
+            }
+            
+            return '';
+        } catch (error) {
+            console.error('构建图片URL时出错:', error);
+            return '';
+        }
+    };
+    
+    // 如果是图片路径，直接展示图片
+    if (isImagePath) {
+        const imageUrl = getImageUrl();
+        if (imageUrl) {
+            return (
+                <div className="image-container relative">
+                    <img 
+                        src={imageUrl} 
+                        alt="图片消息" 
+                        className="rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ maxHeight: '200px' }}
+                        onClick={openPreview}
+                    />
+                                        
+                    {/* 全屏预览模式 */}
+                    {showPreview && (
+                        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={closePreview}>
+                            <div className="relative max-w-4xl max-h-full">
+                                <img src={imageUrl} alt="原始图片" className="max-w-full max-h-[90vh] object-contain" />
+                                <button className="absolute top-2 right-2 bg-white rounded-full p-1 text-gray-900 hover:bg-gray-200" onClick={closePreview}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        } else {
+            return <MessageContent content={content} msgType={msgType} />;
+        }
+    }
+    
+    // 如果是其他类型消息，使用原始的MessageContent组件
+    return <MessageContent content={content} msgType={msgType} />;
+};
+
 export const DialogPage: React.FC<DialogPageProps> = ({
     conversation,
     selectedAccount,
@@ -492,7 +587,11 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                                 >
                                     <div className="whitespace-pre-wrap break-words">
                                         {message.msgType === 3 || message.msgType === 34 ?
-                                            <MessageContent content={message.content} msgType={message.msgType} /> :
+                                            <DirectImageMessageContent 
+                                                content={message.content} 
+                                                msgType={message.msgType}
+                                                conversation={conversation}
+                                            /> :
                                             getMessageContent(message.msgType || 0, message.content)
                                         }
                                     </div>

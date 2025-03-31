@@ -13,6 +13,11 @@ export interface WxAccount {
   update_time: string;
 }
 
+export interface WxMpAccount {
+  gh_user_id: string;
+  name: string;
+}
+
 const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL
 const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME
 const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
@@ -39,6 +44,11 @@ const handleRequest = async <T>(request: Promise<any>): Promise<T> => {
 
 export const getWxAccountListApi = async (): Promise<WxAccount[]> => {
   const response = await handleRequest<{key: string; value: string}>(airflowAxios.get('/variables/WX_ACCOUNT_LIST'));
+  return JSON.parse(response.value);
+};
+
+export const getWxMpAccountListApi = async (): Promise<WxMpAccount[]> => {
+  const response = await handleRequest<{key: string; value: string}>(airflowAxios.get('/variables/WX_MP_ACCOUNT_LIST'));
   return JSON.parse(response.value);
 };
 
