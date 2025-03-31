@@ -20,7 +20,8 @@ export class InvitationCodeService {
     try {
       let query = supabase
         .from('invitation_codes')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false }); //按创建时间逆序排序;
 
       if (searchQuery) {
         query = query.or(`invitation_code.ilike.%${searchQuery}%,related_login_name.ilike.%${searchQuery}%`);
@@ -46,14 +47,14 @@ export class InvitationCodeService {
   static async generateInvitationCode(): Promise<InvitationCode> {
     try {
       const user = await getCurrentUser();
-      
+
       if (!user) {
         throw new Error('用户未登录，无法生成邀请码');
       }
-      
+
       // 生成随机邀请码
       const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-      
+
       const { data, error } = await supabase
         .from('invitation_codes')
         .insert([{
@@ -63,16 +64,16 @@ export class InvitationCodeService {
           created_at: new Date().toISOString()
         }])
         .select();
-        
+
       if (error) {
         console.error('生成邀请码失败:', error);
         throw error;
       }
-      
+
       if (!data || data.length === 0) {
         throw new Error('创建邀请码失败');
       }
-      
+
       return data[0];
     } catch (error) {
       console.error('生成邀请码失败:', error);
@@ -89,7 +90,7 @@ export class InvitationCodeService {
         .from('invitation_codes')
         .delete()
         .eq('id', id);
-        
+
       if (error) {
         console.error('删除邀请码失败:', error);
         throw error;
@@ -109,13 +110,35 @@ export class InvitationCodeService {
         .from('invitation_codes')
         .delete()
         .in('id', ids);
-        
+
       if (error) {
         console.error('批量删除邀请码失败:', error);
         throw error;
       }
     } catch (error) {
       console.error('批量删除邀请码失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+    * 批量发送邀请码
+  * @param ids 要发送的邀请码ID数组
+  */
+  static async batchSendInvitationCodes(ids: number[]): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('invitation_codes')
+        .update({ status: 2 }) // 2 表示已发送状态
+        .in('id', ids)
+        .eq('status', 1); // 只更新可用状态的邀请码
+
+      if (error) {
+        console.error('批量发送邀请码失败:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('批量发送邀请码失败:', error);
       throw error;
     }
   }

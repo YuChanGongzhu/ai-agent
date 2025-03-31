@@ -3,7 +3,7 @@ import {
   Table, Button, Space, message, Modal, Typography, Card, Spin, Badge, Tooltip,
   Input, Popconfirm, notification
 } from 'antd';
-import { CopyOutlined, ReloadOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { CopyOutlined, ReloadOutlined, DeleteOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
 import { InvitationCode, InvitationCodeService } from './invitationCodeService';
 
 const { Title } = Typography;
@@ -75,6 +75,25 @@ const InvitationCodeManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleBatchSendInvitationCodes = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要发送的邀请码');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await InvitationCodeService.batchSendInvitationCodes(selectedRowKeys as number[]);
+      message.success(`成功发送 ${selectedRowKeys.length} 个邀请码`);
+      setSelectedRowKeys([]);
+      fetchInvitationCodes();
+    } catch (error: any) {
+      message.error(`批量发送邀请码失败: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Copy invitation code to clipboard
   const copyInvitationCode = (code: string) => {
@@ -135,12 +154,23 @@ const InvitationCodeManagement: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: number) => (
-        <Badge 
-          status={status === 1 ? 'success' : 'default'} 
-          text={status === 1 ? '可用' : '已使用'} 
-        />
-      ),
+      render: (status: number) => {
+        let badgeStatus: 'success' | 'processing' | 'default';
+        let text: string;
+        
+        if (status === 1) {
+          badgeStatus = 'success';
+          text = '可用';
+        } else if (status === 2) {
+          badgeStatus = 'processing';
+          text = '已发送';
+        } else {
+          badgeStatus = 'default';
+          text = '已使用';
+        }
+        
+        return <Badge status={badgeStatus} text={text} />;
+      },
     },
     {
       title: '创建时间',
@@ -205,6 +235,15 @@ const InvitationCodeManagement: React.FC = () => {
             onClick={handleGenerateInvitationCode}
           >
             生成邀请码
+          </Button>
+          <Button 
+            type="primary"
+            icon={<SendOutlined />}
+            onClick={handleBatchSendInvitationCodes}
+            disabled={selectedRowKeys.length === 0}
+            style={{ background: '#52c41a', borderColor: '#52c41a' }}
+          >
+            批量发送邀请码
           </Button>
           <Button 
             icon={<ReloadOutlined />} 
