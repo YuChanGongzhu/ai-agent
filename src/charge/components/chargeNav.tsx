@@ -1,4 +1,6 @@
 import React from 'react';
+import wxIcon from '../../img/wx-purple.svg';
+import wxWorkIcon from '../../img/wx-work-purple.svg';
 
 interface ChargeNavProps {
   version: string;
@@ -22,8 +24,8 @@ const ChargeNav: React.FC<ChargeNavProps> = ({
   tokenBalance = 0,
 }) => {
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-medium px-6 pt-4 pb-2 text-gray-700">充值中心</h2>
+    <>
+    <h2 className="text-xl font-medium px-6 pt-4 pb-2 text-gray-700">充值中心</h2>
       
       <div className="flex flex-wrap rounded-lg p-4 mx-4 mb-4" style={{ backgroundColor: 'rgba(108, 93, 211, 0.1)' }}>
         {/* Left Section - Version */}
@@ -46,9 +48,7 @@ const ChargeNav: React.FC<ChargeNavProps> = ({
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-1.008c-.56.23-1.064.414-1.264.471-.434.125-.904.155-1.302.155-.21 0-.41-.02-.6-.056-.265-.052-.57-.207-.75-.422-.165-.195-.3-.488-.3-.83 0-.423.23-.818.49-1.087.147-.15.334-.268.53-.37.273-.144.52-.252.683-.314C2.497 11.598 2 9.84 2 8c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9a1 1 0 11-2 0 1 1 0 012 0zm3 1a1 1 0 100-2 1 1 0 000 2zm3-1a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
-                </svg>
+              <img src={wxIcon} alt="WeChat Pay" width="20" height="20" />
               </div>
               <span className="text-indigo-600 font-medium">
                 {currentFunctionCount}/{maxFunctionCount}
@@ -57,9 +57,7 @@ const ChargeNav: React.FC<ChargeNavProps> = ({
             
             <div className="flex items-center">
               <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
-                </svg>
+                <img src={wxWorkIcon} alt="WeChat Work" width="20" height="20" />
               </div>
               <span className="text-indigo-600 font-medium">
                 {currentAPICount}/{maxAPICount}
@@ -84,7 +82,7 @@ const ChargeNav: React.FC<ChargeNavProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

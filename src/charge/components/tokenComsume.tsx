@@ -16,7 +16,7 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         {/* First row */}
         <div className="flex justify-between mb-6">
           <div className="w-5/12 rounded-lg p-3" style={{ backgroundColor: 'rgba(108, 93, 211, 0.1)' }}>
-            <p className="text-center font-medium mb-1" style={{ color: 'rgba(108, 93, 211, 1)' }}>
+            <p className="text-center font-medium mb-1" style={{ color: 'rgba(73, 55, 189, 1)' }}>
               客户输入 & 开始处理
             </p>
             <p className="text-center text-sm text-gray-500">0-20tokens</p>
@@ -26,8 +26,8 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
             <svg width="30" height="20" viewBox="0 0 30 20">
               <path 
                 d="M0 10h25m-7-7l7 7-7 7" 
-                stroke="rgba(108, 93, 211, 1)" 
-                strokeWidth="2" 
+                stroke="rgba(73, 55, 189, 1)" 
+                strokeWidth="3" 
                 fill="none"
               />
             </svg>
@@ -42,12 +42,12 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         </div>
         
         {/* Right arrow down from 对话阶段判断 to 意图识别 */}
-        <div className="absolute right-[8.5rem] top-[4.5rem]" style={{ zIndex: 10 }}>
-          <svg width="20" height="60" viewBox="0 0 20 60">
+        <div className="absolute right-[8.5rem] top-[5rem]" style={{ zIndex: 10 }}>
+          <svg width="20" height="35" viewBox="0 0 20 60">
             <path 
               d="M10 0v45m-7-7l7 7 7-7" 
               stroke="rgba(108, 93, 211, 1)" 
-              strokeWidth="2" 
+              strokeWidth="3" 
               fill="none"
             />
           </svg>
@@ -82,12 +82,12 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         </div>
         
         {/* Left arrow down from 需求明确 to 知识检索 */}
-        <div className="absolute left-[8.5rem] top-[10.5rem]" style={{ zIndex: 10 }}>
-          <svg width="20" height="60" viewBox="0 0 20 60">
+        <div className="absolute left-[8.5rem] top-[11rem]" style={{ zIndex: 10 }}>
+          <svg width="20" height="35" viewBox="0 0 20 60">
             <path 
               d="M10 0v45m-7-7l7 7 7-7" 
               stroke="rgba(108, 93, 211, 1)" 
-              strokeWidth="2" 
+              strokeWidth="3" 
               fill="none"
             />
           </svg>
@@ -122,12 +122,12 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         </div>
         
         {/* Right arrow down from 条件判断/策略 to 信息整合 */}
-        <div className="absolute right-[8.5rem] top-[16.5rem]" style={{ zIndex: 10 }}>
-          <svg width="20" height="60" viewBox="0 0 20 60">
+        <div className="absolute right-[8.5rem] top-[17rem]" style={{ zIndex: 10 }}>
+          <svg width="20" height="35" viewBox="0 0 20 60">
             <path 
               d="M10 0v45m-7-7l7 7 7-7" 
               stroke="rgba(108, 93, 211, 1)" 
-              strokeWidth="2" 
+              strokeWidth="3" 
               fill="none"
             />
           </svg>
@@ -162,12 +162,12 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         </div>
         
         {/* Left arrow down from 最终回复润色 to AI输出 & 回复给客户 */}
-        <div className="absolute left-[8.5rem] top-[22.5rem]" style={{ zIndex: 10 }}>
-          <svg width="20" height="60" viewBox="0 0 20 60">
+        <div className="absolute left-[8.5rem] top-[23rem]" style={{ zIndex: 10 }}>
+          <svg width="20" height="35" viewBox="0 0 20 60">
             <path 
               d="M10 0v45m-7-7l7 7 7-7" 
-              stroke="rgba(108, 93, 211, 1)" 
-              strokeWidth="2" 
+              stroke="rgba(73, 55, 189, 1)" 
+              strokeWidth="4" 
               fill="none"
             />
           </svg>
@@ -176,7 +176,7 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
         {/* Total row */}
         <div className="flex justify-center">
           <div className="w-10/12 rounded-lg p-3" style={{ backgroundColor: 'rgba(108, 93, 211, 0.1)' }}>
-            <p className="text-center font-medium mb-1" style={{ color: 'rgba(108, 93, 211, 1)' }}>
+            <p className="text-center font-medium mb-1" style={{ color: 'rgba(73, 55, 189, 1)' }}>
               AI输出 & 回复给客户
             </p>
             <p className="text-center text-sm text-gray-500">
