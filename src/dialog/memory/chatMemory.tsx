@@ -2,17 +2,21 @@ import React from 'react';
 
 interface ApiCustomerInfo {
     name: string | null;
-    age: string | null;
-    gender: string | null;
-    region: string | null;
     contact: string | null;
+    gender: string | null;
+    age_group: string | null;
+    city_tier: string | null;
+    specific_location: string | null;
+    occupation_type: string | null;
+    marital_status: string | null;
+    family_structure: string | null;
+    income_level_estimated: string | null;
 }
 
 interface ChatMemoryProps {
     customerInfo?: ApiCustomerInfo;
     selectedAccount?: { wxid: string; name: string } | null;
     selectedConversation?: { room_id: string; room_name: string } | null;
-    onCustomerInfoUpdate?: (info: ApiCustomerInfo) => void;
     isLoading?: boolean;
     onUpdateMemory?: () => void;
 }
@@ -21,7 +25,6 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
     customerInfo, 
     selectedAccount, 
     selectedConversation,
-    onCustomerInfoUpdate,
     isLoading = false,
     onUpdateMemory
 }) => {
@@ -29,10 +32,15 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
     // 默认客户信息，当 API 返回的信息不可用时使用
     const defaultCustomerInfo = {
         name: '未知',
-        age: '未知',
+        contact: '未知',
         gender: '未知',
-        region: '未知',
-        contact: '未知'
+        age_group: '未知',
+        city_tier: '未知',
+        specific_location: '未知',
+        occupation_type: '未知',
+        marital_status: '未知',
+        family_structure: '未知',
+        income_level_estimated: '未知'
     };
 
     // 合并 API 返回的客户信息和默认信息
@@ -49,13 +57,11 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
         }
     });
 
-
-
     return (
         <div className="bg-white rounded-xl shadow-lg p-4 h-[30vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-medium">聊天记忆</h2>
+                <h2 className="text-xl font-medium">客户基础信息</h2>
                 {isLoading ? (
                     <button className="btn btn-xs">
                         <span className="loading loading-spinner loading-xs"></span>
@@ -81,15 +87,12 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
                     <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-purple-200" />
 
                     {/* Customer Info Items */}
-                    <div className="space-y-6">
-                        {/* Name and basic info */}
+                    <div className="space-y-4">
+                        {/* Name */}
                         <div className="relative flex items-start ml-2">
-                            {/* Timeline Dot */}
                             <div className="absolute -left-2 mt-1.5">
                                 <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
                             </div>
-
-                            {/* Content */}
                             <div className="ml-6">
                                 <div className="text-purple-500 font-medium">
                                     姓名：<span className="text-gray-700 ml-1">{displayInfo.name}</span>
@@ -97,29 +100,23 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
                             </div>
                         </div>
 
-                        {/* Age */}
+                        {/* Contact */}
                         <div className="relative flex items-start ml-2">
-                            {/* Timeline Dot */}
                             <div className="absolute -left-2 mt-1.5">
                                 <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
                             </div>
-
-                            {/* Content */}
                             <div className="ml-6">
                                 <div className="text-purple-500 font-medium">
-                                    年龄：<span className="text-gray-700 ml-1">{displayInfo.age}</span>
+                                    联系方式：<span className="text-gray-700 ml-1">{displayInfo.contact}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Gender */}
                         <div className="relative flex items-start ml-2">
-                            {/* Timeline Dot */}
                             <div className="absolute -left-2 mt-1.5">
                                 <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
                             </div>
-
-                            {/* Content */}
                             <div className="ml-6">
                                 <div className="text-purple-500 font-medium">
                                     性别：<span className="text-gray-700 ml-1">{displayInfo.gender}</span>
@@ -127,32 +124,86 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
                             </div>
                         </div>
 
-                        {/* Region */}
+                        {/* Age Group */}
                         <div className="relative flex items-start ml-2">
-                            {/* Timeline Dot */}
                             <div className="absolute -left-2 mt-1.5">
                                 <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
                             </div>
-
-                            {/* Content */}
                             <div className="ml-6">
                                 <div className="text-purple-500 font-medium">
-                                    地区：<span className="text-gray-700 ml-1">{displayInfo.region}</span>
+                                    年龄段：<span className="text-gray-700 ml-1">{displayInfo.age_group}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Contact */}
+                        {/* City Tier */}
                         <div className="relative flex items-start ml-2">
-                            {/* Timeline Dot */}
                             <div className="absolute -left-2 mt-1.5">
                                 <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
                             </div>
-
-                            {/* Content */}
                             <div className="ml-6">
                                 <div className="text-purple-500 font-medium">
-                                    联系方式：<span className="text-gray-700 ml-1">{displayInfo.contact}</span>
+                                    城市等级：<span className="text-gray-700 ml-1">{displayInfo.city_tier}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Specific Location */}
+                        <div className="relative flex items-start ml-2">
+                            <div className="absolute -left-2 mt-1.5">
+                                <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                            </div>
+                            <div className="ml-6">
+                                <div className="text-purple-500 font-medium">
+                                    具体位置：<span className="text-gray-700 ml-1">{displayInfo.specific_location}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Occupation Type */}
+                        <div className="relative flex items-start ml-2">
+                            <div className="absolute -left-2 mt-1.5">
+                                <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                            </div>
+                            <div className="ml-6">
+                                <div className="text-purple-500 font-medium">
+                                    职业类型：<span className="text-gray-700 ml-1">{displayInfo.occupation_type}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Marital Status */}
+                        <div className="relative flex items-start ml-2">
+                            <div className="absolute -left-2 mt-1.5">
+                                <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                            </div>
+                            <div className="ml-6">
+                                <div className="text-purple-500 font-medium">
+                                    婚姻状况：<span className="text-gray-700 ml-1">{displayInfo.marital_status}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Family Structure */}
+                        <div className="relative flex items-start ml-2">
+                            <div className="absolute -left-2 mt-1.5">
+                                <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                            </div>
+                            <div className="ml-6">
+                                <div className="text-purple-500 font-medium">
+                                    家庭结构：<span className="text-gray-700 ml-1">{displayInfo.family_structure}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Income Level */}
+                        <div className="relative flex items-start ml-2">
+                            <div className="absolute -left-2 mt-1.5">
+                                <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                            </div>
+                            <div className="ml-6">
+                                <div className="text-purple-500 font-medium">
+                                    估计收入水平：<span className="text-gray-700 ml-1">{displayInfo.income_level_estimated}</span>
                                 </div>
                             </div>
                         </div>

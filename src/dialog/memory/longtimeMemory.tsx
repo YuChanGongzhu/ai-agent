@@ -15,9 +15,6 @@ const LongtimeMemory: React.FC<LongtimeMemoryProps> = ({ memories, className = '
     <div className={`bg-white rounded-lg p-4 border ${className} h-[35vh] overflow-y-auto`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-medium">对话总结</h2>
-        <button className="text-gray-400 hover:text-gray-600">
-          <span className="text-xl">...</span>
-        </button>
       </div>
       
       <div className="relative">
