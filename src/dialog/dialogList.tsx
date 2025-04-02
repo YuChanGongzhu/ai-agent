@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 
-import { RoomListMessage } from '../api/mysql';
+import { RoomListMessage, getTokenUsageApi } from '../api/mysql';
 import { getMessageContent } from '../utils/messageTypes';
 
 interface AvatarData {
@@ -13,7 +13,7 @@ interface AvatarData {
 
 interface DialogListProps {
     dialogs?: RoomListMessage[];
-    onSelectDialog?: (dialog: RoomListMessage) => void;
+    onSelectDialog?: (dialog: RoomListMessage, tokenUsage?: number) => void;
     isLoading?: boolean;
     avatarList?: AvatarData[];
     humanList?: string[];
@@ -94,12 +94,34 @@ export const DialogList: React.FC<DialogListProps> = ({
         return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleDialogClick = (dialog: RoomListMessage) => {
+    const handleDialogClick = async (dialog: RoomListMessage) => {
         setSelectedId(dialog.msg_id);
         
-        // Pass the dialog to the parent without modification
-        // The DialogPage now gets AI settings directly from parent
-        onSelectDialog?.(dialog);
+        // Fetch token usage for this dialog
+        try {
+            console.log(`获取Token用量: wxid=${dialog.wx_user_id}, roomid=${dialog.room_id}`);
+            const result = await getTokenUsageApi({
+                token_source_platform: 'wx_chat',
+                wx_user_id: dialog.wx_user_id,
+                room_id: dialog.room_id
+            });
+            
+            // 确保我们获取到了正确的 sum_token 值
+            let tokenUsage = 0;
+            if (result.code === 0 && result.sum && typeof result.sum.sum_token === 'number') {
+                tokenUsage = result.sum.sum_token;
+                console.log(`成功获取token用量: ${tokenUsage}`);
+            } else {
+                console.warn('Token用量数据格式不正确:', result);
+            }
+            
+            // Pass the dialog and token usage to the parent
+            onSelectDialog?.(dialog, tokenUsage);
+        } catch (error) {
+            console.error('获取Token用量失败:', error);
+            // If token fetch fails, still pass the dialog to parent
+            onSelectDialog?.(dialog, 0);
+        }
     };
 
     const filteredDialogs = dialogs.filter(dialog =>

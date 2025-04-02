@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 
-import { RoomListMessage, getChatMessagesApi, ChatMessage } from '../api/mysql';
+import { RoomListMessage, getChatMessagesApi, ChatMessage, getTokenUsageApi } from '../api/mysql';
 import { WxAccount, sendChatMessageApi, getAIReplyListApi, postAIReplyListApi, updateWxHumanListApi, getDisableAIReplyListApi, postDisableAIReplyListApi } from '../api/airflow';
 import { MessageContent } from '../components/MessageContent';
 import { getMessageContent } from '../utils/messageTypes';
@@ -26,6 +26,8 @@ interface DialogPageProps {
     disabledRooms?: string[];
     onEnabledRoomsChange?: (rooms: string[]) => void;
     onDisabledRoomsChange?: (rooms: string[]) => void;
+    // Token usage props
+    initialTokenUsage?: number;
 }
 
 interface Message {
@@ -145,10 +147,13 @@ export const DialogPage: React.FC<DialogPageProps> = ({
     enabledRooms = [],
     disabledRooms = [],
     onEnabledRoomsChange,
-    onDisabledRoomsChange
+    onDisabledRoomsChange,
+    initialTokenUsage = 0
 }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [tokenUsage, setTokenUsage] = useState<number>(initialTokenUsage);
+    const [isLoadingToken, setIsLoadingToken] = useState<boolean>(false);
     const [isFetchingHistory, setIsFetchingHistory] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [isAIEnabled, setIsAIEnabled] = useState(true);
@@ -173,6 +178,32 @@ export const DialogPage: React.FC<DialogPageProps> = ({
             setNotification({ show: false, message: '', type: 'success' });
         }, 3000);
     };
+    
+    // Function to refresh token usage
+    const refreshTokenUsage = async () => {
+        if (!conversation) return;
+        
+        setIsLoadingToken(true);
+        try {
+            const result = await getTokenUsageApi({
+                token_source_platform: 'wx_chat',
+                wx_user_id: conversation.wx_user_id,
+                room_id: conversation.room_id
+            });
+            
+            if (result.code === 0 && result.sum) {
+                setTokenUsage(result.sum.sum_token);
+                showNotification('Token用量已更新', 'success');
+            } else {
+                showNotification(`获取Token用量失败: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('获取Token用量失败:', error);
+            showNotification('获取Token用量失败', 'error');
+        } finally {
+            setIsLoadingToken(false);
+        }
+    };
 
     useEffect(() => {
         if (conversation) {
@@ -188,6 +219,13 @@ export const DialogPage: React.FC<DialogPageProps> = ({
         if (messages.length === 0) return;
         scrollToBottom();
     }, [messages]);
+    
+    // 监听 initialTokenUsage 的变化并更新 tokenUsage 状态
+    useEffect(() => {
+        console.log(`检测到 initialTokenUsage 变化: ${initialTokenUsage}`);
+        // 直接设置 tokenUsage 为 initialTokenUsage
+        setTokenUsage(initialTokenUsage);
+    }, [initialTokenUsage]);
 
     // Function to determine if AI should be enabled for this conversation
     const updateAIEnabledState = (conv: RoomListMessage) => {
@@ -349,7 +387,23 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
                         {(conversation.room_name || conversation.sender_name || 'Chat').charAt(0).toUpperCase()}
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900">{conversation.room_name || conversation.sender_name || 'Chat'}</h3>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <span>Token用量: {tokenUsage}</span>
+                            <button
+                                onClick={refreshTokenUsage}
+                                disabled={isLoadingToken}
+                                className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors duration-200 flex items-center"
+                            >
+                                {isLoadingToken ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    '刷新'
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div className="flex items-center space-x-2">
                     {humanList.includes(conversation.room_id) && (

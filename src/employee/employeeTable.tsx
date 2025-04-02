@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WxAccount, ConfigKey, updateWxDifyReplyApi, updateWxDifyGroupReplyApi } from '../api/airflow';
 import { useWxAccount } from '../context/WxAccountContext';
 import { useUser } from '../context/UserContext';
+import { getTokenUsageApi } from '../api/mysql';
 
 export const EmployeeTable: React.FC = () => {
     const navigate = useNavigate();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isUpdating, setIsUpdating] = useState<{[key: string]: boolean}>({});
     const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+    const [tokenUsage, setTokenUsage] = useState<{[key: string]: number}>({});
+    const [isLoadingTokens, setIsLoadingTokens] = useState<{[key: string]: boolean}>({});
     
     const { filteredWxAccountList, isLoading, refreshWxAccounts } = useWxAccount();
 
@@ -61,6 +64,50 @@ export const EmployeeTable: React.FC = () => {
         }
     };
 
+    const fetchTokenUsage = async (wxId: string) => {
+        setIsLoadingTokens(prev => ({ ...prev, [wxId]: true }));
+        try {
+            console.log('Fetching token usage for:', wxId);
+            const params = {
+                token_source_platform: 'wx_chat',
+                wx_user_id: wxId,
+            };
+            console.log('Request params:', params);
+            const result = await getTokenUsageApi(params);
+            
+            console.log('Token usage API response:', result);
+            if (result.code === 0 && result.sum) {
+                setTokenUsage(prev => ({
+                    ...prev,
+                    [wxId]: result.sum.sum_token
+                }));
+                showNotification(`${wxId} token用量已更新`, 'success');
+            } else {
+                showNotification(`获取token用量失败: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('获取token用量失败:', error);
+            showNotification('获取token用量失败', 'error');
+        } finally {
+            setIsLoadingTokens(prev => ({ ...prev, [wxId]: false }));
+        }
+    };
+    
+    const fetchAllTokenUsage = async () => {
+        if (filteredWxAccountList.length === 0) return;
+        
+        for (const account of filteredWxAccountList) {
+            await fetchTokenUsage(account.wxid);
+        }
+    };
+    
+    // 组件加载时获取所有微信账号的token用量
+    useEffect(() => {
+        if (filteredWxAccountList.length > 0) {
+            fetchAllTokenUsage();
+        }
+    }, [filteredWxAccountList]);
+    
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
@@ -120,6 +167,7 @@ export const EmployeeTable: React.FC = () => {
                                 <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信名称</th>
                                 <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">手机号</th>
                                 <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">行业</th>
+                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">Token用量</th>
                                 {isAdmin && (
                                     <>
                                         <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">私聊API</th>
@@ -141,6 +189,22 @@ export const EmployeeTable: React.FC = () => {
                                     <td className="py-2 px-1 text-base">{wxAccount.name}</td>
                                     <td className="py-2 px-1 text-base">{wxAccount.mobile || '-'}</td>
                                     <td className="py-2 px-1 text-base">医美</td>
+                                    <td className="py-2 px-1 text-base">
+                                        <div className="flex items-center space-x-2">
+                                            <span>{tokenUsage[wxAccount.wxid] || 0}</span>
+                                            <button
+                                                onClick={() => fetchTokenUsage(wxAccount.wxid)}
+                                                disabled={isLoadingTokens[wxAccount.wxid]}
+                                                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                                            >
+                                                {isLoadingTokens[wxAccount.wxid] ? (
+                                                    <span className="loading loading-spinner loading-xs"></span>
+                                                ) : (
+                                                    '重新获取'
+                                                )}
+                                            </button>
+                                        </div>
+                                    </td>
                                     {isAdmin && (
                                         <>
                                             <td className="py-2 px-1">

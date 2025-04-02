@@ -2,6 +2,7 @@ const roomMsgListUrl = process.env.REACT_APP_GET_ROOM_MSG_LIST;
 const roomListUrl = process.env.REACT_APP_GET_ROOM_LIST;
 const roomMpListUrl = process.env.REACT_APP_GET_MP_ROOM_LIST;
 const roomMpMsgListUrl = process.env.REACT_APP_GET_MP_ROOM_MSG_LIST;
+const tokenUsageUrl = process.env.REACT_APP_GET_CHAT_TOKEN;
 
 export interface ChatMessage {
     msg_id: string;
@@ -235,6 +236,95 @@ export const getMpChatMessageApi = async (params: {
         console.error('Error fetching WeChat public account chat messages:', error);
         throw error;
     }
+};
+
+/**
+ * Interface for token usage record
+ */
+export interface TokenUsageRecord {
+  id: string;
+  token_source_platform: string;
+  wx_user_id: string;
+  wx_user_name?: string;
+  room_id?: string;
+  room_name?: string;
+  model_name?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  unit_price?: number;
+  total_price?: number;
+  created_at: string;
+  updated_at?: string;
+  [key: string]: any; // For any other fields that might be returned
+}
+
+/**
+ * Interface for token usage response
+ */
+export interface TokenUsageResponse {
+  code: number;
+  message: string;
+  data: {
+    total: number;
+    records: TokenUsageRecord[];
+    limit: number;
+    offset: number;
+  };
+  sum: {
+    sum_token: number;
+    sum_price: string;
+  };
+}
+
+/**
+ * Retrieves token usage records with optional filtering
+ */
+export const getTokenUsageApi = async (params: {
+  token_source_platform: string;
+  wx_user_id: string;
+  room_id?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<TokenUsageResponse> => {
+  try {
+    if (!params || !params.token_source_platform) {
+      throw new Error('Missing required parameter: token_source_platform');
+    }
+    
+    if (!params.wx_user_id) {
+      throw new Error('Missing required parameter: wx_user_id');
+    }
+
+    const queryParams = new URLSearchParams();
+    
+    queryParams.append('token_source_platform', params.token_source_platform);
+    queryParams.append('wx_user_id', params.wx_user_id);
+    
+    if (params.room_id) queryParams.append('room_id', params.room_id);
+    if (params.start_time) queryParams.append('start_time', params.start_time);
+    if (params.end_time) queryParams.append('end_time', params.end_time);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+    
+    const baseUrl = tokenUsageUrl || '';
+    const url = queryParams.toString()
+      ? `${baseUrl}?${queryParams.toString()}`
+      : baseUrl;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch token usage records');
+    }
+    
+    return await response.json() as TokenUsageResponse;
+  } catch (error) {
+    console.error('Error fetching token usage records:', error);
+    throw error;
+  }
 };
 
 const chatSummaryUrl = process.env.REACT_APP_GET_CHAT_SUMMARY;

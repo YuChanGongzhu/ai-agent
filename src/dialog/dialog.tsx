@@ -29,6 +29,7 @@ export const Dialog = () => {
     const [selectedConversation, setSelectedConversation] = useState<RoomListMessage | null>(null);
     const [selectedAccount, setSelectedAccount] = useState<WxAccount | null>(null);
     const [messageCount, setMessageCount] = useState<string>('');
+    const [currentTokenUsage, setCurrentTokenUsage] = useState<number>(0);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const [singleChatEnabled, setSingleChatEnabled] = useState(false);
     const [groupChatEnabled, setGroupChatEnabled] = useState(false);
@@ -342,7 +343,10 @@ export const Dialog = () => {
                             <div className="h-full w-full">
                                 <DialogList
                                     dialogs={conversations}
-                                    onSelectDialog={setSelectedConversation}
+                                    onSelectDialog={(dialog, tokenUsage) => {
+                                        setSelectedConversation(dialog);
+                                        setCurrentTokenUsage(tokenUsage || 0);
+                                    }}
                                     isLoading={isLoadingConversations}
                                     avatarList={avatarList}
                                     humanList={humanList}
@@ -373,6 +377,7 @@ export const Dialog = () => {
                                 disabledRooms={disabledRooms}
                                 onEnabledRoomsChange={setEnabledRooms}
                                 onDisabledRoomsChange={setDisabledRooms}
+                                initialTokenUsage={currentTokenUsage}
                             />
                         </div>
                     </>
