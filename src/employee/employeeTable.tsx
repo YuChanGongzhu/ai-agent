@@ -118,18 +118,18 @@ export const EmployeeTable: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg text p-2 m-2 relative">  
+        <div className="bg-white rounded-lg shadow-lg p-2 m-2 relative">  
             {notification && (
-                <div className={`absolute top-2 right-2 px-4 py-2 rounded shadow-md ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-md ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {notification.message}
                 </div>
             )}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
                 <h2 className="text-xl font-semibold text-gray-700">微信账号列表</h2>
                 <button 
                     onClick={handleRefresh}
                     disabled={isLoading || isRefreshing}
-                    className="px-4 py-2 bg-[rgba(108,93,211,1)] text-white rounded-lg hover:bg-[rgba(108,93,211,0.9)] focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,0.5)] focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                    className="w-full md:w-auto px-4 py-2 bg-[rgba(108,93,211,1)] text-white rounded-lg hover:bg-[rgba(108,93,211,0.9)] focus:outline-none focus:ring-2 focus:ring-[rgba(108,93,211,0.5)] focus:ring-opacity-50 transition-colors duration-200 flex items-center justify-center md:justify-start"
                 >
                     {isRefreshing ? (
                         <>
@@ -153,112 +153,213 @@ export const EmployeeTable: React.FC = () => {
                     <span className="ml-3 text-x s text-gray-600">加载中...</span>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <div>
                     {filteredWxAccountList.length === 0 ? (
                         <div className="text-center py-10">
                             <p className="text-gray-500 mb-2">没有可显示的微信账号</p>
                             <p className="text-sm text-gray-400">请联系管理员获取微信账号访问权限</p>
                         </div>
                     ) : (
-                    <table className="table w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信头像</th>
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信名称</th>
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">手机号</th>
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">行业</th>
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">Token用量</th>
-                                {isAdmin && (
-                                    <>
-                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">私聊API</th>
-                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">群聊API</th>
-                                    </>
-                                )}
-                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">员工编辑</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredWxAccountList.map((wxAccount, index) => (
-                                <tr key={index} className=" border-gray-100">
-                                    <td className="py-2 px-1">
-                                        <div className="avatar">
-                                            <div className="w-8 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
-                                        </div>
-                                    </td>
+                    <>
+                        {/* Desktop Table View - Hidden on Mobile */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="table w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信头像</th>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信名称</th>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">手机号</th>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">行业</th>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">Token用量</th>
+                                        {isAdmin && (
+                                            <>
+                                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">私聊API</th>
+                                                <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">群聊API</th>
+                                            </>
+                                        )}
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">员工编辑</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredWxAccountList.map((wxAccount, index) => (
+                                        <tr key={index} className="border-b border-gray-100">
+                                            <td className="py-2 px-1">
+                                                <div className="avatar">
+                                                    <div className="w-8 rounded-full"><img src={wxAccount.small_head_url} alt={wxAccount.name} /></div>
+                                                </div>
+                                            </td>
 
-                                    <td className="py-2 px-1 text-base">{wxAccount.name}</td>
-                                    <td className="py-2 px-1 text-base">{wxAccount.mobile || '-'}</td>
-                                    <td className="py-2 px-1 text-base">医美</td>
-                                    <td className="py-2 px-1 text-base">
-                                        <div className="flex items-center space-x-2">
-                                            <span>{tokenUsage[wxAccount.wxid] || 0}</span>
+                                            <td className="py-2 px-1 text-base">{wxAccount.name}</td>
+                                            <td className="py-2 px-1 text-base">{wxAccount.mobile || '-'}</td>
+                                            <td className="py-2 px-1 text-base">医美</td>
+                                            <td className="py-2 px-1 text-base">
+                                                <div className="flex items-center space-x-2">
+                                                    <span>{tokenUsage[wxAccount.wxid] || 0}</span>
+                                                    <button
+                                                        onClick={() => fetchTokenUsage(wxAccount.wxid)}
+                                                        disabled={isLoadingTokens[wxAccount.wxid]}
+                                                        className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                                                    >
+                                                        {isLoadingTokens[wxAccount.wxid] ? (
+                                                            <span className="loading loading-spinner loading-xs"></span>
+                                                        ) : (
+                                                            '重新获取'
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            {isAdmin && (
+                                                <>
+                                                    <td className="py-2 px-1">
+                                                        <div className="relative">
+                                                            <select 
+                                                                className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
+                                                                onChange={(e) => handleUpdatePrivateApi(wxAccount, e.target.value)}
+                                                                disabled={isUpdating[wxAccount.wxid + '_private']}
+                                                            >
+                                                                <option value="">选择API</option>
+                                                                {Object.entries(configOptions).map(([key, value]) => (
+                                                                    <option key={key} value={key}>{value}</option>
+                                                                ))}
+                                                            </select>
+                                                            {isUpdating[wxAccount.wxid + '_private'] && (
+                                                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                                                    <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-2 px-1">
+                                                        <div className="relative">
+                                                            <select 
+                                                                className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
+                                                                onChange={(e) => handleUpdateGroupApi(wxAccount, e.target.value)}
+                                                                disabled={isUpdating[wxAccount.wxid + '_group']}
+                                                            >
+                                                                <option value="">选择API</option>
+                                                                {Object.entries(configOptions).map(([key, value]) => (
+                                                                    <option key={key} value={key}>{value}</option>
+                                                                ))}
+                                                            </select>
+                                                            {isUpdating[wxAccount.wxid + '_group'] && (
+                                                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                                                    <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            )}
+                                            <td className="py-2 px-1">
+                                                <button
+                                                    onClick={() => handleEdit(wxAccount)}
+                                                    className="text-[rgba(108,93,211,1)] hover:text-[rgba(108,93,211,0.8)] text-base font-medium"
+                                                >
+                                                    编辑
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden">
+                            <div className="space-y-4">
+                                {filteredWxAccountList.map((wxAccount, index) => (
+                                    <div key={index} className="bg-white rounded-lg shadow p-4 border-l-4 border-[rgba(108,93,211,1)]">
+                                        <div className="flex items-center mb-3">
+                                            <div className="avatar mr-3">
+                                                <div className="w-12 rounded-full">
+                                                    <img src={wxAccount.small_head_url} alt={wxAccount.name} />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-medium text-lg">{wxAccount.name}</h3>
+                                                <p className="text-gray-600">{wxAccount.mobile || '-'}</p>
+                                            </div>
                                             <button
-                                                onClick={() => fetchTokenUsage(wxAccount.wxid)}
-                                                disabled={isLoadingTokens[wxAccount.wxid]}
-                                                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+                                                onClick={() => handleEdit(wxAccount)}
+                                                className="ml-auto bg-[rgba(108,93,211,0.1)] text-[rgba(108,93,211,1)] px-3 py-1 rounded-lg font-medium"
                                             >
-                                                {isLoadingTokens[wxAccount.wxid] ? (
-                                                    <span className="loading loading-spinner loading-xs"></span>
-                                                ) : (
-                                                    '重新获取'
-                                                )}
+                                                编辑
                                             </button>
                                         </div>
-                                    </td>
-                                    {isAdmin && (
-                                        <>
-                                            <td className="py-2 px-1">
-                                                <div className="relative">
-                                                    <select 
-                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
-                                                        onChange={(e) => handleUpdatePrivateApi(wxAccount, e.target.value)}
-                                                        disabled={isUpdating[wxAccount.wxid + '_private']}
+                                        
+                                        <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div className="bg-gray-50 p-2 rounded">
+                                                <span className="text-gray-500 text-xs block">行业</span>
+                                                <span className="font-medium">医美</span>
+                                            </div>
+                                            <div className="bg-gray-50 p-2 rounded">
+                                                <span className="text-gray-500 text-xs block">Token用量</span>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="font-medium">{tokenUsage[wxAccount.wxid] || 0}</span>
+                                                    <button
+                                                        onClick={() => fetchTokenUsage(wxAccount.wxid)}
+                                                        disabled={isLoadingTokens[wxAccount.wxid]}
+                                                        className="text-xs bg-blue-500 text-white rounded p-1 flex items-center"
                                                     >
-                                                        <option value="">选择API</option>
-                                                        {Object.entries(configOptions).map(([key, value]) => (
-                                                            <option key={key} value={key}>{value}</option>
-                                                        ))}
-                                                    </select>
-                                                    {isUpdating[wxAccount.wxid + '_private'] && (
-                                                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                                                            <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
-                                                        </div>
-                                                    )}
+                                                        {isLoadingTokens[wxAccount.wxid] ? (
+                                                            <span className="loading loading-spinner loading-xs"></span>
+                                                        ) : (
+                                                            '获取'
+                                                        )}
+                                                    </button>
                                                 </div>
-                                            </td>
-                                            <td className="py-2 px-1">
-                                                <div className="relative">
-                                                    <select 
-                                                        className="w-full py-1 px-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
-                                                        onChange={(e) => handleUpdateGroupApi(wxAccount, e.target.value)}
-                                                        disabled={isUpdating[wxAccount.wxid + '_group']}
-                                                    >
-                                                        <option value="">选择API</option>
-                                                        {Object.entries(configOptions).map(([key, value]) => (
-                                                            <option key={key} value={key}>{value}</option>
-                                                        ))}
-                                                    </select>
-                                                    {isUpdating[wxAccount.wxid + '_group'] && (
-                                                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                                                            <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
-                                                        </div>
-                                                    )}
+                                            </div>
+                                        </div>
+
+                                        {isAdmin && (
+                                            <div className="space-y-2 mt-3 pt-3 border-t border-gray-100">
+                                                <div>
+                                                    <label className="text-xs text-gray-500 block mb-1">私聊API</label>
+                                                    <div className="relative">
+                                                        <select 
+                                                            className="w-full py-2 px-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
+                                                            onChange={(e) => handleUpdatePrivateApi(wxAccount, e.target.value)}
+                                                            disabled={isUpdating[wxAccount.wxid + '_private']}
+                                                        >
+                                                            <option value="">选择API</option>
+                                                            {Object.entries(configOptions).map(([key, value]) => (
+                                                                <option key={key} value={key}>{value}</option>
+                                                            ))}
+                                                        </select>
+                                                        {isUpdating[wxAccount.wxid + '_private'] && (
+                                                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                                                <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </td>
-                                        </>
-                                    )}
-                                    <td className="py-2 px-1">
-                                        <button
-                                            onClick={() => handleEdit(wxAccount)}
-                                            className="text-[rgba(108,93,211,1)] hover:text-[rgba(108,93,211,0.8)] text-base font-medium"
-                                        >
-                                            编辑
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                                <div>
+                                                    <label className="text-xs text-gray-500 block mb-1">群聊API</label>
+                                                    <div className="relative">
+                                                        <select 
+                                                            className="w-full py-2 px-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[rgba(108,93,211,1)]"
+                                                            onChange={(e) => handleUpdateGroupApi(wxAccount, e.target.value)}
+                                                            disabled={isUpdating[wxAccount.wxid + '_group']}
+                                                        >
+                                                            <option value="">选择API</option>
+                                                            {Object.entries(configOptions).map(([key, value]) => (
+                                                                <option key={key} value={key}>{value}</option>
+                                                            ))}
+                                                        </select>
+                                                        {isUpdating[wxAccount.wxid + '_group'] && (
+                                                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                                                <div className="w-4 h-4 border-2 border-[rgba(108,93,211,1)] border-t-transparent rounded-full animate-spin"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </>
                     )}
                 </div>
             )}
