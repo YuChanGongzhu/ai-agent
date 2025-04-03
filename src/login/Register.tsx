@@ -39,8 +39,25 @@ interface Industry {
 const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [industries, setIndustries] = useState<Industry[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   // 获取行业列表
   useEffect(() => {
@@ -236,11 +253,17 @@ const Register: React.FC = () => {
       justifyContent: 'center', 
       alignItems: 'center', 
       minHeight: '100vh',
-      background: '#f0f2f5'
+      background: '#f0f2f5',
+      padding: isMobile ? '16px' : '24px'
     }}>
-      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2}>注册账号</Title>
+      <Card style={{ 
+        width: isMobile ? '100%' : 400, 
+        maxWidth: '100%',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+        marginBottom: isMobile ? '16px' : '24px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? 16 : 24 }}>
+          <Title level={isMobile ? 3 : 2}>注册账号</Title>
         </div>
         
         <Form
@@ -249,6 +272,7 @@ const Register: React.FC = () => {
           onFinish={onFinish}
           autoComplete="off"
           layout="vertical"
+          size={isMobile ? 'middle' : 'large'}
         >
           <Form.Item
             name="email"
@@ -263,7 +287,7 @@ const Register: React.FC = () => {
             <Input 
               prefix={<UserOutlined />} 
               placeholder="邮箱" 
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -277,7 +301,7 @@ const Register: React.FC = () => {
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="设置密码"
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -292,7 +316,7 @@ const Register: React.FC = () => {
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="确认密码"
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -304,7 +328,7 @@ const Register: React.FC = () => {
           >
             <Select
               placeholder="请选择行业"
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
               loading={industries.length === 0}
               style={{ width: '100%' }}
             >
@@ -328,7 +352,7 @@ const Register: React.FC = () => {
             <Input
               prefix={<KeyOutlined />}
               placeholder="邀请码"
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -338,7 +362,7 @@ const Register: React.FC = () => {
               htmlType="submit" 
               loading={loading}
               block
-              size="large"
+              size={isMobile ? 'middle' : 'large'}
               style={{ backgroundColor: 'rgba(108, 93, 211, 1)', borderColor: 'rgba(108, 93, 211, 1)' }}
             >
               注册
@@ -356,15 +380,17 @@ const Register: React.FC = () => {
       
       {/* Contact Information Footer */}
       <div style={{ 
-        width: '400px', 
+        width: isMobile ? '100%' : '400px', 
         backgroundColor: 'rgba(108, 93, 211, 1)', 
         color: 'white', 
-        padding: '16px 32px',
+        padding: isMobile ? '12px 16px' : '16px 32px',
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: '32px',
-        borderRadius: '0 0 8px 8px'
+        gap: isMobile ? '8px' : '32px',
+        borderRadius: '0 0 8px 8px',
+        fontSize: isMobile ? '12px' : '14px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>电话: 19864781028</span>
