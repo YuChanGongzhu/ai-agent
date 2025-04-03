@@ -330,8 +330,8 @@ export const Dialog = () => {
                         {/* Mobile dropdown selector */}
                         {isMobile ? (
                             <div className="space-y-3">
-                                {/* Combined accounts dropdown */}
-                                {(filteredWxAccountList.length > 0 || (isAdmin && wxMpAccountList.length > 0)) && (
+                                {/* Combined accounts dropdown - only shown on list view */}
+                                {mobileView === 'list' && (filteredWxAccountList.length > 0 || (isAdmin && wxMpAccountList.length > 0)) && (
                                     <Menu as="div" className="relative">
                                         <div>
                                             <Menu.Button className="w-full flex justify-center items-center px-4 py-3 bg-white rounded-lg shadow-md border border-gray-100">
