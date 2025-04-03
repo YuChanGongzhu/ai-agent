@@ -41,11 +41,11 @@ export const EmployeeEdit: React.FC = () => {
     }, [wxAccount]);
 
     return (
-        <div className="p-2 mt-1 h-[90vh]">
-            <div className="flex items-center space-x-4">
+        <div className="p-2 mt-1 min-h-screen overflow-x-hidden">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <button
                     onClick={handleReturn}
-                    className="btn btn-outline btn-sm text-[rgba(108,93,211,1)] border-[rgba(108,93,211,1)] hover:bg-[rgba(108,93,211,1)] hover:text-white"
+                    className="btn btn-outline btn-sm text-[rgba(108,93,211,1)] border-[rgba(108,93,211,1)] hover:bg-[rgba(108,93,211,1)] hover:text-white touch-manipulation"
                 >
                     <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -60,42 +60,44 @@ export const EmployeeEdit: React.FC = () => {
                             alt={wxAccount?.name || wxid} />
                     </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">{wxAccount?.name || wxid}</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate max-w-[50vw]">{wxAccount?.name || wxid}</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                     <EmployeeChoice wxAccount={wxAccount} selectedConfig={selectedConfig} setSelectedConfig={setSelectedConfig}/>
                     {/* <EmployeeConfig wxAccount={wxAccount} prompt={prompt} setPrompt={setPrompt} /> */}
                     
                     {/* 文件管理和素材上传 Tab */}
                     <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                        <div className="flex border-b border-gray-200">
+                        <div className="flex flex-wrap border-b border-gray-200">
                             <button
                                 onClick={() => setActiveTab('fileManager')}
-                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'fileManager' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium touch-manipulation ${activeTab === 'fileManager' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                <div className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <div className="flex items-center justify-center sm:justify-start">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                     </svg>
-                                    文件管理
+                                    <span className="hidden sm:inline">文件管理</span>
+                                    <span className="sm:hidden">文件</span>
                                 </div>
                             </button>
                             <button
                                 onClick={() => setActiveTab('materialUpload')}
-                                className={`px-6 py-3 text-sm font-medium ${activeTab === 'materialUpload' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium touch-manipulation ${activeTab === 'materialUpload' ? 'text-[rgba(108,93,211,1)] border-b-2 border-[rgba(108,93,211,1)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                <div className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <div className="flex items-center justify-center sm:justify-start">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
-                                    知识库管理
+                                    <span className="hidden sm:inline">知识库管理</span>
+                                    <span className="sm:hidden">知识库</span>
                                 </div>
                             </button>
                         </div>
                         
-                        <div>
+                        <div className="overflow-x-auto">
                             {activeTab === 'fileManager' ? (
                                 <FileManager wxAccount={wxAccount} />
                             ) : (
@@ -104,7 +106,7 @@ export const EmployeeEdit: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div>
+                <div className="mt-4 md:mt-0">
                     <EffectTest wxAccount={wxAccount} prompt={prompt} selectedConfig={selectedConfig} />
                 </div>
             </div>
