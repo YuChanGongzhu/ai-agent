@@ -3,8 +3,9 @@ import { DialogPage } from './dialogPage';
 import { WxMpDialogList } from './wxMpDialogList';
 import { WxMpDialogPage } from './wxMpDialogPage';
 import Memory from './memory';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Fragment } from 'react';
 import { getUserMsgCountApi, WxAccount, WxMpAccount, getWxCountactHeadListApi, getWxHumanListApi, getWxAccountSingleChatApi, getWxAccountGroupChatApi, updateWxAccountSingleChatApi, updateWxAccountGroupChatApi, getAIReplyListApi, getDisableAIReplyListApi, getWxMpAccountListApi } from '../api/airflow';
+import { Menu, Transition } from '@headlessui/react';
 import { getRoomListMessagesApi, RoomListMessage, getMpRoomListApi, MpRoomListMessage } from '../api/mysql';
 import { useWxAccount } from '../context/WxAccountContext';
 import { useUser } from '../context/UserContext';
@@ -43,6 +44,32 @@ export const Dialog = () => {
     const [isLoadingMpAccounts, setIsLoadingMpAccounts] = useState(false);
     const [selectedMpAccount, setSelectedMpAccount] = useState<WxMpAccount | null>(null);
     const [mpConversations, setMpConversations] = useState<MpRoomListMessage[]>([]);
+    
+    // Mobile UI state
+    const [isMobile, setIsMobile] = useState(false);
+    const [mobileView, setMobileView] = useState<'list' | 'detail' | 'memory'>('list');
+    const [previousView, setPreviousView] = useState<'list' | 'detail'>('detail');
+    
+    // Check for mobile viewport
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+        };
+    }, []);
+    
+    // Reset mobile view to list when device changes from mobile to desktop
+    useEffect(() => {
+        if (!isMobile) {
+            setMobileView('list');
+        }
+    }, [isMobile]);
     const [selectedMpConversation, setSelectedMpConversation] = useState<MpRoomListMessage | null>(null);
     const [isLoadingMpConversations, setIsLoadingMpConversations] = useState(false);
     const [viewMode, setViewMode] = useState<'regular' | 'mp'>('regular'); // Toggle between regular and MP view
@@ -300,52 +327,164 @@ export const Dialog = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Regular WeChat accounts */}
-                        {filteredWxAccountList.length > 0 && filteredWxAccountList.map((account) => (
-                        <div key={account.wxid} className="relative mb-2">
-                            <button
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                                onClick={() => handleWxAccountClick(account)}>
-                                <span>{account.name}</span>
-                                <span
-                                    className={`ml-2 w-6 h-6 rounded-full ${selectedAccount?.name === account.name ? 'bg-white text-purple-600' : 'bg-purple-600 text-white'} flex items-center justify-center text-xs`}
-                                >AI</span>
-                            </button>
-                        </div>
-                    ))}
-                    
-                    {/* MP Account buttons - visible to admins */}
-                    {isAdmin && wxMpAccountList.length > 0 && (
-                        <div className="flex flex-wrap ml-2">
-                            {wxMpAccountList.map((mpAccount) => (
-                                <div key={mpAccount.gh_user_id} className="mb-2 mr-2">
+                        {/* Mobile dropdown selector */}
+                        {isMobile ? (
+                            <div className="space-y-3">
+                                {/* Combined accounts dropdown */}
+                                {(filteredWxAccountList.length > 0 || (isAdmin && wxMpAccountList.length > 0)) && (
+                                    <Menu as="div" className="relative">
+                                        <div>
+                                            <Menu.Button className="w-full flex justify-center items-center px-4 py-3 bg-white rounded-lg shadow-md border border-gray-100">
+                                                <span className="block text-center font-medium">
+                                                    {selectedAccount ? (
+                                                        <span className="text-purple-600">{selectedAccount.name}</span>
+                                                    ) : selectedMpAccount ? (
+                                                        <span className="text-green-600">{selectedMpAccount.name}</span>
+                                                    ) : (
+                                                        <span className="text-gray-600">选择账号</span>
+                                                    )}
+                                                </span>
+                                            </Menu.Button>
+                                        </div>
+                                        <Transition
+                                            as={Fragment}
+                                            enter="transition ease-out duration-100"
+                                            enterFrom="transform opacity-0 scale-95"
+                                            enterTo="transform opacity-100 scale-100"
+                                            leave="transition ease-in duration-75"
+                                            leaveFrom="transform opacity-100 scale-100"
+                                            leaveTo="transform opacity-0 scale-95"
+                                        >
+                                            <Menu.Items className="absolute z-10 w-full mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                {/* Regular WeChat accounts section */}
+                                                {filteredWxAccountList.length > 0 && (
+                                                    <div className="px-1 py-1">
+                                                        {filteredWxAccountList.length > 0 && (
+                                                            <div className="px-4 py-1 text-xs text-gray-500 font-medium">微信账号</div>
+                                                        )}
+                                                        {filteredWxAccountList.map((account) => (
+                                                            <Menu.Item key={account.wxid}>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        className={`${
+                                                                            active || selectedAccount?.name === account.name ? 'bg-purple-100 text-purple-600' : 'text-gray-900'
+                                                                        } group flex items-center justify-between w-full px-4 py-3 text-sm`}
+                                                                        onClick={() => handleWxAccountClick(account)}
+                                                                    >
+                                                                        <span>{account.name}</span>
+                                                                        <span className={`w-6 h-6 rounded-full ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'} flex items-center justify-center text-xs`}>
+                                                                            AI
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* MP accounts section - visible to admins */}
+                                                {isAdmin && wxMpAccountList.length > 0 && (
+                                                    <div className="px-1 py-1">
+                                                        <div className="px-4 py-1 text-xs text-gray-500 font-medium">公众号账号</div>
+                                                        {wxMpAccountList.map((mpAccount) => (
+                                                            <Menu.Item key={mpAccount.gh_user_id}>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        className={`${
+                                                                            active || selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-green-100 text-green-600' : 'text-gray-900'
+                                                                        } group flex items-center justify-between w-full px-4 py-3 text-sm`}
+                                                                        onClick={() => handleMpAccountClick(mpAccount)}
+                                                                    >
+                                                                        <span>{mpAccount.name}</span>
+                                                                        <span className={`w-5 h-5 rounded-full ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'} flex items-center justify-center text-xs`}>
+                                                                            MP
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </Menu.Items>
+                                        </Transition>
+                                    </Menu>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Desktop view - Regular WeChat accounts */}
+                                {filteredWxAccountList.length > 0 && filteredWxAccountList.map((account) => (
+                                <div key={account.wxid} className="relative mb-2">
                                     <button
-                                        className={`flex items-center px-4 py-2 rounded-lg ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                                        onClick={() => handleMpAccountClick(mpAccount)}
-                                    >
-                                        <span>{mpAccount.name}</span>
-                                        <span 
-                                            className={`ml-2 w-5 h-5 rounded-full ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-white text-green-600' : 'bg-green-600 text-white'} flex items-center justify-center text-xs`}
-                                        >MP</span>
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${selectedAccount?.name === account.name ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                        onClick={() => handleWxAccountClick(account)}>
+                                        <span>{account.name}</span>
+                                        <span
+                                            className={`ml-2 w-6 h-6 rounded-full ${selectedAccount?.name === account.name ? 'bg-white text-purple-600' : 'bg-purple-600 text-white'} flex items-center justify-center text-xs`}
+                                        >AI</span>
                                     </button>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                ))}
+                                
+                                {/* Desktop view - MP Account buttons - visible to admins */}
+                                {isAdmin && wxMpAccountList.length > 0 && (
+                                    <div className="flex flex-wrap ml-2">
+                                        {wxMpAccountList.map((mpAccount) => (
+                                            <div key={mpAccount.gh_user_id} className="mb-2 mr-2">
+                                                <button
+                                                    className={`flex items-center px-4 py-2 rounded-lg ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                                    onClick={() => handleMpAccountClick(mpAccount)}
+                                                >
+                                                    <span>{mpAccount.name}</span>
+                                                    <span 
+                                                        className={`ml-2 w-5 h-5 rounded-full ${selectedMpAccount?.gh_user_id === mpAccount.gh_user_id ? 'bg-white text-green-600' : 'bg-green-600 text-white'} flex items-center justify-center text-xs`}
+                                                    >MP</span>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </>
                 )}
             </div>
 
-            <div className="flex space-x-6 flex-1">
-                {viewMode === 'regular' ? (
-                    <>
-                        <div className="w-[13vw] flex-shrink-0 h-[90vh]">
-                            <div className="h-full w-full">
+            <div className={`${isMobile ? '' : 'flex space-x-6'} flex-1`}>
+                {isMobile && mobileView === 'memory' ? (
+                    // Mobile Memory View
+                    <div className="w-full h-[calc(100vh-180px)] flex flex-col">
+                        <div className="p-2 bg-white mb-2 shadow-sm">
+                            <button
+                                onClick={() => setMobileView(previousView)}
+                                className="flex items-center text-blue-600 font-medium"
+                            >
+                                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                返回对话
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <Memory
+                                selectedAccount={selectedAccount}
+                                selectedConversation={selectedConversation}
+                            />
+                        </div>
+                    </div>
+                ) : viewMode === 'regular' ? (
+                    isMobile ? (
+                        mobileView === 'list' ? (
+                            // Mobile view - conversation list
+                            <div className="w-full h-[calc(100vh-180px)]">
                                 <DialogList
                                     dialogs={conversations}
                                     onSelectDialog={(dialog, tokenUsage) => {
                                         setSelectedConversation(dialog);
                                         setCurrentTokenUsage(tokenUsage || 0);
+                                        if (isMobile) {
+                                            setMobileView('detail');
+                                        }
                                     }}
                                     isLoading={isLoadingConversations}
                                     avatarList={avatarList}
@@ -362,61 +501,195 @@ export const Dialog = () => {
                                     isLoadingSettings={loadingAISettings}
                                 />
                             </div>
-                        </div>
+                        ) : (
+                            // Mobile view - conversation detail
+                            <div className="w-full h-[calc(100vh-180px)] flex flex-col">
+                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center">
+                                    <button
+                                        onClick={() => setMobileView('list')}
+                                        className="flex items-center text-purple-600 font-medium"
+                                    >
+                                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                        返回
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setPreviousView('detail');
+                                            setMobileView('memory');
+                                        }}
+                                        className="flex items-center text-purple-600 font-medium"
+                                    >
+                                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        查看记忆
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    <DialogPage
+                                        conversation={selectedConversation}
+                                        selectedAccount={selectedAccount}
+                                        avatarList={avatarList}
+                                        refreshHumanList={refreshHumanList}
+                                        humanList={humanList}
+                                        singleChatEnabled={singleChatEnabled}
+                                        groupChatEnabled={groupChatEnabled}
+                                        enabledRooms={enabledRooms}
+                                        disabledRooms={disabledRooms}
+                                        onEnabledRoomsChange={setEnabledRooms}
+                                        onDisabledRoomsChange={setDisabledRooms}
+                                        initialTokenUsage={currentTokenUsage}
+                                    />
+                                </div>
+                            </div>
+                        )
+                    ) : (
+                        // Desktop view - show all components
+                        <>
+                            <div className="w-[13vw] flex-shrink-0 h-[90vh]">
+                                <div className="h-full w-full">
+                                    <DialogList
+                                        dialogs={conversations}
+                                        onSelectDialog={(dialog, tokenUsage) => {
+                                            setSelectedConversation(dialog);
+                                            setCurrentTokenUsage(tokenUsage || 0);
+                                        }}
+                                        isLoading={isLoadingConversations}
+                                        avatarList={avatarList}
+                                        humanList={humanList}
+                                        selectedDialog={selectedConversation}
+                                        userName={selectedAccount?.name || ''}
+                                        wxid={selectedAccount?.wxid || ''}
+                                        singleChatEnabled={singleChatEnabled}
+                                        groupChatEnabled={groupChatEnabled}
+                                        enabledRooms={enabledRooms}
+                                        disabledRooms={disabledRooms}
+                                        updateSingleChatSetting={updateSingleChatSetting}
+                                        updateGroupChatSetting={updateGroupChatSetting}
+                                        isLoadingSettings={loadingAISettings}
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="h-[90vh] w-[50vw] overflow-y-auto">
-                            <DialogPage
-                                conversation={selectedConversation}
-                                selectedAccount={selectedAccount}
-                                avatarList={avatarList}
-                                refreshHumanList={refreshHumanList}
-                                humanList={humanList}
-                                singleChatEnabled={singleChatEnabled}
-                                groupChatEnabled={groupChatEnabled}
-                                enabledRooms={enabledRooms}
-                                disabledRooms={disabledRooms}
-                                onEnabledRoomsChange={setEnabledRooms}
-                                onDisabledRoomsChange={setDisabledRooms}
-                                initialTokenUsage={currentTokenUsage}
-                            />
-                        </div>
-                    </>
+                            <div className="h-[90vh] w-[50vw] overflow-y-auto">
+                                <DialogPage
+                                    conversation={selectedConversation}
+                                    selectedAccount={selectedAccount}
+                                    avatarList={avatarList}
+                                    refreshHumanList={refreshHumanList}
+                                    humanList={humanList}
+                                    singleChatEnabled={singleChatEnabled}
+                                    groupChatEnabled={groupChatEnabled}
+                                    enabledRooms={enabledRooms}
+                                    disabledRooms={disabledRooms}
+                                    onEnabledRoomsChange={setEnabledRooms}
+                                    onDisabledRoomsChange={setDisabledRooms}
+                                    initialTokenUsage={currentTokenUsage}
+                                />
+                            </div>
+                        </>
+                    )
                 ) : (
                     // MP account view
-                    <>
-                        <div className="w-[13vw] flex-shrink-0 h-[90vh]">
-                            <div className="h-full w-full">
+                    isMobile ? (
+                        mobileView === 'list' ? (
+                            // Mobile MP view - conversation list
+                            <div className="w-full h-[calc(100vh-180px)]">
                                 <WxMpDialogList
                                     dialogs={mpConversations}
-                                    onSelectDialog={setSelectedMpConversation}
+                                    onSelectDialog={(conversation) => {
+                                        setSelectedMpConversation(conversation);
+                                        if (isMobile) {
+                                            setMobileView('detail');
+                                        }
+                                    }}
                                     isLoading={isLoadingMpConversations}
                                     selectedDialog={selectedMpConversation}
                                     mpAccountName={selectedMpAccount?.name || ''}
                                     mpAccountId={selectedMpAccount?.gh_user_id || ''}
                                 />
                             </div>
-                        </div>
+                        ) : (
+                            // Mobile MP view - conversation detail
+                            <div className="w-full h-[calc(100vh-180px)] flex flex-col">
+                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center">
+                                    <button
+                                        onClick={() => setMobileView('list')}
+                                        className="flex items-center text-green-600 font-medium"
+                                    >
+                                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                        返回
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setPreviousView('detail');
+                                            setMobileView('memory');
+                                        }}
+                                        className="flex items-center text-green-600 font-medium"
+                                    >
+                                        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        查看记忆
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    <WxMpDialogPage
+                                        conversation={selectedMpConversation}
+                                        mpAccountId={selectedMpAccount?.gh_user_id || ''}
+                                        mpAccountName={selectedMpAccount?.name || ''}
+                                    />
+                                </div>
+                            </div>
+                        )
+                    ) : (
+                        // Desktop MP view - show all components
+                        <>
+                            <div className="w-[13vw] flex-shrink-0 h-[90vh]">
+                                <div className="h-full w-full">
+                                    <WxMpDialogList
+                                        dialogs={mpConversations}
+                                        onSelectDialog={(conversation) => {
+                                            setSelectedMpConversation(conversation);
+                                            if (isMobile) {
+                                                setMobileView('detail');
+                                            }
+                                        }}
+                                        isLoading={isLoadingMpConversations}
+                                        selectedDialog={selectedMpConversation}
+                                        mpAccountName={selectedMpAccount?.name || ''}
+                                        mpAccountId={selectedMpAccount?.gh_user_id || ''}
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="h-[90vh] w-[50vw] overflow-y-auto">
-                            <WxMpDialogPage
-                                conversation={selectedMpConversation}
-                                mpAccountId={selectedMpAccount?.gh_user_id || ''}
-                                mpAccountName={selectedMpAccount?.name || ''}
-                            />
-                        </div>
-                    </>
+                            <div className="h-[90vh] w-[50vw] overflow-y-auto">
+                                <WxMpDialogPage
+                                    conversation={selectedMpConversation}
+                                    mpAccountId={selectedMpAccount?.gh_user_id || ''}
+                                    mpAccountName={selectedMpAccount?.name || ''}
+                                />
+                            </div>
+                        </>
+                    )
                 )}
 
-                <div className="flex-1">
-                    <div className="h-[80vh] flex flex-col space-y-2">
-                        <div className="flex-shrink-0">
-                            <Memory
-                                selectedAccount={selectedAccount}
-                                selectedConversation={selectedConversation}
-                            />
+                {!isMobile && (
+                    <div className="flex-1">
+                        <div className="h-[80vh] flex flex-col space-y-2">
+                            <div className="flex-shrink-0">
+                                <Memory
+                                    selectedAccount={selectedAccount}
+                                    selectedConversation={selectedConversation}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
