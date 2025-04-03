@@ -13,7 +13,7 @@ export const getApiKey = (config?: string) => {
     case ConfigKey.BEAUTY:
       return process.env.REACT_APP_DIFY_API_BEAUTY;
     case ConfigKey.FINANCE:
-      return process.env.REACT_APP_DIFY_API_KEY_FINANCE;
+      return process.env.REACT_APP_DIFY_API_FINANCE;
     default:
       return process.env.REACT_APP_DIFY_API_BEAUTY;
   }
@@ -590,6 +590,8 @@ export async function sendChatMessageApi(
       response_mode: data.response_mode || 'blocking',
       inputs: data.inputs || {},
     };
+
+    console.log(config,'用的配置')
 
     if (requestData.response_mode === 'streaming' && onMessage) {
       const response = await fetch(`${BASE_URL}/chat-messages`, {

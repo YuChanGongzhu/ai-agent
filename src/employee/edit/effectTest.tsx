@@ -71,9 +71,6 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
       };
 
       await sendChatMessageApi(requestData, (event: ChatMessageStreamEvent) => {
-        // console.log('Using config:', selectedConfig);
-        // console.log('Using config:', selectedConfig);
-
         if (event.event === 'message') {
           if (event.answer) {
             currentMessageRef.current += event.answer;

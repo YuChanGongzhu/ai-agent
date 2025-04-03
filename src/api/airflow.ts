@@ -137,7 +137,7 @@ const keyMap: Record<string, string | undefined> = {
   [ConfigKey.SALES]: process.env.REACT_APP_DIFY_API_SALES,
   [ConfigKey.HEALTH]: process.env.REACT_APP_DIFY_API_HEALTH,
   [ConfigKey.BEAUTY]: process.env.REACT_APP_DIFY_API_BEAUTY,
-  [ConfigKey.FINANCE]: process.env.REACT_APP_DIFY_API_KEY_FINANCE,
+  [ConfigKey.FINANCE]: process.env.REACT_APP_DIFY_API_FINANCE,
   [ConfigKey.LUCY]: process.env.REACT_APP_DIFY_API_LUCY,
   [ConfigKey.LUCY_GROUP]: process.env.REACT_APP_DIFY_API_LUCY_GROUP
 }
