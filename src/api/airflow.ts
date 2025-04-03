@@ -11,6 +11,7 @@ export interface WxAccount {
   is_online: boolean;
   contact_num: number;
   update_time: string;
+  create_time: string;
 }
 
 export interface WxMpAccount {

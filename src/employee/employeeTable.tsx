@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { WxAccount, ConfigKey, updateWxDifyReplyApi, updateWxDifyGroupReplyApi } from '../api/airflow';
 import { useWxAccount } from '../context/WxAccountContext';
@@ -6,6 +7,27 @@ import { useUser } from '../context/UserContext';
 import { getTokenUsageApi } from '../api/mysql';
 
 export const EmployeeTable: React.FC = () => {
+    // 计算在线时长函数
+    const calculateOnlineDuration = (createTime: string): string => {
+        if (!createTime) return '-';
+        
+        const createTimeDate = dayjs(createTime);
+        const now = dayjs();
+        
+        // 检查时间格式是否有效
+        if (!createTimeDate.isValid()) return '时间格式无效';
+        
+        // 计算时间差（毫秒）
+        const diffMs = now.diff(createTimeDate);
+        
+        // 计算天、小时、分钟
+        const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+        const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+        const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+        
+        // 格式化输出
+        return `${days}天${hours}时${minutes}分`;
+    };
     const navigate = useNavigate();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isUpdating, setIsUpdating] = useState<{[key: string]: boolean}>({});
@@ -170,6 +192,7 @@ export const EmployeeTable: React.FC = () => {
                                         <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">微信名称</th>
                                         <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">手机号</th>
                                         <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">行业</th>
+                                        <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">在线时长</th>
                                         <th className="text-left py-2 px-1 text-gray-600 text-base font-medium">Token用量</th>
                                         {isAdmin && (
                                             <>
@@ -192,6 +215,7 @@ export const EmployeeTable: React.FC = () => {
                                             <td className="py-2 px-1 text-base">{wxAccount.name}</td>
                                             <td className="py-2 px-1 text-base">{wxAccount.mobile || '-'}</td>
                                             <td className="py-2 px-1 text-base">医美</td>
+                                            <td className="py-2 px-1 text-base">{calculateOnlineDuration(wxAccount.create_time)}</td>
                                             <td className="py-2 px-1 text-base">
                                                 <div className="flex items-center space-x-2">
                                                     <span>{tokenUsage[wxAccount.wxid] || 0}</span>
@@ -292,6 +316,13 @@ export const EmployeeTable: React.FC = () => {
                                                 <span className="text-gray-500 text-xs block">行业</span>
                                                 <span className="font-medium">医美</span>
                                             </div>
+                                            <div className="bg-gray-50 p-2 rounded">
+                                                <span className="text-gray-500 text-xs block">在线时长</span>
+                                                <span className="font-medium">{calculateOnlineDuration(wxAccount.create_time)}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 gap-2 mb-2">
                                             <div className="bg-gray-50 p-2 rounded">
                                                 <span className="text-gray-500 text-xs block">Token用量</span>
                                                 <div className="flex items-center space-x-2">
