@@ -128,7 +128,11 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                         const interactions = summaryResponse.data.tags.互动与认知;
                         Object.entries(interactions).forEach(([key, value]) => {
                             if (value && typeof value === 'string' && value.trim() !== '') {
-                                tags.push({ text: `${key}: ${value}`, category: '互动与认知' });
+                                if (key === 'current_trust_level') {
+                                    tags.push({ text: `${key}: 信任水平${value}`, category: '互动与认知' });
+                                } else {
+                                    tags.push({ text: `${key}: ${value}`, category: '互动与认知' });
+                                }
                             }
                         });
                     }
@@ -159,7 +163,11 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                                         if (item) tags.push({ text: `${item}`, category: '客户关系' });
                                     });
                                 } else if (typeof value === 'string' && value.trim() !== '') {
-                                    tags.push({ text: `${key}: ${value}`, category: '客户关系' });
+                                    if (key === 'engagement_level') {
+                                        tags.push({ text: `${key}: 活跃度${value}`, category: '客户关系' });
+                                    } else {
+                                        tags.push({ text: `${key}: ${value}`, category: '客户关系' });
+                                    }
                                 }
                             }
                         });
