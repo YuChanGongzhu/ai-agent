@@ -233,14 +233,14 @@ const NavBar: React.FC = () => {
 
   return (
     <>
-      {/* Mobile Hamburger Menu */}
-      <div className="md:hidden fixed top-0 left-0 z-40 p-4">
+      {/* Mobile Hamburger Menu with horizontal nav bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[rgba(108,93,211,1)] shadow-md flex items-center justify-between h-14">
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
-          className="text-[rgba(108,93,211,1)] hover:text-[rgba(88,73,191,1)]"
+          className="text-white hover:text-gray-200 p-4"
           aria-label="Open navigation menu"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>

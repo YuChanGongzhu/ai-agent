@@ -41,7 +41,7 @@ export const EmployeeEdit: React.FC = () => {
     }, [wxAccount]);
 
     return (
-        <div className="p-2 mt-1 min-h-screen overflow-x-hidden">
+        <div className="p-2 md:mt-1 mt-16 min-h-screen overflow-x-hidden">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <button
                     onClick={handleReturn}

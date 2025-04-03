@@ -140,7 +140,7 @@ export const EmployeeTable: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-2 m-2 relative">  
+        <div className="bg-white rounded-lg shadow-lg p-2 m-2 md:mt-2 mt-16 relative">  
             {notification && (
                 <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-md ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {notification.message}

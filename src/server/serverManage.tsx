@@ -682,7 +682,7 @@ export const ServerManage: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 md:mt-0 mt-14">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">服务器管理</h1>
         <p className="text-gray-600">

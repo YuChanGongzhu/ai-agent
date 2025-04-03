@@ -310,7 +310,7 @@ export const Dialog = () => {
     };
     
     return (
-        <div className="h-screen p-2 flex flex-col space-y-4">
+        <div className="h-screen p-2 md:pt-2 pt-16 flex flex-col space-y-4">
             <div className="flex flex-wrap space-x-2 mb-2 min-h-[5vh]">
                 {/* Loading indicator */}
                 {isLoadingAccounts || isLoadingMpAccounts ? (
