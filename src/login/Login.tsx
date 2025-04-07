@@ -182,15 +182,6 @@ const Login: React.FC = () => {
       
       {/* Contact Information Footer */}
       <div className="w-full max-w-md sm:max-w-6xl bg-[rgba(108,93,211,1)] text-white py-3 sm:py-4 px-4 sm:px-8 mt-4 sm:mt-8 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-8 rounded-b-lg text-xs sm:text-sm">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span>电话: 19864781028</span>
-        </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span>微信: 19864781028</span>
-        </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span>邮箱: lucy@lucyai.ai</span>
-        </div>
       </div>
     </div>
   );

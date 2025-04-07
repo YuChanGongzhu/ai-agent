@@ -392,15 +392,6 @@ const Register: React.FC = () => {
         borderRadius: '0 0 8px 8px',
         fontSize: isMobile ? '12px' : '14px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>电话: 19864781028</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>微信: 19864781028</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>邮箱: lucy@lucyai.ai</span>
-        </div>
       </div>
     </div>
   );
