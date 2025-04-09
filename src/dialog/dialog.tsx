@@ -331,10 +331,10 @@ export const Dialog = () => {
                             <div className="space-y-3">
                                 {/* Combined accounts dropdown - only shown on list view */}
                                 {mobileView === 'list' && (filteredWxAccountList.length > 0 || (isAdmin && wxMpAccountList.length > 0)) && (
-                                    <Menu as="div" className="relative">
+                                    <Menu as="div" className="relative w-[50vw] mx-auto">
                                         <div>
-                                            <Menu.Button className="w-full flex justify-center items-center px-4 py-3 bg-white rounded-lg shadow-md border border-gray-100">
-                                                <span className="block text-center font-medium">
+                                            <Menu.Button className="w-full flex justify-between items-center px-4 py-3 bg-white rounded-lg shadow-md border border-gray-100">
+                                                <span className="block font-medium">
                                                     {selectedAccount ? (
                                                         <span className="text-purple-600">{selectedAccount.name}</span>
                                                     ) : selectedMpAccount ? (
@@ -343,6 +343,9 @@ export const Dialog = () => {
                                                         <span className="text-gray-600">选择账号</span>
                                                     )}
                                                 </span>
+                                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
                                             </Menu.Button>
                                         </div>
                                         <Transition
@@ -547,8 +550,8 @@ export const Dialog = () => {
                     ) : (
                         // Desktop view - show all components
                         <>
-                            <div className="w-[13vw] flex-shrink-0 h-[90vh]">
-                                <div className="h-full w-full">
+                            <div className="w-[13vw] flex-shrink-0 h-[90vh] overflow-hidden">
+                                <div className="h-full w-full overflow-x-hidden">
                                     <DialogList
                                         dialogs={conversations}
                                         onSelectDialog={(dialog, tokenUsage) => {
@@ -595,7 +598,7 @@ export const Dialog = () => {
                     isMobile ? (
                         mobileView === 'list' ? (
                             // Mobile MP view - conversation list
-                            <div className="w-full h-[calc(100vh-180px)]">
+                            <div className="w-full h-[calc(100vh-180px)] max-w-[100vw] overflow-x-hidden">
                                 <WxMpDialogList
                                     dialogs={mpConversations}
                                     onSelectDialog={(conversation) => {
@@ -612,8 +615,8 @@ export const Dialog = () => {
                             </div>
                         ) : (
                             // Mobile MP view - conversation detail
-                            <div className="w-full h-[calc(100vh-180px)] flex flex-col">
-                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center">
+                            <div className="w-full h-[calc(100vh-180px)] flex flex-col ">
+                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center mt-[-5vh]">
                                     <button
                                         onClick={() => setMobileView('list')}
                                         className="flex items-center text-green-600 font-medium"
@@ -648,8 +651,8 @@ export const Dialog = () => {
                     ) : (
                         // Desktop MP view - show all components
                         <>
-                            <div className="w-[13vw] flex-shrink-0 h-[90vh]">
-                                <div className="h-full w-full">
+                            <div className="w-[13vw] flex-shrink-0 h-[90vh] overflow-hidden">
+                                <div className="h-full w-full overflow-x-hidden">
                                     <WxMpDialogList
                                         dialogs={mpConversations}
                                         onSelectDialog={(conversation) => {

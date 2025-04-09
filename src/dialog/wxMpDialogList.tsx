@@ -33,7 +33,7 @@ export const WxMpDialogList: React.FC<WxMpDialogListProps> = ({
     });
 
     return (
-        <div className="flex flex-col h-full border-r overflow-hidden">
+        <div className="flex flex-col h-full border-r overflow-hidden max-w-full overflow-x-hidden">
             {/* Header with account info */}
             <div className="flex items-center p-3 border-b bg-gray-50">
                 <div className="flex-1">
