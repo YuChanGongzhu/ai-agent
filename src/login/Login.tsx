@@ -182,6 +182,8 @@ const Login: React.FC = () => {
       
       {/* Contact Information Footer */}
       <div className="w-full max-w-md sm:max-w-6xl bg-[rgba(108,93,211,1)] text-white py-3 sm:py-4 px-4 sm:px-8 mt-4 sm:mt-8 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-8 rounded-b-lg text-xs sm:text-sm">
+        <span>lucyai.sale</span>
+      <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2025389198号-1</a>
       </div>
     </div>
   );
