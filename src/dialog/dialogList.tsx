@@ -130,7 +130,7 @@ export const DialogList: React.FC<DialogListProps> = ({
 
     return (
         <>
-            <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+            <div className="bg-white rounded-lg shadow-lg h-full flex flex-col max-w-full overflow-x-hidden">
                 <div className="p-2 border-b flex items-center justify-between">
                     <div className="relative w-full flex items-center">
                         {showSearchInput ? (

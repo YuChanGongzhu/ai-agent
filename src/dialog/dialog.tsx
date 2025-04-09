@@ -22,7 +22,7 @@ interface AvatarData {
 export const Dialog = () => {
     const { isAdmin } = useUser();
     
-    // Regular WeChat account states
+    // WxPerson WeChat account states
     const [conversations, setConversations] = useState<RoomListMessage[]>([]);
     const [avatarList, setAvatarList] = useState<AvatarData[]>([]);
     const [humanList, setHumanList] = useState<string[]>([]);
@@ -72,7 +72,7 @@ export const Dialog = () => {
     }, [isMobile]);
     const [selectedMpConversation, setSelectedMpConversation] = useState<MpRoomListMessage | null>(null);
     const [isLoadingMpConversations, setIsLoadingMpConversations] = useState(false);
-    const [viewMode, setViewMode] = useState<'regular' | 'mp'>('regular'); // Toggle between regular and MP view
+    const [viewMode, setViewMode] = useState<'wxPerson' | 'mp'>('wxPerson'); // Toggle between wxPerson and MP view
 
     const getHumanList = async () => {//获取微信转人工列表
         try {
@@ -204,7 +204,6 @@ export const Dialog = () => {
         }
     };
     
-    // Function to update single chat global setting
     const updateSingleChatSetting = async (newValue: boolean) => {
         if (!selectedAccount) return;
         
@@ -295,11 +294,11 @@ export const Dialog = () => {
         }
     }, [selectedMpAccount]);
 
-    // Handle clicking regular WeChat account button
+    // Handle clicking wxPerson WeChat account button
     const handleWxAccountClick = (account: WxAccount) => {
         setSelectedAccount(account);
         setSelectedMpAccount(null);
-        setViewMode('regular');
+        setViewMode('wxPerson');
     };
     
     // Handle clicking MP account button
@@ -356,7 +355,7 @@ export const Dialog = () => {
                                             leaveTo="transform opacity-0 scale-95"
                                         >
                                             <Menu.Items className="absolute z-10 w-full mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                {/* Regular WeChat accounts section */}
+                                                {/* WxPerson WeChat accounts section */}
                                                 {filteredWxAccountList.length > 0 && (
                                                     <div className="px-1 py-1">
                                                         {filteredWxAccountList.length > 0 && (
@@ -412,7 +411,7 @@ export const Dialog = () => {
                             </div>
                         ) : (
                             <>
-                                {/* Desktop view - Regular WeChat accounts */}
+                                {/* Desktop view - WxPerson WeChat accounts */}
                                 {filteredWxAccountList.length > 0 && filteredWxAccountList.map((account) => (
                                 <div key={account.wxid} className="relative mb-2">
                                     <button
@@ -453,7 +452,7 @@ export const Dialog = () => {
             <div className={`${isMobile ? '' : 'flex space-x-6'} flex-1`}>
                 {isMobile && mobileView === 'memory' ? (
                     // Mobile Memory View
-                    <div className="w-full h-[calc(100vh-180px)] flex flex-col">
+                    <div className="w-full h-[calc(100vh-180px)] flex flex-col mt-[-5vh]">
                         <div className="p-2 bg-white mb-2 shadow-sm">
                             <button
                                 onClick={() => setMobileView(previousView)}
@@ -472,11 +471,11 @@ export const Dialog = () => {
                             />
                         </div>
                     </div>
-                ) : viewMode === 'regular' ? (
+                ) : viewMode === 'wxPerson' ? (
                     isMobile ? (
                         mobileView === 'list' ? (
                             // Mobile view - conversation list
-                            <div className="w-full h-[calc(100vh-180px)]">
+                            <div className="w-full h-[calc(100vh-180px)] max-w-[100vw] overflow-x-hidden">
                                 <DialogList
                                     dialogs={conversations}
                                     onSelectDialog={(dialog, tokenUsage) => {
@@ -504,7 +503,7 @@ export const Dialog = () => {
                         ) : (
                             // Mobile view - conversation detail
                             <div className="w-full h-[calc(100vh-180px)] flex flex-col">
-                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center">
+                                <div className="p-2 bg-white mb-2 shadow-sm flex justify-between items-center mt-[-5vh]">
                                     <button
                                         onClick={() => setMobileView('list')}
                                         className="flex items-center text-purple-600 font-medium"
