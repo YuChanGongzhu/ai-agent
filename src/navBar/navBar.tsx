@@ -402,17 +402,21 @@ const NavBar: React.FC = () => {
               {showLogoutDialog && (
                 <div 
                   ref={dialogRef}
-                  className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-lg shadow-lg py-2 border border-gray-200"
+                  className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-lg shadow-lg py-2 border border-gray-200 z-50"
                 >
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-[rgba(108,93,211,1)]"
+                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 hover:text-[rgba(108,93,211,1)] active:text-[rgba(108,93,211,1)] touch-manipulation"
+                    onTouchStart={(e) => { e.stopPropagation(); }}
+                    onTouchEnd={(e) => { e.stopPropagation(); handleLogout(); }}
                   >
                     退出登录
                   </button>
                   <button
                     onClick={() => navigate('/charge')}
-                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-[rgba(108,93,211,1)]"
+                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 hover:text-[rgba(108,93,211,1)] active:text-[rgba(108,93,211,1)] touch-manipulation"
+                    onTouchStart={(e) => { e.stopPropagation(); }}
+                    onTouchEnd={(e) => { e.stopPropagation(); setIsMobileMenuOpen(false); navigate('/charge'); }}
                   >
                     充值中心
                   </button>

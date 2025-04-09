@@ -40,7 +40,7 @@ function App() {
                     <NavBar />
                     <div className="flex-1">
                       <Routes>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/" element={<Navigate to="/employee" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/employee" element={<EmployeeTable />} />
                         <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />

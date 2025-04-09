@@ -36,7 +36,7 @@ const ChargePage: React.FC<ChargePageProps> = () => {
   };
   
   return (
-    <div className="container mx-auto py-6 px-4">
+    <div className="container mx-auto py-6 px-4 mt-6 md:mt-0">
       {/* Current stats overview */}
       <ChargeNav 
         version={userStats.version}

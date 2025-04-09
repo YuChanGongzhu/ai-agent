@@ -157,7 +157,7 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
             <p className="text-center font-medium mb-1" style={{ color: 'rgba(108, 93, 211, 1)' }}>
               信息整合
             </p>
-            <p className="text-center text-sm text-gray-500">2K-3Ktokens</p>
+            <p className="text-center text-sm text-gray-500">1K-2Ktokens</p>
           </div>
         </div>
         
@@ -180,8 +180,8 @@ const TokenConsume: React.FC<TokenConsumeProps> = () => {
               AI输出 & 回复给客户
             </p>
             <p className="text-center text-sm text-gray-500">
-              2K+3K+2K+1K+2.5K+3K 
-              <span style={{ color: 'rgba(108, 93, 211, 1)' }}> = 13.5K Tokens</span>
+              1K+2K+1K+0.5K+2K+1K 
+              <span style={{ color: 'rgba(108, 93, 211, 1)' }}> = 7.5K Tokens</span>
             </p>
           </div>
         </div>
