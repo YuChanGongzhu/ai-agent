@@ -40,7 +40,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
   }, [messages, currentStreamedMessage]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim() || isLoading || !selectedConfig) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -57,16 +57,12 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
 
     try {
       const userId = wxAccount ? `${wxAccount.name}_test_${wxAccount.wxid}` : 'user-123';
-      console.log('Using config:', selectedConfig);
-
+      
       const requestData: ChatMessageRequest = {
         query: inputText,
         response_mode: 'streaming',
         user: userId,
-        inputs: {
-          // ui_input_prompt: prompt
-        },
-        // Only include conversation_id if we haven't changed config
+        inputs: {},
         ...(conversationId && { conversation_id: conversationId })
       };
 
@@ -100,7 +96,7 @@ export const EffectTest: React.FC<EffectTestProps> = ({ wxAccount, prompt, selec
           console.error('Error from API:', event.message);
           setIsLoading(false);
         }
-      }, selectedConfig);
+      }, selectedConfig);  // 这里确保 selectedConfig 是有效的 app_id
     } catch (error) {
       console.error('Failed to send message:', error);
       setIsLoading(false);

@@ -40,7 +40,7 @@ const Login: React.FC = () => {
       // 登录逻辑
       await loginUser(email, password);
       // 登录成功，导航到仪表盘
-      navigate('/dashboard');
+      navigate('/employee');
     } catch (error: any) {
       // 处理错误信息
       let errorMessage = '登录失败，请检查您的邮箱和密码';

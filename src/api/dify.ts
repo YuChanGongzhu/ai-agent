@@ -4,25 +4,10 @@ import { ConfigKey } from './airflow';
 const BASE_URL = process.env.REACT_APP_DIFY_BASE_URL;
 const DATASET_API_KEY = process.env.REACT_APP_DIFY_DATASET_API_KEY;
 
-export const getApiKey = (config?: string) => {
-  switch(config) {
-    case ConfigKey.SALES:
-      return process.env.REACT_APP_DIFY_API_SALES;
-    case ConfigKey.HEALTH:
-      return process.env.REACT_APP_DIFY_API_HEALTH;
-    case ConfigKey.BEAUTY:
-      return process.env.REACT_APP_DIFY_API_BEAUTY;
-    case ConfigKey.FINANCE:
-      return process.env.REACT_APP_DIFY_API_FINANCE;
-    default:
-      return process.env.REACT_APP_DIFY_API_BEAUTY;
-  }
-};
-
-const createDifyAxios = (config?: string) => axios.create({
+const createDifyAxios = (appId?:string) => axios.create({
   baseURL: BASE_URL,
   headers: {
-    'Authorization': `Bearer ${getApiKey(config)}`,
+    'Authorization': `Bearer ${appId}`,
     'Content-Type': 'application/json'
   }
 });
@@ -582,7 +567,7 @@ export interface ChatMessageResponse {
 export async function sendChatMessageApi(
   data: ChatMessageRequest,
   onMessage?: (event: ChatMessageStreamEvent) => void,
-  config?: string
+  appId?: string
 ): Promise<ChatMessageResponse | void> {
   try {
     const requestData: ChatMessageRequest = {
@@ -591,14 +576,14 @@ export async function sendChatMessageApi(
       inputs: data.inputs || {},
     };
 
-    console.log(config,'用的配置')
+    console.log('Using app ID:', appId);
 
     if (requestData.response_mode === 'streaming' && onMessage) {
       const response = await fetch(`${BASE_URL}/chat-messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getApiKey(config)}`,
+          'Authorization': `Bearer ${appId}`,
         },
         body: JSON.stringify(requestData),
       });
@@ -653,7 +638,7 @@ export async function sendChatMessageApi(
       processStream();
       return;
     } else {
-      const response = await createDifyAxios(config).post('/chat-messages', requestData);
+      const response = await createDifyAxios(appId).post('/chat-messages', requestData);
       return response.data as ChatMessageResponse;
     }
   } catch (error) {

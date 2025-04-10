@@ -4,6 +4,8 @@ import supabase from '../../auth/supabaseConfig';
 export interface Industry {
   id: string;
   name: string;
+  description: string | null;
+  nickname: string | null;
   material_list: string[];
   app_id: string | null;
   created_at: string;
@@ -76,7 +78,9 @@ export const getIndustryByName = async (name: string): Promise<Industry | null> 
 export const createIndustry = async (
   name: string, 
   materialList: string[] = [], 
-  appId?: string
+  appId?: string,
+  description?: string,
+  nickname?: string
 ): Promise<Industry> => {
   try {
     const { data, error } = await supabase
@@ -84,6 +88,8 @@ export const createIndustry = async (
       .insert([
         { 
           name, 
+          description: description || null,
+          nickname: nickname || null,
           material_list: materialList,
           app_id: appId || null
         }

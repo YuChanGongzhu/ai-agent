@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../context/UserContext';
-import * as IndustryService from './industryService';
-import { Industry } from './industryService';
+import * as IndustryService from '../../api/supabase/industryService';
+import { Industry } from '../../api/supabase/industryService';
 import { getDatasetsApi, Dataset } from '../../api/dify';
 
 interface IndustryManagementProps {
@@ -53,10 +53,14 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({
   // 编辑表单状态
   const [formData, setFormData] = useState<{
     name: string;
+    description: string;
+    nickname: string;
     material_list: string[];
     app_id: string;
   }>({
     name: '',
+    description: '',
+    nickname: '',
     material_list: [],
     app_id: ''
   });
@@ -198,6 +202,8 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({
     setSelectedIndustry(null);
     setFormData({
       name: '',
+      description: '',
+      nickname: '',
       material_list: [],
       app_id: ''
     });
@@ -211,6 +217,8 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({
     setSelectedIndustry(industry);
     setFormData({
       name: industry.name,
+      description: industry.description || '',
+      nickname: industry.nickname || '',
       material_list: industry.material_list || [],
       app_id: industry.app_id || ''
     });
@@ -279,7 +287,9 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({
         updatedIndustry = await IndustryService.createIndustry(
           formData.name,
           formData.material_list,
-          formData.app_id || undefined
+          formData.app_id || undefined,
+          formData.description || undefined,
+          formData.nickname || undefined
         );
         
         // 更新行业列表
@@ -568,6 +578,34 @@ const IndustryManagement: React.FC<IndustryManagementProps> = ({
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
+                  行业简称
+                </label>
+                <input
+                  type="text"
+                  id="nickname"
+                  name="nickname"
+                  value={formData.nickname}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  行业描述
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                ></textarea>
               </div>
               
               <div className="mb-4">

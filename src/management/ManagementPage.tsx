@@ -4,9 +4,9 @@ import IndustryManagement from './industry/IndustryManagement';
 import InvitationCodeManagement from './invitationCode/invitationCode';
 import { getDatasetsApi, Dataset } from '../api/dify';
 import { supabase } from '../auth/supabaseConfig';
-import * as IndustryService from './industry/industryService';
+import * as IndustryService from '../api/supabase/industryService';
 import { UserData } from '../context/type';
-import { Industry } from './industry/industryService';
+import { Industry } from '../api/supabase/industryService';
 
 // Tab类型定义
 type TabType = 'users' | 'industry' | 'invitation';

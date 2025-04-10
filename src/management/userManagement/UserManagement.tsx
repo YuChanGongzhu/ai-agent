@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../auth/supabaseConfig';
-import { UserProfileService } from './userProfileService';
+import { UserProfileService } from '../../api/supabase/userProfileService';
 import { UserProfile } from '../../context/type';
 import { UserData } from '../../context/type';
 import { getDatasetsApi, Dataset } from '../../api/dify';
 import { useUser } from '../../context/UserContext';
-import { Industry } from '../industry/industryService';
+import { Industry } from '../../api/supabase/industryService';
 
 interface UserManagementProps {
   externalDatasets?: Dataset[];
