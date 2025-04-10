@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { ConfigKey } from './airflow';
 
 const BASE_URL = process.env.REACT_APP_DIFY_BASE_URL;
 const DATASET_API_KEY = process.env.REACT_APP_DIFY_DATASET_API_KEY;

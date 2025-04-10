@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { WxAccount, ConfigKey, updateWxDifyReplyApi, updateWxDifyGroupReplyApi } from '../api/airflow';
+import { WxAccount, updateWxDifyReplyApi, updateWxDifyGroupReplyApi } from '../api/airflow';
 import { useWxAccount } from '../context/WxAccountContext';
 import { useUser } from '../context/UserContext';
 import { getTokenUsageApi } from '../api/mysql';
@@ -41,12 +41,12 @@ export const EmployeeTable: React.FC = () => {
     
     // API配置选项映射
     const configOptions: {[key: string]: string} = {
-        [ConfigKey.SALES]: '销售行业',
-        [ConfigKey.HEALTH]: '医疗健康',
-        [ConfigKey.BEAUTY]: '美容美妆',
-        [ConfigKey.FINANCE]: '金融理财',
-        [ConfigKey.LUCY]: ' Lucy',
-        [ConfigKey.LUCY_GROUP]: ' Lucy Group'
+        'app-GUUwm6Ljj6fgFGeFyKOsk0HK': '销售行业',
+        'app-BLxs45G5gAdQfLsIY1qWombM': '医疗健康',
+        'app-qKIPKEM5uzaGW0AFzAobz2Td': '美容美妆',
+        'app-2KWay9Ljqkp5BqlMEcHttVlt': '金融理财',
+        'app-8T9wSYOP8fxelJplwbhSg3Eq': 'Lucy',
+        'app-89Vks1Sm4ygcsdW2XON8uVXq': 'Lucy Group'
     };
 
     const handleEdit = (wxAccount: WxAccount) => {

@@ -124,24 +124,8 @@ export const getWxCountactHeadListApi = async (name: string, wxid: string): Prom
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
 }
 
-export enum ConfigKey {
-  SALES = 'sales',
-  HEALTH = 'health',
-  BEAUTY = 'beauty',
-  FINANCE = 'finance',
-  DEFAULT = 'beauty', // 默认使用beauty
-  LUCY = 'lucy',
-  LUCY_GROUP = 'lucy_group'
-}
+// 删除 ConfigKey 枚举和 keyMap
 
-const keyMap: Record<string, string | undefined> = {
-  [ConfigKey.SALES]: process.env.REACT_APP_DIFY_API_SALES,
-  [ConfigKey.HEALTH]: process.env.REACT_APP_DIFY_API_HEALTH,
-  [ConfigKey.BEAUTY]: process.env.REACT_APP_DIFY_API_BEAUTY,
-  [ConfigKey.FINANCE]: process.env.REACT_APP_DIFY_API_FINANCE,
-  [ConfigKey.LUCY]: process.env.REACT_APP_DIFY_API_LUCY,
-  [ConfigKey.LUCY_GROUP]: process.env.REACT_APP_DIFY_API_LUCY_GROUP
-}
 export const updateWxDifyReplyApi = async (wxid: string, name: string, appId?: string): Promise<VariableResponse> => {
   console.log('Updating Dify API key:', wxid, name, appId);
   return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
@@ -151,10 +135,10 @@ export const updateWxDifyReplyApi = async (wxid: string, name: string, appId?: s
   }));
 }
 
-export const updateWxDifyGroupReplyApi = async (wxid: string, name: string, config?: string): Promise<VariableResponse> => {
-  console.log(wxid, name, config, config ? keyMap[config] : keyMap[ConfigKey.BEAUTY]);
+export const updateWxDifyGroupReplyApi = async (wxid: string, name: string, appId?: string): Promise<VariableResponse> => {
+  console.log('Updating Group Dify API key:', wxid, name, appId);
   return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: config ? keyMap[config] : keyMap[ConfigKey.BEAUTY],
+    value: appId || '',
     key: `${name}_${wxid}_group_dify_api_key`,
     description: `${name}-群回复`
   }));
