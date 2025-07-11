@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface WxAccount {
   wxid: string;
@@ -19,15 +19,15 @@ export interface WxMpAccount {
   name: string;
 }
 
-const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL
-const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME
-const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD
+const BASE_URL = process.env.REACT_APP_AIRFLOW_BASE_URL;
+const USERNAME = process.env.REACT_APP_AIRFLOW_USERNAME;
+const PASSWORD = process.env.REACT_APP_AIRFLOW_PASSWORD;
 
 const airflowAxios = axios.create({
   baseURL: BASE_URL,
   headers: {
-    'Authorization': `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`,
-    'Content-Type': 'application/json',
+    Authorization: `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`,
+    "Content-Type": "application/json",
   },
 });
 
@@ -44,12 +44,16 @@ const handleRequest = async <T>(request: Promise<any>): Promise<T> => {
 };
 
 export const getWxAccountListApi = async (): Promise<WxAccount[]> => {
-  const response = await handleRequest<{key: string; value: string}>(airflowAxios.get('/variables/WX_ACCOUNT_LIST'));
+  const response = await handleRequest<{ key: string; value: string }>(
+    airflowAxios.get("/variables/WX_ACCOUNT_LIST")
+  );
   return JSON.parse(response.value);
 };
 
 export const getWxMpAccountListApi = async (): Promise<WxMpAccount[]> => {
-  const response = await handleRequest<{key: string; value: string}>(airflowAxios.get('/variables/WX_MP_ACCOUNT_LIST'));
+  const response = await handleRequest<{ key: string; value: string }>(
+    airflowAxios.get("/variables/WX_MP_ACCOUNT_LIST")
+  );
   return JSON.parse(response.value);
 };
 
@@ -78,7 +82,7 @@ interface WxChatHistorySummaryConf {
 }
 
 export const sendChatMessageApi = async (request: DagRunRequest<ChatMessageConf>) => {
-  return handleRequest(airflowAxios.post('/dags/wx_msg_sender/dagRuns', request));
+  return handleRequest(airflowAxios.post("/dags/wx_msg_sender/dagRuns", request));
 };
 
 interface VariableResponse {
@@ -87,106 +91,222 @@ interface VariableResponse {
   value: string;
 }
 
-export const getUserMsgCountApi = async (username: string ): Promise<VariableResponse> => {
+export const getUserMsgCountApi = async (username: string): Promise<VariableResponse> => {
   return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
-} 
-
-export const generateWxChatHistorySummaryApi = async (request: DagRunRequest<WxChatHistorySummaryConf>) => {
-  return handleRequest(airflowAxios.post('/dags/wx_chat_history_summary/dagRuns', request));
 };
 
-export const getWxAccountPromptApi = async (wxid: string, name: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_ui_input_prompt`));
-}
+export const generateWxChatHistorySummaryApi = async (
+  request: DagRunRequest<WxChatHistorySummaryConf>
+) => {
+  return handleRequest(airflowAxios.post("/dags/wx_chat_history_summary/dagRuns", request));
+};
 
+export const getWxAccountPromptApi = async (
+  wxid: string,
+  name: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${name}_${wxid}_ui_input_prompt`)
+  );
+};
 
-export const updateWxAccountPromptApi = async (wxid: string, name: string, prompt: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: JSON.stringify(prompt),
-    key: `${name}_${wxid}_ui_input_prompt`,
-    description: `${name}-自定义提示词`
-  }));
-}
+export const updateWxAccountPromptApi = async (
+  wxid: string,
+  name: string,
+  prompt: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: JSON.stringify(prompt),
+      key: `${name}_${wxid}_ui_input_prompt`,
+      description: `${name}-自定义提示词`,
+    })
+  );
+};
 
 export const getWxHumanListApi = async (name: string, wxid: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_human_room_ids`));
-}
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${name}_${wxid}_human_room_ids`)
+  );
+};
 
-export const updateWxHumanListApi = async (wxid: string, name: string, room_ids: Array<string>): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: JSON.stringify(room_ids),
-    key: `${name}_${wxid}_human_room_ids`,
-    description: `${name}-转人工列表`
-  }));
-}
+export const updateWxHumanListApi = async (
+  wxid: string,
+  name: string,
+  room_ids: Array<string>
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: JSON.stringify(room_ids),
+      key: `${name}_${wxid}_human_room_ids`,
+      description: `${name}-转人工列表`,
+    })
+  );
+};
 
-export const getWxCountactHeadListApi = async (name: string, wxid: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`));
-}
+export const getWxCountactHeadListApi = async (
+  name: string,
+  wxid: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${name}_${wxid}_CONTACT_LIST`)
+  );
+};
 
 // 删除 ConfigKey 枚举和 keyMap
 
-export const updateWxDifyReplyApi = async (wxid: string, name: string, appId?: string): Promise<VariableResponse> => {
-  console.log('Updating Dify API key:', wxid, name, appId);
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: appId || '',
-    key: `${name}_${wxid}_dify_api_key`,
-    description: `${name}-自定义回复`
-  }));
-}
+export const updateWxDifyReplyApi = async (
+  wxid: string,
+  name: string,
+  appId?: string
+): Promise<VariableResponse> => {
+  console.log("Updating Dify API key:", wxid, name, appId);
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: appId || "",
+      key: `${name}_${wxid}_dify_api_key`,
+      description: `${name}-自定义回复`,
+    })
+  );
+};
 
-export const updateWxDifyGroupReplyApi = async (wxid: string, name: string, appId?: string): Promise<VariableResponse> => {
-  console.log('Updating Group Dify API key:', wxid, name, appId);
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: appId || '',
-    key: `${name}_${wxid}_group_dify_api_key`,
-    description: `${name}-群回复`
-  }));
-}
+export const updateWxDifyGroupReplyApi = async (
+  wxid: string,
+  name: string,
+  appId?: string
+): Promise<VariableResponse> => {
+  console.log("Updating Group Dify API key:", wxid, name, appId);
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: appId || "",
+      key: `${name}_${wxid}_group_dify_api_key`,
+      description: `${name}-群回复`,
+    })
+  );
+};
 
-export const getAIReplyListApi=async(username:string,wxid:string):Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_${wxid}_enable_ai_room_ids`));
-}
+export const getAIReplyListApi = async (
+  username: string,
+  wxid: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${username}_${wxid}_enable_ai_room_ids`)
+  );
+};
 
-export const postAIReplyListApi=async(username:string,wxid:string,room_ids:Array<string>):Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: JSON.stringify(room_ids),
-    key: `${username}_${wxid}_enable_ai_room_ids`,
-    description: `${username}-允许ai会话列表`
-  }));
-}
-export const getDisableAIReplyListApi=async(username:string,wxid:string):Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_${wxid}_disable_ai_room_ids`));
-}
+export const postAIReplyListApi = async (
+  username: string,
+  wxid: string,
+  room_ids: Array<string>
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: JSON.stringify(room_ids),
+      key: `${username}_${wxid}_enable_ai_room_ids`,
+      description: `${username}-允许ai会话列表`,
+    })
+  );
+};
+export const getDisableAIReplyListApi = async (
+  username: string,
+  wxid: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${username}_${wxid}_disable_ai_room_ids`)
+  );
+};
 
-export const postDisableAIReplyListApi=async(username:string,wxid:string,room_ids:Array<string>):Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: JSON.stringify(room_ids),
-    key: `${username}_${wxid}_disable_ai_room_ids`,
-    description: `${username}-禁止ai会话列表`
-  }));
-}
+export const postDisableAIReplyListApi = async (
+  username: string,
+  wxid: string,
+  room_ids: Array<string>
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: JSON.stringify(room_ids),
+      key: `${username}_${wxid}_disable_ai_room_ids`,
+      description: `${username}-禁止ai会话列表`,
+    })
+  );
+};
 
-export const getWxAccountSingleChatApi = async (name: string, wxid: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_single_chat_ai_global`));
-}
+export const getWxAccountSingleChatApi = async (
+  name: string,
+  wxid: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${name}_${wxid}_single_chat_ai_global`)
+  );
+};
 
-export const getWxAccountGroupChatApi = async (name: string, wxid: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${name}_${wxid}_group_chat_ai_global`));
-}
+export const getWxAccountGroupChatApi = async (
+  name: string,
+  wxid: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/${name}_${wxid}_group_chat_ai_global`)
+  );
+};
 
-export const updateWxAccountSingleChatApi = async (name: string, wxid: string, switchVal:string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: switchVal,
-    key: `${name}_${wxid}_single_chat_ai_global`,
-    description: `${name}-单聊AI配置`
-  }));
-}
+export const updateWxAccountSingleChatApi = async (
+  name: string,
+  wxid: string,
+  switchVal: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: switchVal,
+      key: `${name}_${wxid}_single_chat_ai_global`,
+      description: `${name}-单聊AI配置`,
+    })
+  );
+};
 
-export const updateWxAccountGroupChatApi = async (name: string, wxid: string, switchVal:string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.post(`/variables`,{
-    value: switchVal,
-    key: `${name}_${wxid}_group_chat_ai_global`,
-    description: `${name}-群聊AI配置`
-  }));
-}
+export const updateWxAccountGroupChatApi = async (
+  name: string,
+  wxid: string,
+  switchVal: string
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: switchVal,
+      key: `${name}_${wxid}_group_chat_ai_global`,
+      description: `${name}-群聊AI配置`,
+    })
+  );
+};
+
+export const getWxAccountMountAnalysisApi = async (
+  dagId: string,
+  conf: {},
+  dag_run_id: string,
+  data_interval_end: string,
+  data_interval_start: string,
+  logical_date: string,
+  note?: string
+): Promise<any> => {
+  const payload = Object.entries({
+    dag_run_id,
+    data_interval_end,
+    data_interval_start,
+    logical_date,
+    note,
+    conf,
+  }).reduce((acc, [key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+  console.log("朋友圈分析-payload", payload);
+  // return;
+  return handleRequest(airflowAxios.post(`/dags/${dagId}/dagRuns`, payload));
+};
+
+export const AIGetWxMessageApi = async (variable_key: string): Promise<any> => {
+  return handleRequest(airflowAxios.get(`/variables/${variable_key}`));
+};
+export const AISetWxMessageApi = async (variable_key: string, data: {}): Promise<any> => {
+  console.log("信息发送2-data", data);
+  return handleRequest(airflowAxios.patch(`/variables/${variable_key}`, data));
+};
