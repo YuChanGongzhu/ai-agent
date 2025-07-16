@@ -328,6 +328,7 @@ export const getTokenUsageApi = async (params: {
 };
 
 const chatSummaryUrl = process.env.REACT_APP_GET_CHAT_SUMMARY;
+const friendCircleAnalysisUrl = process.env.REACT_APP_GET_FRIEND_CIRCLE_ANALYSIS;
 
 export interface ChatHistorySummaryResponse {
   code: number;
@@ -429,6 +430,68 @@ export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string):
     return response.json() as Promise<ChatHistorySummaryResponse>;
   } catch (error) {
     console.error('Error fetching chat history summary:', error);
+    throw error;
+  }
+};
+
+/**
+ * Interface for friend circle analysis response
+ */
+export interface FriendCircleAnalysisResponse {
+  code: number;
+  message: string;
+  data: {
+    metadata: {
+      id: number;
+      wxid: string;
+      nickname: string;
+      wx_user_id: string;
+      created_at: string;
+      updated_at: string;
+    };
+    analysis: {
+      basic: {
+        gender: string;
+        age_group: string;
+      };
+      consumption: string;
+      core_interests: Array<{
+        tag: string;
+        confidence: number;
+      }>;
+      life_pattern: {
+        work_balance: string;
+      };
+      social: string[];
+      values: string[];
+    };
+  } | null;
+}
+
+/**
+ * Fetches friend circle analysis data for a specific WeChat user and friend
+ * 
+ * @param wx_user_id WeChat user ID
+ * @param wxid Friend's WeChat ID
+ * @returns Promise with the friend circle analysis response
+ */
+export const getFriendCircleAnalysisApi = async (wx_user_id: string, wxid: string): Promise<FriendCircleAnalysisResponse> => {
+  console.log("getFriendCircleAnalysisApi",wx_user_id,wxid);
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.append('wx_user_id', wx_user_id);
+    queryParams.append('wxid', wxid);
+
+    const baseUrl = friendCircleAnalysisUrl || '';
+    const url = `${baseUrl}?${queryParams.toString()}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch friend circle analysis');
+    }
+    return response.json() as Promise<FriendCircleAnalysisResponse>;
+  } catch (error) {
+    console.error('Error fetching friend circle analysis:', error);
     throw error;
   }
 };

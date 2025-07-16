@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { generateWxChatHistorySummaryApi, getWxAccountMountAnalysisApi } from "../api/airflow";
+import { generateWxChatHistorySummaryApi } from "../api/airflow";
 import { getWxChatHistorySummaryApi, ChatHistorySummaryResponse } from "../api/mysql";
 import ChatMemory from "./memory/chatMemory";
-import AnalysisMoments from "./analysis";
+import FriendCircleAnalysis from "./memory/friendCircleAnalysis";
 import UserProfile from "./memory/userProfile";
 import LongtimeMemory from "./memory/longtimeMemory";
 
@@ -369,47 +369,7 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
       setIsLoading(false);
     }
   };
-  //检查是否中文
-  const CheckisChinese = (str: string) => {
-    return /^[\u4e00-\u9fa5\u3400-\u4dbf]+$/.test(str);
-  };
-  const fetchWxAccountMountAnalysis = async () => {
-    if (
-      selectedAccount &&
-      selectedConversation &&
-      selectedAccount.wxid &&
-      selectedConversation.room_id
-    ) {
-      const roomId = selectedConversation.room_id.replace(/@/g, "");
-      const wxid = selectedAccount.wxid;
-      const currentDate = new Date().toISOString();
-      const dag_run_id: string =
-        CheckisChinese(roomId) || CheckisChinese(wxid)
-          ? `wx_friend_circle_${Date.now()}`
-          : `wx_friend_circle_${wxid}_${Date.now()}`;
-      const data_interval_end: string = currentDate;
-      const data_interval_start: string = currentDate;
-      const logical_date: string = currentDate;
-      const note: string = `Wx account mount analysis for ${
-        selectedConversation.room_name || "Unknown Room"
-      }`;
-      const conf = {
-        contact_name: roomId,
-      };
-      const response = await getWxAccountMountAnalysisApi(
-        "wx_friend_circle",
-        conf,
-        dag_run_id,
-        data_interval_end,
-        data_interval_start,
-        logical_date,
-        note
-      );
-    }
-  };
-  useEffect(() => {
-    fetchWxAccountMountAnalysis();
-  }, [selectedAccount, selectedConversation]);
+ 
   const memoryEvents = chatKeyEvents.map((event) => ({
     date: event.time,
     content: event.detail,
@@ -425,13 +385,7 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
         onUpdateMemory={fetchChatHistorySummary}
       />
 
-      <AnalysisMoments
-        customerInfo={customerInfo}
-        selectedAccount={selectedAccount}
-        selectedConversation={selectedConversation}
-        isLoading={isLoading}
-        onUpdateMemory={fetchChatHistorySummary}
-      />
+      <FriendCircleAnalysis selectedAccount={selectedAccount} selectedConversation={selectedConversation} />
       {/* <UserProfile
                 className="mb-4 mt-4"
                 tags={userProfileTags}

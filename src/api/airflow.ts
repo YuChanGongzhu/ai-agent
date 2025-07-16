@@ -92,7 +92,8 @@ interface VariableResponse {
 }
 
 export const getUserMsgCountApi = async (username: string): Promise<VariableResponse> => {
-  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
+  // return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
+  return { description: null, key: username + '_msg_count', value: '0' };
 };
 
 export const generateWxChatHistorySummaryApi = async (
@@ -276,37 +277,47 @@ export const updateWxAccountGroupChatApi = async (
   );
 };
 
-export const getWxAccountMountAnalysisApi = async (
-  dagId: string,
-  conf: {},
-  dag_run_id: string,
-  data_interval_end: string,
-  data_interval_start: string,
-  logical_date: string,
-  note?: string
-): Promise<any> => {
-  const payload = Object.entries({
-    dag_run_id,
-    data_interval_end,
-    data_interval_start,
-    logical_date,
-    note,
-    conf,
-  }).reduce((acc, [key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as Record<string, any>);
-  console.log("朋友圈分析-payload", payload);
-  // return;
-  return handleRequest(airflowAxios.post(`/dags/${dagId}/dagRuns`, payload));
-};
-
 export const AIGetWxMessageApi = async (variable_key: string): Promise<any> => {
   return handleRequest(airflowAxios.get(`/variables/${variable_key}`));
 };
 export const AISetWxMessageApi = async (variable_key: string, data: {}): Promise<any> => {
   console.log("信息发送2-data", data);
   return handleRequest(airflowAxios.patch(`/variables/${variable_key}`, data));
+};
+
+/**
+ * Interface for Friend Circle Analysis configuration
+ */
+interface FriendCircleAnalysisConf {
+  wx_name: string;
+  contact_name: string;
+}
+
+/**
+ * Triggers the wx_friend_circle DAG to analyze friend circle data
+ * 
+ * @param wx_name WeChat user name
+ * @param contact_name Contact name (wxid)
+ * @returns Promise with the DAG run response
+ */
+export const generateFriendCircleAnalysisApi = async (
+  wx_name: string,
+  contact_name: string
+): Promise<any> => {
+  const currentDate = new Date().toISOString();
+  const dag_run_id = `wx_friend_circle_${Date.now()}`;
+  
+  const request: DagRunRequest<FriendCircleAnalysisConf> = {
+    dag_run_id,
+    data_interval_end: currentDate,
+    data_interval_start: currentDate,
+    logical_date: currentDate,
+    note: `Friend circle analysis for ${wx_name} and contact ${contact_name}`,
+    conf: {
+      wx_name,
+      contact_name
+    }
+  };
+  
+  return handleRequest(airflowAxios.post("/dags/wx_friend_circle/dagRuns", request));
 };
