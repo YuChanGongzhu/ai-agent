@@ -338,7 +338,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
     const wxAIName = selectedAccount.name;
 
     // 返回 Promise 链
-    return AIGetWxMessageApi(`REPLY_LIST`)
+    return AIGetWxMessageApi(`REPLY_INFO`)
       .then((response) => {
         const { value } = response;
         const replyList = JSON.parse(value)[wxAIName]?.reply_list || [];
@@ -384,7 +384,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
     setIsLoading(true);
     const wxAIName = selectedAccount.name;
     const conTactName = conversation.room_id;
-    AIGetWxMessageApi(`REPLY_LIST`)
+    AIGetWxMessageApi(`REPLY_INFO`)
       .then((response) => {
         const { value } = response;
         //get成功了，把信息发送过去
@@ -395,10 +395,10 @@ export const DialogPage: React.FC<DialogPageProps> = ({
 
         const newData = {
           description: "更新最新信息",
-          key: "REPLY_LIST",
+          key: "REPLY_INFO",
           value: JSON.stringify(newValue),
         };
-        AISetWxMessageApi(`REPLY_LIST`, newData)
+        AISetWxMessageApi(`REPLY_INFO`, newData)
           .then((response) => {
             isEmptyMessage();
           })
