@@ -92,8 +92,8 @@ interface VariableResponse {
 }
 
 export const getUserMsgCountApi = async (username: string): Promise<VariableResponse> => {
-  // return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
-  return { description: null, key: username + '_msg_count', value: '0' };
+  return handleRequest<VariableResponse>(airflowAxios.get(`/variables/${username}_msg_count?`));
+  // return { description: null, key: username + '_msg_count', value: '0' };
 };
 
 export const generateWxChatHistorySummaryApi = async (
