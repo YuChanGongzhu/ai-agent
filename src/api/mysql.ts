@@ -418,7 +418,7 @@ export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string):
   try {
     const queryParams = new URLSearchParams();
     queryParams.append('wx_user_id', wxid);
-    queryParams.append('room_id', room_id);
+    queryParams.append('contact_name', room_id);
 
     const baseUrl = chatSummaryUrl || '';
     const url = `${baseUrl}?${queryParams.toString()}`;

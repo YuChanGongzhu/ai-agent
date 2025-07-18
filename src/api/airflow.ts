@@ -78,7 +78,7 @@ interface ChatMessageConf {
 
 interface WxChatHistorySummaryConf {
   wx_user_id: string;
-  room_id: string;
+  contact_name : string;
 }
 
 export const sendChatMessageApi = async (request: DagRunRequest<ChatMessageConf>) => {
