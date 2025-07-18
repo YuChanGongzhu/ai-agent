@@ -61,74 +61,25 @@ export const WxAccountProvider: React.FC<{ children: ReactNode }> = ({ children 
       return [];
     }
 
-    // 1. 先获取该用户关联的所有服务器IP地址
+    // 根据email过滤微信账号
+    // 只显示email与用户email相同的微信账号
     const userEmail = profile.email.toLowerCase();
     console.log('用户邮箱：', userEmail);
-
-    // 用于存储用户关联的服务器IP信息
-    const userServers: {publicIp: string, privateIp: string}[] = [];
     
-    // 如果提供了regionServers参数，则从中筛选用户关联的服务器
-    if (regionServers && regionServers.size > 0) {
-      console.log('服务器列表地域数量：', regionServers.size);
-      let allServerCount = 0;
-      let matchedServerCount = 0;
-      
-      regionServers.forEach((servers, regionId) => {
-        console.log(`处理地域 ${regionId} 的服务器，数量：`, servers.length);
-        allServerCount += servers.length;
-        
-        // 查找名称包含用户完整邮箱的服务器
-        const userRelatedServers = servers.filter(server => {
-          // 使用直接字符串匹配找完整邮箱，而不是匹配子字符串
-          const isMatch = server.name && server.name.toLowerCase().indexOf(userEmail) !== -1;
-          if (isMatch) {
-            console.log(`找到匹配的服务器：${server.name}，IP: 公网=${server.publicIp}，内网=${server.privateIp}`);
-          }
-          return isMatch;
-        });
-        
-        matchedServerCount += userRelatedServers.length;
-        console.log(`地域 ${regionId} 中与用户关联的服务器数量：`, userRelatedServers.length);
-        
-        // 收集这些服务器的IP地址
-        userRelatedServers.forEach(server => {
-          if (server.publicIp || server.privateIp) {
-            userServers.push({
-              publicIp: server.publicIp || '',
-              privateIp: server.privateIp || ''
-            });
-          }
-        });
-      });
-      
-      console.log('总服务器数量：', allServerCount);
-      console.log('与用户关联的服务器数量：', matchedServerCount);
-      console.log('收集到的用户服务器IP列表：', userServers);
-    } else {
-      console.log('没有提供服务器列表或列表为空');
-    }
-    
-    // 2. 根据服务器IP过滤微信账号
-    // 只显示source_ip匹配用户服务器IP的微信账号
     const filteredAccounts = accounts.filter(account => {
-      if (!account.source_ip) {
-        console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 没有source_ip，过滤掉`);
+      if (!account.email) {
+        console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 没有email，过滤掉`);
         return false;
       }
       
-      // 检查账号source_ip是否与用户的任一服务器IP匹配
-      const isMatched = userServers.some(server => {
-        const matchPublic = account.source_ip === server.publicIp;
-        const matchPrivate = account.source_ip === server.privateIp;
-        if (matchPublic || matchPrivate) {
-          console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 的source_ip=${account.source_ip} 匹配服务器IP ${matchPublic ? server.publicIp : server.privateIp}`);
-        }
-        return matchPublic || matchPrivate;
-      });
+      // 检查账号email是否与用户email匹配
+      const accountEmail = account.email.toLowerCase();
+      const isMatched = accountEmail === userEmail;
       
-      if (!isMatched) {
-        console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 的source_ip=${account.source_ip} 没有匹配的服务器IP`);
+      if (isMatched) {
+        console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 的email=${account.email} 匹配用户email`);
+      } else {
+        console.log(`账号 ${account.name || account.wxid || account.mobile || '未知账号'} 的email=${account.email} 不匹配用户email`);
       }
       
       return isMatched;
@@ -348,4 +299,4 @@ export const useWxAccount = (): WxAccountContextType => {
     throw new Error('useWxAccount必须在WxAccountProvider内部使用');
   }
   return context;
-}; 
+};

@@ -12,6 +12,7 @@ export interface WxAccount {
   contact_num: number;
   update_time: string;
   create_time: string;
+  email: string;
 }
 
 export interface WxMpAccount {
