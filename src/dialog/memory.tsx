@@ -235,7 +235,7 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
             wx_user_id: selectedAccount.wxid,
             contact_name: selectedConversation.room_id,
           },
-          dag_run_id: `summary_${selectedAccount.wxid}_${roomId}_${Date.now()}`,
+          dag_run_id: `summary_${selectedAccount.wxid}_${Date.now()}`,
           data_interval_end: currentDate,
           data_interval_start: currentDate,
           logical_date: currentDate,
