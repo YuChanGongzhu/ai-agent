@@ -100,7 +100,7 @@ export const getUserMsgCountApi = async (username: string): Promise<VariableResp
 export const generateWxChatHistorySummaryApi = async (
   request: DagRunRequest<WxChatHistorySummaryConf>
 ) => {
-  return handleRequest(airflowAxios.post("/dags/wx_chat_history_summary/dagRuns", request));
+  return handleRequest(airflowAxios.post("/dags/wx_history_summary/dagRuns", request));
 };
 
 export const getWxAccountPromptApi = async (
