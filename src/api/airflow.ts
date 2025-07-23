@@ -103,6 +103,11 @@ export const generateWxChatHistorySummaryApi = async (
   return handleRequest(airflowAxios.post("/dags/wx_history_summary/dagRuns", request));
 };
 
+export const getDagRunDetail = async (dagId: string, dagRunId: string): Promise<any> => {
+  return handleRequest(airflowAxios.get(`/dags/${dagId}/dagRuns/${dagRunId}`));
+};
+
+
 export const getWxAccountPromptApi = async (
   wxid: string,
   name: string
