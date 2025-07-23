@@ -5,160 +5,157 @@ const roomMpMsgListUrl = process.env.REACT_APP_GET_MP_ROOM_MSG_LIST;
 const tokenUsageUrl = process.env.REACT_APP_GET_CHAT_TOKEN;
 
 export interface ChatMessage {
-    msg_id: string;
-    wx_user_id: string;
-    wx_user_name: string;
-    room_id: string;
-    room_name: string;
-    sender_id: string;
-    sender_name: string;
-    msg_type: number;
-    msg_type_name: string;
-    content: string;
-    msg_datetime: string;
+  msg_id: string;
+  wx_user_id: string;
+  wx_user_name: string;
+  room_id: string;
+  room_name: string;
+  sender_id: string;
+  sender_name: string;
+  msg_type: number;
+  msg_type_name: string;
+  content: string;
+  msg_datetime: string;
+  is_self: number;
 }
 
 export interface ChatMessagesResponse {
-    code: number;
-    message: string;
-    data: {
-        total: number;
-        records: ChatMessage[];
-    };
+  code: number;
+  message: string;
+  data: {
+    total: number;
+    records: ChatMessage[];
+  };
 }
 
 export const getChatMessagesApi = async (params: {
-    room_id?: string;
-    wx_user_id?: string;
-    sender_id?: string;
-    start_time?: string;
-    end_time?: string;
-    limit?: number;
-    offset?: number;
+  room_id?: string;
+  wx_user_id?: string;
+  sender_id?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+  offset?: number;
 }) => {
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value.toString());
-    });
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) queryParams.append(key, value.toString());
+  });
 
-    const response = await fetch(`${roomMsgListUrl}/messages?${queryParams.toString()}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch chat messages');
-    }
-    return response.json() as Promise<ChatMessagesResponse>;
+  const response = await fetch(`${roomMsgListUrl}/messages?${queryParams.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch chat messages");
+  }
+  return response.json() as Promise<ChatMessagesResponse>;
 };
 
 export interface RoomListMessage {
-    room_id: string;
-    room_name: string;
-    wx_user_id: string;
-    wx_user_name: string;
-    sender_id: string;
-    sender_name: string;
-    msg_id: string;
-    msg_content: string;
-    msg_datetime: string;
-    msg_type: number;
-    is_group: boolean;
+  room_id: string;
+  room_name: string;
+  wx_user_id: string;
+  wx_user_name: string;
+  sender_id: string;
+  sender_name: string;
+  msg_id: string;
+  msg_content: string;
+  msg_datetime: string;
+  msg_type: number;
+  is_group: boolean;
 }
 
 export interface RoomListMessagesResponse {
-    code: number;
-    message: string;
-    data: RoomListMessage[];
+  code: number;
+  message: string;
+  data: RoomListMessage[];
 }
 
-export const getRoomListMessagesApi = async (params: {
-    wx_user_id?: string;
-}) => {
-    const queryParams = new URLSearchParams();
-    if (params.wx_user_id) {
-        queryParams.append('wx_user_id', params.wx_user_id);
-    }
+export const getRoomListMessagesApi = async (params: { wx_user_id?: string }) => {
+  const queryParams = new URLSearchParams();
+  if (params.wx_user_id) {
+    queryParams.append("wx_user_id", params.wx_user_id);
+  }
 
-    const response = await fetch(`${roomListUrl}?${queryParams.toString()}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch chat messages');
-    }
-    return response.json() as Promise<RoomListMessagesResponse>;
+  const response = await fetch(`${roomListUrl}?${queryParams.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch chat messages");
+  }
+  return response.json() as Promise<RoomListMessagesResponse>;
 };
 
 export const getChatMpMessagesApi = async (params: {
-    room_id?: string;
-    wx_user_id?: string;
-    sender_id?: string;
-    start_time?: string;
-    end_time?: string;
-    limit?: number;
-    offset?: number;
+  room_id?: string;
+  wx_user_id?: string;
+  sender_id?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+  offset?: number;
 }) => {
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value.toString());
-    });
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) queryParams.append(key, value.toString());
+  });
 
-    const response = await fetch(`${roomMpMsgListUrl}/messages?${queryParams.toString()}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch chat MP messages');
-    }
-    return response.json() as Promise<ChatMessagesResponse>;
+  const response = await fetch(`${roomMpMsgListUrl}/messages?${queryParams.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch chat MP messages");
+  }
+  return response.json() as Promise<ChatMessagesResponse>;
 };
 
-export const getRoomMpListMessagesApi = async (params: {
-    wx_user_id?: string;
-}) => {
-    const queryParams = new URLSearchParams();
-    if (params.wx_user_id) {
-        queryParams.append('wx_user_id', params.wx_user_id);
-    }
+export const getRoomMpListMessagesApi = async (params: { wx_user_id?: string }) => {
+  const queryParams = new URLSearchParams();
+  if (params.wx_user_id) {
+    queryParams.append("wx_user_id", params.wx_user_id);
+  }
 
-    const response = await fetch(`${roomMpListUrl}?${queryParams.toString()}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch chat MP room messages');
-    }
-    return response.json() as Promise<RoomListMessagesResponse>;
+  const response = await fetch(`${roomMpListUrl}?${queryParams.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch chat MP room messages");
+  }
+  return response.json() as Promise<RoomListMessagesResponse>;
 };
 
 // Interface for WeChat Public Account room list items
 export interface MpRoomListMessage {
-    room_id: string;
-    room_name: string;
-    user_id: string;
-    sender_id: string;
-    sender_name: string;
-    msg_id: string;
-    msg_type: string; // Changed to string based on SQL schema
-    msg_content: string;
-    msg_datetime: string;
-    is_group: boolean;
+  room_id: string;
+  room_name: string;
+  user_id: string;
+  sender_id: string;
+  sender_name: string;
+  msg_id: string;
+  msg_type: string; // Changed to string based on SQL schema
+  msg_content: string;
+  msg_datetime: string;
+  is_group: boolean;
 }
 
 // Interface for WeChat Public Account chat messages
 export interface MpChatMessage {
-    msg_id: string;
-    sender_id: string;
-    sender_name: string;
-    receiver_id: string;
-    msg_type: string;
-    msg_content: string;
-    msg_datetime: string;
+  msg_id: string;
+  sender_id: string;
+  sender_name: string;
+  receiver_id: string;
+  msg_type: string;
+  msg_content: string;
+  msg_datetime: string;
 }
 
 export interface MpChatMessagesResponse {
-    code: number;
-    message: string;
-    data: {
-        total: number;
-        records: MpChatMessage[];
-        limit: number;
-        offset: number;
-    };
+  code: number;
+  message: string;
+  data: {
+    total: number;
+    records: MpChatMessage[];
+    limit: number;
+    offset: number;
+  };
 }
 
 export interface MpRoomListResponse {
-    code: number;
-    message: string;
-    data: MpRoomListMessage[];
+  code: number;
+  message: string;
+  data: MpRoomListMessage[];
 }
 
 /**
@@ -167,29 +164,25 @@ export interface MpRoomListResponse {
  * @param params Optional parameters
  * @param params.gh_user_id Optional public account ID to filter results
  */
-export const getMpRoomListApi = async (params?: {
-    gh_user_id?: string;
-}) => {
-    try {
-        const queryParams = new URLSearchParams();
-        if (params?.gh_user_id) {
-            queryParams.append('gh_user_id', params.gh_user_id);
-        }
-
-        const baseUrl = roomMpListUrl || '';
-        const url = queryParams.toString() 
-            ? `${baseUrl}?${queryParams.toString()}` 
-            : baseUrl;
-            
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Failed to fetch WeChat public account room list');
-        }
-        return response.json() as Promise<MpRoomListResponse>;
-    } catch (error) {
-        console.error('Error fetching WeChat public account room list:', error);
-        throw error;
+export const getMpRoomListApi = async (params?: { gh_user_id?: string }) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.gh_user_id) {
+      queryParams.append("gh_user_id", params.gh_user_id);
     }
+
+    const baseUrl = roomMpListUrl || "";
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch WeChat public account room list");
+    }
+    return response.json() as Promise<MpRoomListResponse>;
+  } catch (error) {
+    console.error("Error fetching WeChat public account room list:", error);
+    throw error;
+  }
 };
 
 /**
@@ -202,40 +195,38 @@ export const getMpRoomListApi = async (params?: {
  * @returns Promise with the chat messages response
  */
 export const getMpChatMessageApi = async (params: {
-    room_id?: string;
-    from_user_id?: string;
-    to_user_id?: string;
-    msg_type?: string;
-    start_time?: string;
-    end_time?: string;
-    limit?: number;
-    offset?: number;
+  room_id?: string;
+  from_user_id?: string;
+  to_user_id?: string;
+  msg_type?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+  offset?: number;
 }) => {
-    try {
-        const queryParams = new URLSearchParams();
-        
-        // Add all provided parameters to the query string
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined) {
-                queryParams.append(key, value.toString());
-            }
-        });
-        
-        const baseUrl = roomMpMsgListUrl || '';
-        const url = queryParams.toString()
-            ? `${baseUrl}?${queryParams.toString()}`
-            : baseUrl;
-            
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Failed to fetch WeChat public account chat messages');
-        }
-        
-        return response.json() as Promise<MpChatMessagesResponse>;
-    } catch (error) {
-        console.error('Error fetching WeChat public account chat messages:', error);
-        throw error;
+  try {
+    const queryParams = new URLSearchParams();
+
+    // Add all provided parameters to the query string
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    const baseUrl = roomMpMsgListUrl || "";
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch WeChat public account chat messages");
     }
+
+    return response.json() as Promise<MpChatMessagesResponse>;
+  } catch (error) {
+    console.error("Error fetching WeChat public account chat messages:", error);
+    throw error;
+  }
 };
 
 /**
@@ -291,38 +282,36 @@ export const getTokenUsageApi = async (params: {
 }): Promise<TokenUsageResponse> => {
   try {
     if (!params || !params.token_source_platform) {
-      throw new Error('Missing required parameter: token_source_platform');
+      throw new Error("Missing required parameter: token_source_platform");
     }
-    
+
     if (!params.wx_user_id) {
-      throw new Error('Missing required parameter: wx_user_id');
+      throw new Error("Missing required parameter: wx_user_id");
     }
 
     const queryParams = new URLSearchParams();
-    
-    queryParams.append('token_source_platform', params.token_source_platform);
-    queryParams.append('wx_user_id', params.wx_user_id);
-    
-    if (params.room_id) queryParams.append('room_id', params.room_id);
-    if (params.start_time) queryParams.append('start_time', params.start_time);
-    if (params.end_time) queryParams.append('end_time', params.end_time);
-    if (params.limit) queryParams.append('limit', params.limit.toString());
-    if (params.offset) queryParams.append('offset', params.offset.toString());
-    
-    const baseUrl = tokenUsageUrl || '';
-    const url = queryParams.toString()
-      ? `${baseUrl}?${queryParams.toString()}`
-      : baseUrl;
-    
+
+    queryParams.append("token_source_platform", params.token_source_platform);
+    queryParams.append("wx_user_id", params.wx_user_id);
+
+    if (params.room_id) queryParams.append("room_id", params.room_id);
+    if (params.start_time) queryParams.append("start_time", params.start_time);
+    if (params.end_time) queryParams.append("end_time", params.end_time);
+    if (params.limit) queryParams.append("limit", params.limit.toString());
+    if (params.offset) queryParams.append("offset", params.offset.toString());
+
+    const baseUrl = tokenUsageUrl || "";
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch token usage records');
+      throw new Error("Failed to fetch token usage records");
     }
-    
-    return await response.json() as TokenUsageResponse;
+
+    return (await response.json()) as TokenUsageResponse;
   } catch (error) {
-    console.error('Error fetching token usage records:', error);
+    console.error("Error fetching token usage records:", error);
     throw error;
   }
 };
@@ -409,27 +398,30 @@ export interface ChatHistorySummaryResponse {
 
 /**
  * Fetches chat history summary for a specific WeChat user and room
- * 
+ *
  * @param wxid WeChat user ID
  * @param room_id Room ID
  * @returns Promise with the chat history summary response
  */
-export const getWxChatHistorySummaryApi = async (wxid: string, room_id: string): Promise<ChatHistorySummaryResponse> => {
+export const getWxChatHistorySummaryApi = async (
+  wxid: string,
+  room_id: string
+): Promise<ChatHistorySummaryResponse> => {
   try {
     const queryParams = new URLSearchParams();
-    queryParams.append('wx_user_id', wxid);
-    queryParams.append('contact_name', room_id);
+    queryParams.append("wx_user_id", wxid);
+    queryParams.append("contact_name", room_id);
 
-    const baseUrl = chatSummaryUrl || '';
+    const baseUrl = chatSummaryUrl || "";
     const url = `${baseUrl}?${queryParams.toString()}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Failed to fetch chat history summary');
+      throw new Error("Failed to fetch chat history summary");
     }
     return response.json() as Promise<ChatHistorySummaryResponse>;
   } catch (error) {
-    console.error('Error fetching chat history summary:', error);
+    console.error("Error fetching chat history summary:", error);
     throw error;
   }
 };
@@ -470,28 +462,31 @@ export interface FriendCircleAnalysisResponse {
 
 /**
  * Fetches friend circle analysis data for a specific WeChat user and friend
- * 
+ *
  * @param wx_user_id WeChat user ID
  * @param wxid Friend's WeChat ID
  * @returns Promise with the friend circle analysis response
  */
-export const getFriendCircleAnalysisApi = async (wx_user_id: string, wxid: string): Promise<FriendCircleAnalysisResponse> => {
-  console.log("getFriendCircleAnalysisApi",wx_user_id,wxid);
+export const getFriendCircleAnalysisApi = async (
+  wx_user_id: string,
+  wxid: string
+): Promise<FriendCircleAnalysisResponse> => {
+  console.log("getFriendCircleAnalysisApi", wx_user_id, wxid);
   try {
     const queryParams = new URLSearchParams();
-    queryParams.append('wx_user_id', wx_user_id);
-    queryParams.append('wxid', wxid);
+    queryParams.append("wx_user_id", wx_user_id);
+    queryParams.append("wxid", wxid);
 
-    const baseUrl = friendCircleAnalysisUrl || '';
+    const baseUrl = friendCircleAnalysisUrl || "";
     const url = `${baseUrl}?${queryParams.toString()}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Failed to fetch friend circle analysis');
+      throw new Error("Failed to fetch friend circle analysis");
     }
     return response.json() as Promise<FriendCircleAnalysisResponse>;
   } catch (error) {
-    console.error('Error fetching friend circle analysis:', error);
+    console.error("Error fetching friend circle analysis:", error);
     throw error;
   }
 };

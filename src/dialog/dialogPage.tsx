@@ -17,7 +17,7 @@ import { MessageContent } from "../components/MessageContent";
 import { getMessageContent } from "../utils/messageTypes";
 import { error } from "console";
 import { get } from "http";
-import { is } from "date-fns/locale";
+import { id, is } from "date-fns/locale";
 import { set } from "date-fns";
 import { message } from "antd";
 
@@ -53,18 +53,21 @@ interface Message {
   senderName: string;
   msgType?: number;
   senderId?: string;
+  is_self?: number;
 }
 
 interface DirectImageMessageContentProps {
   content: string;
   msgType: number;
   conversation: RoomListMessage | null;
+  isUser: boolean;
 }
 
 const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
   content,
   msgType,
   conversation,
+  isUser,
 }) => {
   // 添加预览状态
   const [showPreview, setShowPreview] = React.useState(false);
@@ -86,11 +89,12 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
   };
 
   // 获取COS图片的URL
-  const getImageUrl = (): string => {
+  const getImageUrl = (isUser: boolean): string => {
     if (!conversation) return "";
 
     try {
-      const bucket = "wx-records-1347723456";
+      const userBucket = "wx-records-1347723456";
+      const aiBucket = "wx-resources-1347723456";
       const region = "ap-guangzhou";
 
       if (isTmpImagePath) {
@@ -101,10 +105,14 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
         const roomId = conversation.room_id || "";
         const completeFileName = fileName.includes(".") ? fileName : `${fileName}.jpg`;
         const cosKey = `${wxUserName}_${wxId}/${roomId}/${completeFileName}`;
-        const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(cosKey)}`;
+        const url = `https://${
+          isUser ? userBucket : aiBucket
+        }.cos.${region}.myqcloud.com/${encodeURIComponent(cosKey)}`;
         return url;
       } else if (isDirectCosPath) {
-        const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(content)}`;
+        const url = `https://${
+          isUser ? userBucket : aiBucket
+        }.cos.${region}.myqcloud.com/${encodeURIComponent(content)}`;
         return url;
       }
 
@@ -117,7 +125,8 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
 
   // 如果是图片路径，直接展示图片
   if (isImagePath) {
-    const imageUrl = getImageUrl();
+    const imageUrl = getImageUrl(isUser);
+    console.log("获取imageUrl", isUser, imageUrl);
     if (imageUrl) {
       return (
         <div className="image-container relative">
@@ -321,6 +330,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
         senderName: msg.sender_name || msg.sender_id,
         msgType: msg.msg_type,
         senderId: msg.sender_id,
+        is_self: msg.is_self,
       }));
 
       setMessages(transformedMessages);
@@ -402,14 +412,12 @@ export const DialogPage: React.FC<DialogPageProps> = ({
           .then((response) => {
             isEmptyMessage();
           })
-          .catch((error) => {
-          })
+          .catch((error) => {})
           .finally(() => {
             setIsLoading(false);
           });
       })
-      .catch((error) => {
-      })
+      .catch((error) => {})
       .finally(() => {
         setIsLoading(false);
       });
@@ -752,6 +760,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                             content={message.content}
                             msgType={message.msgType}
                             conversation={conversation}
+                            isUser={message.is_self === 0 ? true : false}
                           />
                         ) : (
                           getMessageContent(message.msgType || 0, message.content)

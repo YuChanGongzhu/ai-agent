@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { generateWxChatHistorySummaryApi,getDagRunDetail } from "../api/airflow";
+import { generateWxChatHistorySummaryApi, getDagRunDetail } from "../api/airflow";
 import { getWxChatHistorySummaryApi, ChatHistorySummaryResponse } from "../api/mysql";
 import ChatMemory from "./memory/chatMemory";
 import FriendCircleAnalysis from "./memory/friendCircleAnalysis";
@@ -37,7 +37,9 @@ interface MemoryProps {
 
 const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [ChatHistorySummary, SetChatHistorySummary] = useState<ChatHistorySummaryResponse| null>(null);
+  const [ChatHistorySummary, SetChatHistorySummary] = useState<ChatHistorySummaryResponse | null>(
+    null
+  );
   const [currentDagRunId, setCurrentDagRunId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<ApiCustomerInfo>({
@@ -207,150 +209,155 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
     }
   };
 
-
-  const checkDagRunStatus = async (wxid: string, room_id: string,dagRunId: string) => {
-  try {
-    const response = await getDagRunDetail('wx_history_summary', dagRunId);
-    console.log('DAG运行状态:', response);
-
-    // 根据DAG状态更新refreshing
-    if (response && response.state) {
-      // 如果DAG状态为'running'或'queued'，则继续刷新状态
-      if (['running', 'queued'].includes(response.state)) {
-        setRefreshing(true);
-
-        // 继续轮询检查状态
-        setTimeout(() => {
-          checkDagRunStatus(wxid,room_id,dagRunId);
-        }, 2000);
-      } else {
-        // DAG已完成或失败
-        setRefreshing(false);
-        const ChatHistorySummary= await getWxChatHistorySummaryApi(
-            wxid,
-            room_id
-          ); // 获取最新设备列表
-        SetChatHistorySummary(ChatHistorySummary)
-        console.log("SetChatHistorySummary数据",ChatHistorySummary)
-        if (ChatHistorySummary?.code === 0 && ChatHistorySummary.data) {
-              // 处理基础信息
-              if (ChatHistorySummary.data.tags?.基础信息) {
-                setCustomerInfo({
-                  name: ChatHistorySummary.data.tags.基础信息.name || null,
-                  contact: ChatHistorySummary.data.tags.基础信息.contact || null,
-                  gender: ChatHistorySummary.data.tags.基础信息.gender || null,
-                  age_group: ChatHistorySummary.data.tags.基础信息.age_group || null,
-                  city_tier: ChatHistorySummary.data.tags.基础信息.city_tier || null,
-                  specific_location: ChatHistorySummary.data.tags.基础信息.specific_location || null,
-                  occupation_type: ChatHistorySummary.data.tags.基础信息.occupation_type || null,
-                  marital_status: ChatHistorySummary.data.tags.基础信息.marital_status || null,
-                  family_structure: ChatHistorySummary.data.tags.基础信息.family_structure || null,
-                  income_level_estimated:
-                    ChatHistorySummary.data.tags.基础信息.income_level_estimated || null,
-                });
-              }
-
-              // 处理对话关键事件
-              if (ChatHistorySummary.data.chat_key_event) {
-                setChatKeyEvents(ChatHistorySummary.data.chat_key_event);
-              }
-
-              // 处理用户标签
-              const tags: UserProfileTag[] = [];
-
-              // 处理价值观与兴趣
-              if (ChatHistorySummary.data.tags?.价值观与兴趣) {
-                const valueInterests = ChatHistorySummary.data.tags.价值观与兴趣;
-                Object.entries(valueInterests).forEach(([key, value]) => {
-                  if (value && value !== null) {
-                    if (Array.isArray(value)) {
-                      value.forEach((item) => {
-                        if (item) tags.push({ text: `${item}`, category: "价值观与兴趣" });
-                      });
-                    } else if (typeof value === "string" && value.trim() !== "") {
-                      tags.push({ text: `${key}: ${value}`, category: "价值观与兴趣" });
-                    }
-                  }
-                });
-              }
-
-              // 处理互动与认知
-              if (ChatHistorySummary.data.tags?.互动与认知) {
-                const interactions = ChatHistorySummary.data.tags.互动与认知;
-                Object.entries(interactions).forEach(([key, value]) => {
-                  if (value && typeof value === "string" && value.trim() !== "") {
-                    tags.push({ text: `${key}: ${value}`, category: "互动与认知" });
-                  }
-                });
-              }
-
-              // 处理购买决策
-              if (ChatHistorySummary.data.tags?.购买决策) {
-                const decisions = ChatHistorySummary.data.tags.购买决策;
-                Object.entries(decisions).forEach(([key, value]) => {
-                  if (value) {
-                    if (Array.isArray(value)) {
-                      value.forEach((item) => {
-                        if (item) tags.push({ text: `${item}`, category: "购买决策" });
-                      });
-                    } else if (typeof value === "string" && value.trim() !== "") {
-                      tags.push({ text: `${key}: ${value}`, category: "购买决策" });
-                    }
-                  }
-                });
-              }
-
-              // 处理客户关系
-              if (ChatHistorySummary.data.tags?.客户关系) {
-                const relations = ChatHistorySummary.data.tags.客户关系;
-                Object.entries(relations).forEach(([key, value]) => {
-                  if (value) {
-                    if (Array.isArray(value)) {
-                      value.forEach((item) => {
-                        if (item) tags.push({ text: `${item}`, category: "客户关系" });
-                      });
-                    } else if (typeof value === "string" && value.trim() !== "") {
-                      tags.push({ text: `${key}: ${value}`, category: "客户关系" });
-                    }
-                  }
-                });
-              }
-
-              // 处理特殊来源
-              if (ChatHistorySummary.data.tags?.特殊来源) {
-                const sources = ChatHistorySummary.data.tags.特殊来源;
-                Object.entries(sources).forEach(([key, value]) => {
-                  if (value) {
-                    if (Array.isArray(value)) {
-                      value.forEach((item) => {
-                        if (item) tags.push({ text: `${item}`, category: "特殊来源" });
-                      });
-                    } else if (typeof value === "string" && value.trim() !== "") {
-                      tags.push({ text: `${key}: ${value}`, category: "特殊来源" });
-                    }
-                  }
-                });
-              }
-
-              setUserProfileTags(tags);
-            }
-        setCurrentDagRunId(null);
-
-        // 根据状态显示相应消息
-        if (response.state === 'success') {
-          console.log('设备列表已成功刷新', 'success');
-        } else if (response.state === 'failed') {
-          console.log('设备列表刷新失败', 'error');
-        }
+  //赋值朋友圈分析函数
+  const analysisSummary = (ChatHistorySummary: ChatHistorySummaryResponse) => {
+    if (ChatHistorySummary?.code === 0 && ChatHistorySummary.data) {
+      // 处理基础信息
+      if (ChatHistorySummary.data.tags?.基础信息) {
+        setCustomerInfo({
+          name: ChatHistorySummary.data.tags.基础信息.name || null,
+          contact: ChatHistorySummary.data.tags.基础信息.contact || null,
+          gender: ChatHistorySummary.data.tags.基础信息.gender || null,
+          age_group: ChatHistorySummary.data.tags.基础信息.age_group || null,
+          city_tier: ChatHistorySummary.data.tags.基础信息.city_tier || null,
+          specific_location: ChatHistorySummary.data.tags.基础信息.specific_location || null,
+          occupation_type: ChatHistorySummary.data.tags.基础信息.occupation_type || null,
+          marital_status: ChatHistorySummary.data.tags.基础信息.marital_status || null,
+          family_structure: ChatHistorySummary.data.tags.基础信息.family_structure || null,
+          income_level_estimated:
+            ChatHistorySummary.data.tags.基础信息.income_level_estimated || null,
+        });
       }
-    }
-  } catch (error) {
-    console.error('检查DAG状态失败:', error);
-    setRefreshing(false);
-    setCurrentDagRunId(null);
-  }
-};
 
+      // 处理对话关键事件
+      if (ChatHistorySummary.data.chat_key_event) {
+        setChatKeyEvents(ChatHistorySummary.data.chat_key_event);
+      }
+
+      // 处理用户标签
+      const tags: UserProfileTag[] = [];
+
+      // 处理价值观与兴趣
+      if (ChatHistorySummary.data.tags?.价值观与兴趣) {
+        const valueInterests = ChatHistorySummary.data.tags.价值观与兴趣;
+        Object.entries(valueInterests).forEach(([key, value]) => {
+          if (value && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach((item) => {
+                if (item) tags.push({ text: `${item}`, category: "价值观与兴趣" });
+              });
+            } else if (typeof value === "string" && value.trim() !== "") {
+              tags.push({ text: `${key}: ${value}`, category: "价值观与兴趣" });
+            }
+          }
+        });
+      }
+
+      // 处理互动与认知
+      if (ChatHistorySummary.data.tags?.互动与认知) {
+        const interactions = ChatHistorySummary.data.tags.互动与认知;
+        Object.entries(interactions).forEach(([key, value]) => {
+          if (value && typeof value === "string" && value.trim() !== "") {
+            tags.push({ text: `${key}: ${value}`, category: "互动与认知" });
+          }
+        });
+      }
+
+      // 处理购买决策
+      if (ChatHistorySummary.data.tags?.购买决策) {
+        const decisions = ChatHistorySummary.data.tags.购买决策;
+        Object.entries(decisions).forEach(([key, value]) => {
+          if (value) {
+            if (Array.isArray(value)) {
+              value.forEach((item) => {
+                if (item) tags.push({ text: `${item}`, category: "购买决策" });
+              });
+            } else if (typeof value === "string" && value.trim() !== "") {
+              tags.push({ text: `${key}: ${value}`, category: "购买决策" });
+            }
+          }
+        });
+      }
+
+      // 处理客户关系
+      if (ChatHistorySummary.data.tags?.客户关系) {
+        const relations = ChatHistorySummary.data.tags.客户关系;
+        Object.entries(relations).forEach(([key, value]) => {
+          if (value) {
+            if (Array.isArray(value)) {
+              value.forEach((item) => {
+                if (item) tags.push({ text: `${item}`, category: "客户关系" });
+              });
+            } else if (typeof value === "string" && value.trim() !== "") {
+              tags.push({ text: `${key}: ${value}`, category: "客户关系" });
+            }
+          }
+        });
+      }
+
+      // 处理特殊来源
+      if (ChatHistorySummary.data.tags?.特殊来源) {
+        const sources = ChatHistorySummary.data.tags.特殊来源;
+        Object.entries(sources).forEach(([key, value]) => {
+          if (value) {
+            if (Array.isArray(value)) {
+              value.forEach((item) => {
+                if (item) tags.push({ text: `${item}`, category: "特殊来源" });
+              });
+            } else if (typeof value === "string" && value.trim() !== "") {
+              tags.push({ text: `${key}: ${value}`, category: "特殊来源" });
+            }
+          }
+        });
+      }
+
+      setUserProfileTags(tags);
+    }
+  };
+
+  const checkDagRunStatus = async (
+    wxid: string,
+    room_id: string,
+    dagRunId: string,
+    timeInterval: number,
+    maxRetry: number,
+    retryCount: number = 0 // 新增参数，记录重试次数
+  ) => {
+    try {
+      const response = await getDagRunDetail("wx_history_summary", dagRunId);
+      console.log("DAG运行状态:", response);
+
+      if (response.state === "success") {
+        const ChatHistorySummary = await getWxChatHistorySummaryApi(wxid, room_id);
+        SetChatHistorySummary(ChatHistorySummary);
+        console.log("SetChatHistorySummary数据", ChatHistorySummary);
+        analysisSummary(ChatHistorySummary);
+        setRefreshing(false);
+        setIsLoading(false);
+        setCurrentDagRunId(null);
+        return; // 成功，终止轮询
+      }
+
+      if (retryCount >= maxRetry) {
+        console.log("轮询次数超过最大值，停止轮询");
+        setRefreshing(false);
+        setIsLoading(false);
+        setCurrentDagRunId(null);
+        return;
+      }
+
+      // 递归调用，继续轮询
+      setTimeout(
+        () => checkDagRunStatus(wxid, room_id, dagRunId, timeInterval, maxRetry, retryCount + 1),
+        timeInterval
+      );
+    } catch (error) {
+      console.error("检查DAG状态失败:", error);
+      setRefreshing(false);
+      setIsLoading(false);
+      setCurrentDagRunId(null);
+    }
+  };
 
   const fetchChatHistorySummary = async () => {
     if (
@@ -391,126 +398,18 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
         };
 
         const response = await generateWxChatHistorySummaryApi(request);
-
-        setTimeout(async () => {
-          try {
-            await checkDagRunStatus(
-              selectedAccount.wxid,
-              selectedConversation.room_id,
-              request.dag_run_id
-            );
-            console.log("聊天摘要内容:", ChatHistorySummary);
-
-            // if (ChatHistorySummary?.code === 0 && ChatHistorySummary.data) {
-            //   // 处理基础信息
-            //   if (ChatHistorySummary.data.tags?.基础信息) {
-            //     setCustomerInfo({
-            //       name: ChatHistorySummary.data.tags.基础信息.name || null,
-            //       contact: ChatHistorySummary.data.tags.基础信息.contact || null,
-            //       gender: ChatHistorySummary.data.tags.基础信息.gender || null,
-            //       age_group: ChatHistorySummary.data.tags.基础信息.age_group || null,
-            //       city_tier: ChatHistorySummary.data.tags.基础信息.city_tier || null,
-            //       specific_location: ChatHistorySummary.data.tags.基础信息.specific_location || null,
-            //       occupation_type: ChatHistorySummary.data.tags.基础信息.occupation_type || null,
-            //       marital_status: ChatHistorySummary.data.tags.基础信息.marital_status || null,
-            //       family_structure: ChatHistorySummary.data.tags.基础信息.family_structure || null,
-            //       income_level_estimated:
-            //         ChatHistorySummary.data.tags.基础信息.income_level_estimated || null,
-            //     });
-            //   }
-
-            //   // 处理对话关键事件
-            //   if (ChatHistorySummary.data.chat_key_event) {
-            //     setChatKeyEvents(ChatHistorySummary.data.chat_key_event);
-            //   }
-
-            //   // 处理用户标签
-            //   const tags: UserProfileTag[] = [];
-
-            //   // 处理价值观与兴趣
-            //   if (ChatHistorySummary.data.tags?.价值观与兴趣) {
-            //     const valueInterests = ChatHistorySummary.data.tags.价值观与兴趣;
-            //     Object.entries(valueInterests).forEach(([key, value]) => {
-            //       if (value && value !== null) {
-            //         if (Array.isArray(value)) {
-            //           value.forEach((item) => {
-            //             if (item) tags.push({ text: `${item}`, category: "价值观与兴趣" });
-            //           });
-            //         } else if (typeof value === "string" && value.trim() !== "") {
-            //           tags.push({ text: `${key}: ${value}`, category: "价值观与兴趣" });
-            //         }
-            //       }
-            //     });
-            //   }
-
-            //   // 处理互动与认知
-            //   if (ChatHistorySummary.data.tags?.互动与认知) {
-            //     const interactions = ChatHistorySummary.data.tags.互动与认知;
-            //     Object.entries(interactions).forEach(([key, value]) => {
-            //       if (value && typeof value === "string" && value.trim() !== "") {
-            //         tags.push({ text: `${key}: ${value}`, category: "互动与认知" });
-            //       }
-            //     });
-            //   }
-
-            //   // 处理购买决策
-            //   if (ChatHistorySummary.data.tags?.购买决策) {
-            //     const decisions = ChatHistorySummary.data.tags.购买决策;
-            //     Object.entries(decisions).forEach(([key, value]) => {
-            //       if (value) {
-            //         if (Array.isArray(value)) {
-            //           value.forEach((item) => {
-            //             if (item) tags.push({ text: `${item}`, category: "购买决策" });
-            //           });
-            //         } else if (typeof value === "string" && value.trim() !== "") {
-            //           tags.push({ text: `${key}: ${value}`, category: "购买决策" });
-            //         }
-            //       }
-            //     });
-            //   }
-
-            //   // 处理客户关系
-            //   if (ChatHistorySummary.data.tags?.客户关系) {
-            //     const relations = ChatHistorySummary.data.tags.客户关系;
-            //     Object.entries(relations).forEach(([key, value]) => {
-            //       if (value) {
-            //         if (Array.isArray(value)) {
-            //           value.forEach((item) => {
-            //             if (item) tags.push({ text: `${item}`, category: "客户关系" });
-            //           });
-            //         } else if (typeof value === "string" && value.trim() !== "") {
-            //           tags.push({ text: `${key}: ${value}`, category: "客户关系" });
-            //         }
-            //       }
-            //     });
-            //   }
-
-            //   // 处理特殊来源
-            //   if (ChatHistorySummary.data.tags?.特殊来源) {
-            //     const sources = ChatHistorySummary.data.tags.特殊来源;
-            //     Object.entries(sources).forEach(([key, value]) => {
-            //       if (value) {
-            //         if (Array.isArray(value)) {
-            //           value.forEach((item) => {
-            //             if (item) tags.push({ text: `${item}`, category: "特殊来源" });
-            //           });
-            //         } else if (typeof value === "string" && value.trim() !== "") {
-            //           tags.push({ text: `${key}: ${value}`, category: "特殊来源" });
-            //         }
-            //       }
-            //     });
-            //   }
-
-            //   setUserProfileTags(tags);
-            // }
-          } catch (summaryError) {
-            console.error("获取聊天摘要时出错:", summaryError);
-          } finally {
-            setIsLoading(false);
-          }
-        }, 8000);
+        try {
+          await checkDagRunStatus(
+            selectedAccount.wxid,
+            selectedConversation.room_id,
+            request.dag_run_id,
+            2000,
+            30
+          );
+        } catch (summaryError) {
+          console.error("获取聊天摘要时出错:", summaryError);
+        }
       } catch (error) {
-        console.error("生成聊天历史摘要时出错:", error);
         setIsLoading(false);
       }
     } else {
@@ -518,7 +417,7 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
       setIsLoading(false);
     }
   };
- 
+
   const memoryEvents = chatKeyEvents.map((event) => ({
     date: event.time,
     content: event.detail,
@@ -534,7 +433,10 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
         onUpdateMemory={fetchChatHistorySummary}
       />
 
-      <FriendCircleAnalysis selectedAccount={selectedAccount} selectedConversation={selectedConversation} />
+      <FriendCircleAnalysis
+        selectedAccount={selectedAccount}
+        selectedConversation={selectedConversation}
+      />
       {/* <UserProfile
                 className="mb-4 mt-4"
                 tags={userProfileTags}
