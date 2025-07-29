@@ -3,6 +3,7 @@ import React from 'react';
 interface MpMessageContentProps {
     content: string;
     msgType: string;
+    isUser:boolean;
 }
 
 interface ParsedContent {
@@ -49,14 +50,14 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ attributes }) => {
 };
 
 // 处理公众号图片路径的组件
-const MpImageMessage: React.FC<{ content: string }> = ({ content }) => {
+const MpImageMessage: React.FC<{ content: string, isUser: boolean }> = ({ content, isUser }) => {
     // 添加预览状态
     const [showPreview, setShowPreview] = React.useState(false);
     
     // 获取COS图片的URL
     const getImageUrl = (): string => {
         try {
-            const bucket = 'wx-mp-records-1347723456';
+            const bucket = isUser ? 'wx-mp-records-1347723456' : 'wx-resources-1347723456';
             const region = 'ap-guangzhou';
             const url = `https://${bucket}.cos.${region}.myqcloud.com/${encodeURIComponent(content)}`;
             return url;
@@ -67,7 +68,7 @@ const MpImageMessage: React.FC<{ content: string }> = ({ content }) => {
     };
     
     const imageUrl = getImageUrl();
-    
+    console.log("imageUrl1222", imageUrl,isUser);
     // 打开预览
     const openPreview = () => {
         setShowPreview(true);
@@ -111,12 +112,12 @@ const MpImageMessage: React.FC<{ content: string }> = ({ content }) => {
 };
 
 // 专门用于处理微信公众号消息的组件
-export const MpMessageContent: React.FC<MpMessageContentProps> = ({ content, msgType }) => {
+export const MpMessageContent: React.FC<MpMessageContentProps> = ({ content, msgType, isUser }) => {
     // 如果 content 为 null 或 undefined，提供一个空字符串作为默认值
     const safeContent = content || '';
     
     // 检查是否是图片路径
-    const isImagePath = safeContent.includes('/') && safeContent.includes('wx_image_');
+    const isImagePath = isUser?(safeContent.includes('/') && safeContent.includes('wx_image_')):safeContent.includes('/');
     
     // 根据消息类型显示不同内容
     switch(msgType.toLowerCase()) {
@@ -126,7 +127,7 @@ export const MpMessageContent: React.FC<MpMessageContentProps> = ({ content, msg
         case 'image':
             // 如果是图片路径，使用MpImageMessage组件
             if (isImagePath) {
-                return <MpImageMessage content={safeContent} />;
+                return <MpImageMessage content={safeContent} isUser={isUser} />;
             }
             return <span>[图片消息]</span>;
             

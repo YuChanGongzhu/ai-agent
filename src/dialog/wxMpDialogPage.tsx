@@ -180,7 +180,8 @@ export const WxMpDialogPage: React.FC<WxMpDialogPageProps> = ({
                                             </div>
                                             <MpMessageContent 
                                                 content={message.content} 
-                                                msgType={message.msgType} 
+                                                msgType={message.msgType}
+                                                isUser={message.isUser}
                                             />
                                         </div>
                                     </div>

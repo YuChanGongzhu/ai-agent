@@ -126,7 +126,6 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
   // 如果是图片路径，直接展示图片
   if (isImagePath) {
     const imageUrl = getImageUrl(isUser);
-    console.log("获取imageUrl", isUser, imageUrl);
     if (imageUrl) {
       return (
         <div className="image-container relative">
