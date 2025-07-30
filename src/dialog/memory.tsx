@@ -432,18 +432,13 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
         isLoading={isLoading}
         onUpdateMemory={fetchChatHistorySummary}
       />
+      {/* <UserProfile className="mb-4 mt-4" tags={userProfileTags}/> */}
+      <LongtimeMemory memories={memoryEvents}/>
 
       <FriendCircleAnalysis
         selectedAccount={selectedAccount}
         selectedConversation={selectedConversation}
       />
-      {/* <UserProfile
-                className="mb-4 mt-4"
-                tags={userProfileTags}
-            />
-            <LongtimeMemory 
-                memories={memoryEvents} 
-            /> */}
     </>
   );
 };
