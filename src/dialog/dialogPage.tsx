@@ -209,6 +209,8 @@ export const DialogPage: React.FC<DialogPageProps> = ({
   const [isAIEnabled, setIsAIEnabled] = useState(true);
   const [isAISummaryEnabled, setIsAISummaryEnabled] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [summaryTokenUsage, setSummaryTokenUsage] = useState<number>(0);
+  const [isLoadingSummaryToken, setIsLoadingSummaryToken] = useState<boolean>(false);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   // Remove the internal refs and state for AI settings
   const [notification, setNotification] = useState<{
@@ -257,6 +259,31 @@ export const DialogPage: React.FC<DialogPageProps> = ({
       showNotification("获取Token用量失败", "error");
     } finally {
       setIsLoadingToken(false);
+    }
+  };
+
+  // Function to refresh AI summary token usage
+  const refreshSummaryTokenUsage = async () => {
+    if (!selectedAccount) return;
+
+    setIsLoadingSummaryToken(true);
+    try {
+      const result = await getTokenUsageApi({
+        token_source_platform: "wx_history_summary",
+        wx_user_id: selectedAccount.wxid.toLowerCase(),
+      });
+
+      if (result.code === 0 && result.sum) {
+        setSummaryTokenUsage(result.sum.sum_token);
+        showNotification("AI总结Token用量已更新", "success");
+      } else {
+        showNotification(`获取AI总结Token用量失败: ${result.message}`, "error");
+      }
+    } catch (error) {
+      console.error("获取AI总结Token用量失败:", error);
+      showNotification("获取AI总结Token用量失败", "error");
+    } finally {
+      setIsLoadingSummaryToken(false);
     }
   };
 
@@ -616,6 +643,20 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                   isAISummaryEnabled ? "right-1" : "left-1"
                 )}
               />
+            </button>
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <span>ai总结Token用量: {summaryTokenUsage}</span>
+            <button
+              onClick={refreshSummaryTokenUsage}
+              disabled={isLoadingSummaryToken}
+              className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors duration-200 flex items-center"
+            >
+              {isLoadingSummaryToken ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              ) : (
+                "刷新"
+              )}
             </button>
           </div>
 
