@@ -12,6 +12,8 @@ import {
   postDisableAIReplyListApi,
   AIGetWxMessageApi,
   AISetWxMessageApi,
+  getWxAutoHistoryListApi,
+  updateWxAutoHistoryListApi,
 } from "../api/airflow";
 import { MessageContent } from "../components/MessageContent";
 import { getMessageContent } from "../utils/messageTypes";
@@ -205,6 +207,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [isAIEnabled, setIsAIEnabled] = useState(true);
+  const [isAISummaryEnabled, setIsAISummaryEnabled] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   // Remove the internal refs and state for AI settings
@@ -429,6 +432,57 @@ export const DialogPage: React.FC<DialogPageProps> = ({
     }
   };
 
+  // Function to load AI summary state from wx_auto_history_list
+  const loadAISummaryState = async () => {
+    if (!selectedAccount || !selectedAccount.wxid) return;
+    
+    try {
+      const response = await getWxAutoHistoryListApi();
+      let historyList = [];
+      
+      try {
+        historyList = JSON.parse(response.value || '[]');
+      } catch (e) {
+        console.error("解析wx_auto_history_list失败:", e);
+        historyList = [];
+      }
+
+      // Check if current wx_user_id exists in the list
+      // Convert wxid to lowercase for consistent handling
+      const wxUserId = selectedAccount.wxid.toLowerCase();
+      const existingIndex = historyList.findIndex(
+        (item: any) => item.wx_user_id && item.wx_user_id.toLowerCase() === wxUserId
+      );
+
+      // Set state based on found item
+      if (existingIndex >= 0) {
+        setIsAISummaryEnabled(historyList[existingIndex].auto === "true");
+      } else {
+        setIsAISummaryEnabled(false);
+      }
+    } catch (error) {
+      console.error("加载AI总结状态失败:", error);
+      setIsAISummaryEnabled(false);
+    }
+  };
+
+  useEffect(() => {
+    if (conversation) {
+      // Determine if AI should be enabled for this conversation using parent props
+      updateAIEnabledState(conversation);
+      loadMessages();
+    } else {
+      setMessages([]);
+    }
+  }, [conversation]);
+
+  // Load AI summary state when selected account changes
+  useEffect(() => {
+    if (selectedAccount) {
+      loadAISummaryState();
+    }
+  }, [selectedAccount]);
+
   if (!conversation) {
     return (
       <div className="h-full flex items-center justify-center text-gray-500">请选择一个聊天</div>
@@ -454,7 +508,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
+                    strokeWidth={2}
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
@@ -463,7 +517,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
+                    strokeWidth={2}
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
@@ -500,6 +554,71 @@ export const DialogPage: React.FC<DialogPageProps> = ({
               </div>
             </div>
           </div>
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-sm text-gray-600">AI总结</span>
+            <button
+              onClick={async () => {
+                const newSummaryEnabled = !isAISummaryEnabled;
+                setIsAISummaryEnabled(newSummaryEnabled);
+
+                try {
+                  if (!selectedAccount || !selectedAccount.wxid) {
+                    showNotification("未选择微信账号", "error");
+                    return;
+                  }
+
+                  // Get current auto history list
+                  const response = await getWxAutoHistoryListApi();
+                  let historyList = [];
+                  
+                  try {
+                    historyList = JSON.parse(response.value || '[]');
+                  } catch (e) {
+                    console.error("解析wx_auto_history_list失败:", e);
+                    historyList = [];
+                  }
+
+                  // Check if current wx_user_id exists in the list
+                  // Convert wxid to lowercase for consistent handling
+                  const wxUserId = selectedAccount.wxid.toLowerCase();
+                  const existingIndex = historyList.findIndex(
+                    (item: any) => item.wx_user_id && item.wx_user_id.toLowerCase() === wxUserId
+                  );
+
+                  if (existingIndex >= 0) {
+                    // Update existing entry
+                    historyList[existingIndex].auto = newSummaryEnabled ? "true" : "false";
+                  } else {
+                    // Add new entry
+                    historyList.push({
+                      wx_user_id: wxUserId,
+                      auto: newSummaryEnabled ? "true" : "false"
+                    });
+                  }
+
+                  // Update the list in Airflow
+                  await updateWxAutoHistoryListApi(historyList);
+                  showNotification(`AI总结已${newSummaryEnabled ? '启用' : '禁用'}`, "success");
+                } catch (error) {
+                  console.error("更新AI总结状态失败:", error);
+                  setIsAISummaryEnabled(!newSummaryEnabled); // Revert state on error
+                  showNotification("更新AI总结状态失败", "error");
+                }
+              }}
+              className={clsx(
+                "w-12 h-6 rounded-full transition-colors duration-200 ease-in-out relative",
+                isAISummaryEnabled ? "bg-purple-500" : "bg-gray-200"
+              )}
+            >
+              <span
+                className={clsx(
+                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ease-in-out",
+                  isAISummaryEnabled ? "right-1" : "left-1"
+                )}
+              />
+            </button>
+          </div>
+
           <div className="flex items-center space-x-2">
             {humanList.includes(conversation.room_id) && (
               <button

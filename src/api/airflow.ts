@@ -327,3 +327,40 @@ export const generateFriendCircleAnalysisApi = async (
   
   return handleRequest(airflowAxios.post("/dags/wx_friend_circle/dagRuns", request));
 };
+
+/**
+ * Interface for WeChat auto history list item
+ */
+interface WxAutoHistoryItem {
+  wx_user_id: string;
+  auto: string;
+}
+
+/**
+ * Gets the wx_auto_history_list variable from Airflow
+ * 
+ * @returns Promise with the variable response containing the auto history list
+ */
+export const getWxAutoHistoryListApi = async (): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.get(`/variables/wx_auto_history_list`)
+  );
+};
+
+/**
+ * Updates the wx_auto_history_list variable in Airflow
+ * 
+ * @param historyList Array of WeChat users with auto status
+ * @returns Promise with the variable response
+ */
+export const updateWxAutoHistoryListApi = async (
+  historyList: WxAutoHistoryItem[]
+): Promise<VariableResponse> => {
+  return handleRequest<VariableResponse>(
+    airflowAxios.post(`/variables`, {
+      value: JSON.stringify(historyList),
+      key: `wx_auto_history_list`,
+      description: `微信自动回复历史列表`,
+    })
+  );
+};
