@@ -184,7 +184,7 @@ const DirectImageMessageContent: React.FC<DirectImageMessageContentProps> = ({
   return <MessageContent content={content} msgType={msgType} />;
 };
 
-export const DialogPage: React.FC<DialogPageProps> = ({
+export const UpdateDialogPage: React.FC<DialogPageProps> = ({
   conversation,
   selectedAccount,
   avatarList = [],
@@ -570,7 +570,26 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                 <button
                   onClick={refreshTokenUsage}
                   disabled={isLoadingToken}
-                  className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors duration-200 flex items-center"
+                  style={{
+                    border: "1px solid #D477E1",
+                    borderRadius: "2px",
+                    color: "#D477E1",
+                    padding: "0px 8px",
+                    transition: "transform 0.1s ease-in-out",
+                  }}
+                  onMouseEnter={(e) => {
+                    document.body.style.cursor = "pointer";
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    document.body.style.cursor = "default";
+                  }}
                 >
                   {isLoadingToken ? (
                     <span className="loading loading-spinner loading-xs"></span>
@@ -580,84 +599,6 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                 </button>
               </div>
             </div>
-          </div>
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-sm text-gray-600">AI总结</span>
-            <button
-              onClick={async () => {
-                const newSummaryEnabled = !isAISummaryEnabled;
-                setIsAISummaryEnabled(newSummaryEnabled);
-
-                try {
-                  if (!selectedAccount || !selectedAccount.wxid) {
-                    showNotification("未选择微信账号", "error");
-                    return;
-                  }
-
-                  // Get current auto history list
-                  const response = await getWxAutoHistoryListApi();
-                  let historyList = [];
-
-                  try {
-                    historyList = JSON.parse(response.value || "[]");
-                  } catch (e) {
-                    console.error("解析wx_auto_history_list失败:", e);
-                    historyList = [];
-                  }
-
-                  // Check if current wx_user_id exists in the list
-                  // Convert wxid to lowercase for consistent handling
-                  const wxUserId = selectedAccount.wxid.toLowerCase();
-                  const existingIndex = historyList.findIndex(
-                    (item: any) => item.wx_user_id && item.wx_user_id.toLowerCase() === wxUserId
-                  );
-
-                  if (existingIndex >= 0) {
-                    // Update existing entry
-                    historyList[existingIndex].auto = newSummaryEnabled ? "true" : "false";
-                  } else {
-                    // Add new entry
-                    historyList.push({
-                      wx_user_id: wxUserId,
-                      auto: newSummaryEnabled ? "true" : "false",
-                    });
-                  }
-
-                  // Update the list in Airflow
-                  await updateWxAutoHistoryListApi(historyList);
-                  showNotification(`AI总结已${newSummaryEnabled ? "启用" : "禁用"}`, "success");
-                } catch (error) {
-                  console.error("更新AI总结状态失败:", error);
-                  setIsAISummaryEnabled(!newSummaryEnabled); // Revert state on error
-                  showNotification("更新AI总结状态失败", "error");
-                }
-              }}
-              className={clsx(
-                "w-12 h-6 rounded-full transition-colors duration-200 ease-in-out relative",
-                isAISummaryEnabled ? "bg-purple-500" : "bg-gray-200"
-              )}
-            >
-              <span
-                className={clsx(
-                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ease-in-out",
-                  isAISummaryEnabled ? "right-1" : "left-1"
-                )}
-              />
-            </button>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <span>ai总结Token用量: {summaryTokenUsage}</span>
-            <button
-              onClick={refreshSummaryTokenUsage}
-              disabled={isLoadingSummaryToken}
-              className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors duration-200 flex items-center"
-            >
-              {isLoadingSummaryToken ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              ) : (
-                "刷新"
-              )}
-            </button>
           </div>
 
           <div className="flex items-center space-x-2">

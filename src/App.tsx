@@ -1,28 +1,40 @@
-import './App.css';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import NavBar from './navBar/navBar';
-import { Dashboard } from './dashboard/dashboard';
-import { EmployeeTable } from './employee/employeeTable';
-import { EmployeeEdit } from './employee/employeeEdit';
-import { Dialog } from './dialog/dialog';
-import { CalendarComponent } from './calendar/calender';
-import Login from './login/Login';
-import Register from './login/Register';
-import ProtectedRoute from './components/ProtectedRoute';
-import TaskPage from './task/task';
-import PersonSelector from './task/person';
-import ServerManage from './server/serverManage';
-import ManagementPage from './management/ManagementPage';
-import FileManagement from './knowledge/FileManagement';
-import DatasetManagement from './knowledge/DatasetManagement';
-import OfficialAccount from './channels/OfficialAccount';
-import EnterpriseWeChat from './channels/EnterpriseWeChat';
-import { UserProvider } from './context/UserContext';
-import { WxAccountProvider } from './context/WxAccountContext';
-import ChargePage from './charge/charge';
+import "./App.css";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import NavBar from "./navBar/navBar";
+import { Dashboard } from "./dashboard/dashboard";
+import { EmployeeTable } from "./employee/employeeTable";
+import { EmployeeEdit } from "./employee/employeeEdit";
+import { Dialog } from "./dialog/dialog";
+import { UpdateDialog } from "./dialog/updateDialog";
+import { CalendarComponent } from "./calendar/calender";
+import Login from "./login/Login";
+import Register from "./login/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
+import TaskPage from "./task/task";
+import PersonSelector from "./task/person";
+import ServerManage from "./server/serverManage";
+import ManagementPage from "./management/ManagementPage";
+import UpdateManagementPage from "./management/UpdateManagementPage";
+import FileManagement from "./knowledge/FileManagement";
+import DatasetManagement from "./knowledge/DatasetManagement";
+import OfficialAccount from "./channels/OfficialAccount";
+import EnterpriseWeChat from "./channels/EnterpriseWeChat";
+import { UserProvider } from "./context/UserContext";
+import { WxAccountProvider } from "./context/WxAccountContext";
+import ChargePage from "./charge/charge";
 // Placeholder components for new routes
-const VideoAnalysis = () => <div className="p-8"><h1 className="text-2xl font-bold mb-4">视频号直播监控</h1><p>此功能正在开发中...</p></div>;
-const FriendTest = () => <div className="p-8"><h1 className="text-2xl font-bold mb-4">朋友圈分析</h1><p>此功能正在开发中...</p></div>;
+const VideoAnalysis = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold mb-4">视频号直播监控</h1>
+    <p>此功能正在开发中...</p>
+  </div>
+);
+const FriendTest = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold mb-4">朋友圈分析</h1>
+    <p>此功能正在开发中...</p>
+  </div>
+);
 
 function App() {
   return (
@@ -36,7 +48,7 @@ function App() {
             <ProtectedRoute>
               <UserProvider>
                 <WxAccountProvider>
-                  <div className="flex">
+                  <div className="flex h-screen">
                     <NavBar />
                     <div className="flex-1">
                       <Routes>
@@ -45,6 +57,7 @@ function App() {
                         <Route path="/employee" element={<EmployeeTable />} />
                         <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
                         <Route path="/dialog" element={<Dialog />} />
+                        <Route path="/updatedialog" element={<UpdateDialog />} />
                         <Route path="/task" element={<TaskPage />} />
                         <Route path="/task/invite" element={<PersonSelector />} />
                         <Route path="/calendar" element={<CalendarComponent />} />
@@ -52,6 +65,7 @@ function App() {
                         <Route path="/channels/official" element={<OfficialAccount />} />
                         <Route path="/channels/enterprise" element={<EnterpriseWeChat />} />
                         <Route path="/manage" element={<ManagementPage />} />
+                        <Route path="/updatemanage" element={<UpdateManagementPage />} />
                         <Route path="/knowledge/files" element={<FileManagement />} />
                         <Route path="/knowledge/datasets" element={<DatasetManagement />} />
                         {/* New AI feature routes */}

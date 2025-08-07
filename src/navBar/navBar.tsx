@@ -59,7 +59,9 @@ const basicItems: NavItemWithIcons[] = [
   { name: '数据视图', icon: dashboardSVG, activeIcon: dashboardActiveSVG, url: '/dashboard' },
   { name: '员工列表', icon: employeeSVG, activeIcon: employeeActiveSVG, url: '/employee' },
   { name: '对话管理', icon: dialogSVG, activeIcon: dialogActiveSVG, url: '/dialog' },
+  { name: '更新对话管理', icon: dialogSVG, activeIcon: dialogActiveSVG, url: '/updatedialog' },
   { name: '系统管理', icon: systemSVG, activeIcon: systemActiveSVG, url: '/manage', adminOnly: true },
+  { name: '更新系统管理', icon: systemSVG, activeIcon: systemActiveSVG, url: '/updatemanage', adminOnly: true },
 ];
 
 const officeItems: NavItemWithIcons[] = [
