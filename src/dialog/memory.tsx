@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import clsx from "clsx";
 import { generateWxChatHistorySummaryApi, getDagRunDetail } from "../api/airflow";
 import { getWxChatHistorySummaryApi, ChatHistorySummaryResponse } from "../api/mysql";
 import ChatMemory from "./memory/chatMemory";
 import FriendCircleAnalysis from "./memory/friendCircleAnalysis";
 import UserProfile from "./memory/userProfile";
-import LongtimeMemory from "./memory/longtimeMemory";
+
+import SummaryControls from "./memory/summaryControls";
 
 interface ApiCustomerInfo {
   name: string | null;
@@ -30,12 +32,48 @@ interface ChatKeyEvent {
   detail: string;
 }
 
+interface AvatarData {
+  wxid: string;
+  smallHeadImgUrl: string;
+  bigHeadImgUrl: string;
+  update_time: string;
+}
+
 interface MemoryProps {
   selectedAccount?: { wxid: string; name: string } | null;
   selectedConversation?: { room_id: string; room_name: string } | null;
+  avatarList?: AvatarData[];
 }
-
-const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }) => {
+interface interactiveMessage {
+  acquisitionChannelType: string | null;
+  acquisitionChannelDetail: string | null;
+  initialIntent: string | null;
+  intentDetails: string | null;
+  productKnowledgeLevel: string | null;
+  communicationStyle: string | null;
+  currentTrustLevel: string | null;
+  needUrgency: string | null;
+}
+interface purchaseDecision {
+  coreNeedType: string | null;
+  budgetSensitivity: string | null;
+  decisionDrivers: string[] | null;
+  upsellReadiness: string | null;
+  mainPurchaseObstacles: string[] | null;
+}
+interface customerRelationship {
+  pastSatisfactionLevel: string | null;
+  customerLoyaltyStatus: string | null;
+  repurchaseDrivers: string[] | null;
+  needEvolutionTrend: string | null;
+  engagementLevel: string | null;
+}
+const Memory: React.FC<MemoryProps> = ({
+  selectedAccount,
+  selectedConversation,
+  avatarList = [],
+}) => {
+  const [activeTab, setActiveTab] = useState<"basic" | "circle">("basic");
   const [isLoading, setIsLoading] = useState(false);
   const [ChatHistorySummary, SetChatHistorySummary] = useState<ChatHistorySummaryResponse | null>(
     null
@@ -56,7 +94,16 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
   });
   const [chatKeyEvents, setChatKeyEvents] = useState<ChatKeyEvent[]>([]);
   const [userProfileTags, setUserProfileTags] = useState<UserProfileTag[]>([]);
-
+  const [summaryTokenUsage, setSummaryTokenUsage] = useState<number>(0);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
+  const [interactiveMessage, setInteractiveMessage] = useState<interactiveMessage>();
+  const [purchaseDecision, setPurchaseDecision] = useState<purchaseDecision>();
+  const [customerRelationship, setCustomerRelationship] = useState<customerRelationship>();
+  const [isAISummaryEnabled, setIsAISummaryEnabled] = useState(false);
   // 当 selectedAccount 和 selectedConversation 变化时，先清空聊天记忆，然后获取新的摘要
   useEffect(() => {
     // 先清空当前的数据
@@ -110,7 +157,37 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
                 summaryResponse.data.tags.基础信息.income_level_estimated || null,
             });
           }
-
+          if (summaryResponse.data.tags?.互动与认知) {
+            setInteractiveMessage({
+              acquisitionChannelType: summaryResponse.data.tags.互动与认知.acquisition_channel_type,
+              acquisitionChannelDetail:
+                summaryResponse.data.tags.互动与认知.acquisition_channel_detail,
+              initialIntent: summaryResponse.data.tags.互动与认知.initial_intent,
+              intentDetails: summaryResponse.data.tags.互动与认知.intent_details,
+              productKnowledgeLevel: summaryResponse.data.tags.互动与认知.product_knowledge_level,
+              communicationStyle: summaryResponse.data.tags.互动与认知.communication_style,
+              currentTrustLevel: summaryResponse.data.tags.互动与认知.current_trust_level,
+              needUrgency: summaryResponse.data.tags.互动与认知.need_urgency,
+            });
+          }
+          if (summaryResponse.data.tags?.购买决策) {
+            setPurchaseDecision({
+              coreNeedType: summaryResponse.data.tags.购买决策.core_need_type,
+              budgetSensitivity: summaryResponse.data.tags.购买决策.budget_sensitivity,
+              decisionDrivers: summaryResponse.data.tags.购买决策.decision_drivers,
+              upsellReadiness: summaryResponse.data.tags.购买决策.upsell_readiness,
+              mainPurchaseObstacles: summaryResponse.data.tags.购买决策.main_purchase_obstacles,
+            });
+          }
+          if (summaryResponse.data.tags?.客户关系) {
+            setCustomerRelationship({
+              pastSatisfactionLevel: summaryResponse.data.tags.客户关系.past_satisfaction_level,
+              customerLoyaltyStatus: summaryResponse.data.tags.客户关系.customer_loyalty_status,
+              repurchaseDrivers: summaryResponse.data.tags.客户关系.repurchase_drivers,
+              needEvolutionTrend: summaryResponse.data.tags.客户关系.need_evolution_trend,
+              engagementLevel: summaryResponse.data.tags.客户关系.engagement_level,
+            });
+          }
           // 处理对话关键事件
           if (summaryResponse.data.chat_key_event) {
             setChatKeyEvents(summaryResponse.data.chat_key_event);
@@ -202,13 +279,49 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
           }
 
           setUserProfileTags(tags);
+        } else {
+          setCustomerInfo({
+            name: null,
+            contact: null,
+            gender: null,
+            age_group: null,
+            city_tier: null,
+            specific_location: null,
+            occupation_type: null,
+            marital_status: null,
+            family_structure: null,
+            income_level_estimated: null,
+          });
+          setInteractiveMessage({
+            acquisitionChannelType: null,
+            acquisitionChannelDetail: null,
+            initialIntent: null,
+            intentDetails: null,
+            productKnowledgeLevel: null,
+            communicationStyle: null,
+            currentTrustLevel: null,
+            needUrgency: null,
+          });
+          setPurchaseDecision({
+            coreNeedType: null,
+            budgetSensitivity: null,
+            decisionDrivers: null,
+            upsellReadiness: null,
+            mainPurchaseObstacles: null,
+          });
+          setCustomerRelationship({
+            pastSatisfactionLevel: null,
+            customerLoyaltyStatus: null,
+            repurchaseDrivers: null,
+            needEvolutionTrend: null,
+            engagementLevel: null,
+          });
         }
       } catch (error) {
         console.error("获取初始聊天摘要时出错:", error);
       }
     }
   };
-
   //赋值朋友圈分析函数
   const analysisSummary = (ChatHistorySummary: ChatHistorySummaryResponse) => {
     if (ChatHistorySummary?.code === 0 && ChatHistorySummary.data) {
@@ -226,6 +339,37 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
           family_structure: ChatHistorySummary.data.tags.基础信息.family_structure || null,
           income_level_estimated:
             ChatHistorySummary.data.tags.基础信息.income_level_estimated || null,
+        });
+      }
+      if (ChatHistorySummary.data.tags?.互动与认知) {
+        setInteractiveMessage({
+          acquisitionChannelType: ChatHistorySummary.data.tags.互动与认知.acquisition_channel_type,
+          acquisitionChannelDetail:
+            ChatHistorySummary.data.tags.互动与认知.acquisition_channel_detail,
+          initialIntent: ChatHistorySummary.data.tags.互动与认知.initial_intent,
+          intentDetails: ChatHistorySummary.data.tags.互动与认知.intent_details,
+          productKnowledgeLevel: ChatHistorySummary.data.tags.互动与认知.product_knowledge_level,
+          communicationStyle: ChatHistorySummary.data.tags.互动与认知.communication_style,
+          currentTrustLevel: ChatHistorySummary.data.tags.互动与认知.current_trust_level,
+          needUrgency: ChatHistorySummary.data.tags.互动与认知.need_urgency,
+        });
+      }
+      if (ChatHistorySummary.data.tags?.购买决策) {
+        setPurchaseDecision({
+          coreNeedType: ChatHistorySummary.data.tags.购买决策.core_need_type,
+          budgetSensitivity: ChatHistorySummary.data.tags.购买决策.budget_sensitivity,
+          decisionDrivers: ChatHistorySummary.data.tags.购买决策.decision_drivers,
+          upsellReadiness: ChatHistorySummary.data.tags.购买决策.upsell_readiness,
+          mainPurchaseObstacles: ChatHistorySummary.data.tags.购买决策.main_purchase_obstacles,
+        });
+      }
+      if (ChatHistorySummary.data.tags?.客户关系) {
+        setCustomerRelationship({
+          pastSatisfactionLevel: ChatHistorySummary.data.tags.客户关系.past_satisfaction_level,
+          customerLoyaltyStatus: ChatHistorySummary.data.tags.客户关系.customer_loyalty_status,
+          repurchaseDrivers: ChatHistorySummary.data.tags.客户关系.repurchase_drivers,
+          needEvolutionTrend: ChatHistorySummary.data.tags.客户关系.need_evolution_trend,
+          engagementLevel: ChatHistorySummary.data.tags.客户关系.engagement_level,
         });
       }
 
@@ -423,23 +567,86 @@ const Memory: React.FC<MemoryProps> = ({ selectedAccount, selectedConversation }
     content: event.detail,
   }));
 
-  return (
-    <>
-      <ChatMemory
-        customerInfo={customerInfo}
-        selectedAccount={selectedAccount}
-        selectedConversation={selectedConversation}
-        isLoading={isLoading}
-        onUpdateMemory={fetchChatHistorySummary}
-      />
-      {/* <UserProfile className="mb-4 mt-4" tags={userProfileTags}/> */}
-      <LongtimeMemory memories={memoryEvents}/>
+  const showNotification = (message: string, type: "success" | "error" = "success") => {
+    setNotification({
+      show: true,
+      message,
+      type,
+    });
+    setTimeout(() => {
+      setNotification({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
 
-      <FriendCircleAnalysis
-        selectedAccount={selectedAccount}
-        selectedConversation={selectedConversation}
-      />
-    </>
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+      {/* 用户信息头部 */}
+      <div className="flex-shrink-0 pt-3 pl-6">
+        <div className="text-base">客户信息</div>
+      </div>
+
+      {/* 选项卡导航 */}
+      <div className="border-b border-gray-200 flex-shrink-0">
+        <nav className="-mb-px flex px-4" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab("basic")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm mr-8 ${
+              activeTab === "basic"
+                ? "text-[#D477E1] border-[#D477E1]"
+                : "border-transparent text-[#000000dc] hover:text-gray-700 hover:border-gray-300"
+            } transition-colors duration-200`}
+          >
+            聊天信息
+          </button>
+          <button
+            onClick={() => setActiveTab("circle")}
+            className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "circle"
+                ? "text-[#D477E1] border-[#D477E1]"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            } transition-colors duration-200`}
+          >
+            朋友圈分析
+          </button>
+        </nav>
+      </div>
+
+      {/* 选项卡内容 */}
+      <div className="flex-1 overflow-hidden">
+        <div className="p-6 h-full overflow-y-auto">
+          {activeTab === "basic" && (
+            <>
+              <SummaryControls
+                selectedAccount={selectedAccount}
+                summaryTokenUsage={summaryTokenUsage}
+                setSummaryTokenUsage={setSummaryTokenUsage}
+                isAISummaryEnabled={isAISummaryEnabled}
+                setIsAISummaryEnabled={setIsAISummaryEnabled}
+                showNotification={showNotification}
+              />
+              <ChatMemory
+                customerInfo={customerInfo}
+                selectedAccount={selectedAccount}
+                selectedConversation={selectedConversation}
+                isLoading={isLoading}
+                onUpdateMemory={fetchChatHistorySummary}
+                interactiveMessage={interactiveMessage}
+                purchaseDecision={purchaseDecision}
+                customerRelationship={customerRelationship}
+                memoryEvents={memoryEvents}
+              />
+            </>
+          )}
+
+          {activeTab === "circle" && (
+            <FriendCircleAnalysis
+              selectedAccount={selectedAccount}
+              selectedConversation={selectedConversation}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

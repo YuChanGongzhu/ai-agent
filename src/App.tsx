@@ -5,7 +5,6 @@ import { Dashboard } from "./dashboard/dashboard";
 import { EmployeeTable } from "./employee/employeeTable";
 import { EmployeeEdit } from "./employee/employeeEdit";
 import { Dialog } from "./dialog/dialog";
-import { UpdateDialog } from "./dialog/updateDialog";
 import { CalendarComponent } from "./calendar/calender";
 import Login from "./login/Login";
 import Register from "./login/Register";
@@ -63,7 +62,6 @@ function App() {
                           <Route path="/employee" element={<EmployeeTable />} />
                           <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
                           <Route path="/dialog" element={<Dialog />} />
-                          <Route path="/updatedialog" element={<UpdateDialog />} />
                           <Route path="/task" element={<TaskPage />} />
                           <Route path="/task/invite" element={<PersonSelector />} />
                           <Route path="/calendar" element={<CalendarComponent />} />
