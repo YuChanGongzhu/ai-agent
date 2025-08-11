@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import UserManagement from "./userManagement/UserManagement";
-import IndustryManagement from "./industry/IndustryManagement";
-import InvitationCodeManagement from "./invitationCode/invitationCode";
+import UpdateManagement from "./userManagement/updateManagement";
+import UpdateIndustryManagement from "./industry/updateIndustryManagement";
+import UpdateInvitationCode from "./invitationCode/updateInvitationCode";
 import { getDatasetsApi, Dataset } from "../api/dify";
 import { supabase } from "../auth/supabaseConfig";
 import * as IndustryService from "../api/supabase/industryService";
@@ -133,61 +133,71 @@ const UpdateManagementPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="container px-4 py-6 md:py-6 pt-14">
-      {/* 面包屑 */}
-      <BreadcrumbComponent
-        items={[
-          { title: "首页", href: "/" },
-          {
-            title: `系统管理(${
-              activeTab === "users"
-                ? "用户管理"
-                : activeTab === "industry"
-                ? "行业管理"
-                : "邀请码管理"
-            })`,
-          },
-        ]}
-      />
-      {/* 选项卡导航 */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`py-2 border-b-2 font-medium text-base ${
-              activeTab === "users"
-                ? "text-[#D477E1] border-[#D477E1]"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            用户管理
-          </button>
-          <button
-            onClick={() => setActiveTab("industry")}
-            className={`py-2 border-b-2 font-medium text-base ${
-              activeTab === "industry"
-                ? "text-[#D477E1] border-[#D477E1]"
-                : "border-transparent text-[#000] hover:text-[#f7c7fd] hover:border-[#f7c7fd]"
-            }`}
-          >
-            行业管理
-          </button>
-          <button
-            onClick={() => setActiveTab("invitation")}
-            className={`py-2 border-b-2 font-medium text-base ${
-              activeTab === "invitation"
-                ? "text-[#D477E1] border-[#D477E1]"
-                : "border-transparent text-[#000] hover:text-[#f7c7fd] hover:border-[#f7c7fd]"
-            }`}
-          >
-            邀请码管理
-          </button>
-        </nav>
+    <div
+      className="w-full h-full"
+      style={{
+        minHeight: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        background: "linear-gradient(45deg, #FDF3FC, #E7E9FE)",
+      }}
+    >
+      <div className="bg-white pt-14 pl-6 md:pt-2">
+        {/* 面包屑 */}
+        <BreadcrumbComponent
+          items={[
+            { title: "首页", href: "/" },
+            {
+              title: `系统管理(${
+                activeTab === "users"
+                  ? "用户管理"
+                  : activeTab === "industry"
+                  ? "行业管理"
+                  : "邀请码管理"
+              })`,
+            },
+          ]}
+        />
+        {/* 选项卡导航 */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`py-2 border-b-2 font-medium text-base ${
+                activeTab === "users"
+                  ? "text-[#D477E1] border-[#D477E1]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              用户管理
+            </button>
+            <button
+              onClick={() => setActiveTab("industry")}
+              className={`py-2 border-b-2 font-medium text-base ${
+                activeTab === "industry"
+                  ? "text-[#D477E1] border-[#D477E1]"
+                  : "border-transparent text-[#000] hover:text-[#f7c7fd] hover:border-[#f7c7fd]"
+              }`}
+            >
+              行业管理
+            </button>
+            <button
+              onClick={() => setActiveTab("invitation")}
+              className={`py-2 border-b-2 font-medium text-base ${
+                activeTab === "invitation"
+                  ? "text-[#D477E1] border-[#D477E1]"
+                  : "border-transparent text-[#000] hover:text-[#f7c7fd] hover:border-[#f7c7fd]"
+              }`}
+            >
+              邀请码管理
+            </button>
+          </nav>
+        </div>
       </div>
       {/* 内容区域 */}
-      <div className="mt-6">
+      <div className="mt-2 w-full px-4" style={{ boxSizing: "border-box" }}>
         {activeTab === "users" && (
-          <UserManagement
+          <UpdateManagement
             externalDatasets={datasets}
             externalDatasetsLoading={datasetsLoading}
             externalUsers={users}
@@ -198,7 +208,7 @@ const UpdateManagementPage: React.FC = () => {
           />
         )}
         {activeTab === "industry" && (
-          <IndustryManagement
+          <UpdateIndustryManagement
             externalDatasets={datasets}
             externalDatasetsLoading={datasetsLoading}
             externalIndustries={industries}
@@ -207,7 +217,7 @@ const UpdateManagementPage: React.FC = () => {
             externalRefetchIndustries={fetchIndustries}
           />
         )}
-        {activeTab === "invitation" && <InvitationCodeManagement />}
+        {activeTab === "invitation" && <UpdateInvitationCode />}
       </div>
     </div>
   );

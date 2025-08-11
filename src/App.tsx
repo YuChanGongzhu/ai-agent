@@ -22,6 +22,7 @@ import EnterpriseWeChat from "./channels/EnterpriseWeChat";
 import { UserProvider } from "./context/UserContext";
 import { WxAccountProvider } from "./context/WxAccountContext";
 import ChargePage from "./charge/charge";
+import { ConfigProvider } from "antd";
 // Placeholder components for new routes
 const VideoAnalysis = () => (
   <div className="p-8">
@@ -38,50 +39,56 @@ const FriendTest = () => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <UserProvider>
-                <WxAccountProvider>
-                  <div className="flex h-screen">
-                    <NavBar />
-                    <div className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/employee" replace />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/employee" element={<EmployeeTable />} />
-                        <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
-                        <Route path="/dialog" element={<Dialog />} />
-                        <Route path="/updatedialog" element={<UpdateDialog />} />
-                        <Route path="/task" element={<TaskPage />} />
-                        <Route path="/task/invite" element={<PersonSelector />} />
-                        <Route path="/calendar" element={<CalendarComponent />} />
-                        <Route path="/channels/personal" element={<ServerManage />} />
-                        <Route path="/channels/official" element={<OfficialAccount />} />
-                        <Route path="/channels/enterprise" element={<EnterpriseWeChat />} />
-                        <Route path="/manage" element={<ManagementPage />} />
-                        <Route path="/updatemanage" element={<UpdateManagementPage />} />
-                        <Route path="/knowledge/files" element={<FileManagement />} />
-                        <Route path="/knowledge/datasets" element={<DatasetManagement />} />
-                        {/* New AI feature routes */}
-                        <Route path="/pay/video" element={<VideoAnalysis />} />
-                        <Route path="/pay/analysis" element={<FriendTest />} />
-                        <Route path="/charge" element={<ChargePage />} />
-                      </Routes>
+    <ConfigProvider
+      theme={{
+        components: { Select: { activeBorderColor: "#D477E1", hoverBorderColor: "#D477E1" } },
+      }}
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <UserProvider>
+                  <WxAccountProvider>
+                    <div className="flex h-screen">
+                      <NavBar />
+                      <div className="flex-1">
+                        <Routes>
+                          <Route path="/" element={<Navigate to="/employee" replace />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/employee" element={<EmployeeTable />} />
+                          <Route path="/employee/edit/:wxid" element={<EmployeeEdit />} />
+                          <Route path="/dialog" element={<Dialog />} />
+                          <Route path="/updatedialog" element={<UpdateDialog />} />
+                          <Route path="/task" element={<TaskPage />} />
+                          <Route path="/task/invite" element={<PersonSelector />} />
+                          <Route path="/calendar" element={<CalendarComponent />} />
+                          <Route path="/channels/personal" element={<ServerManage />} />
+                          <Route path="/channels/official" element={<OfficialAccount />} />
+                          <Route path="/channels/enterprise" element={<EnterpriseWeChat />} />
+                          <Route path="/manage" element={<ManagementPage />} />
+                          <Route path="/updatemanage" element={<UpdateManagementPage />} />
+                          <Route path="/knowledge/files" element={<FileManagement />} />
+                          <Route path="/knowledge/datasets" element={<DatasetManagement />} />
+                          {/* New AI feature routes */}
+                          <Route path="/pay/video" element={<VideoAnalysis />} />
+                          <Route path="/pay/analysis" element={<FriendTest />} />
+                          <Route path="/charge" element={<ChargePage />} />
+                        </Routes>
+                      </div>
                     </div>
-                  </div>
-                </WxAccountProvider>
-              </UserProvider>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+                  </WxAccountProvider>
+                </UserProvider>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </ConfigProvider>
   );
 }
 
