@@ -92,7 +92,6 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
   });
   //显示组件
   const CustomerTagsItem = ({ title, value }: { title: string; value: any }) => {
-    console.log("value", value);
     // 统一的标签样式
     const tagStyle = {
       border: "1px solid #D477E1",
@@ -124,7 +123,6 @@ const ChatMemory: React.FC<ChatMemoryProps> = ({
 
     // 获取所有有效的标签内容
     const getAllTags = () => {
-      console.log("value789", value === null);
       if (!value) return [];
 
       return Object.entries(value)

@@ -855,7 +855,7 @@ export const DialogPage: React.FC<DialogPageProps> = ({
                       )}
                     >
                       <div className="whitespace-pre-wrap break-words">
-                        {message.msgType === 3 || message.msgType === 34 ? (
+                        {message.msgType === 3 ? (
                           <DirectImageMessageContent
                             content={message.content}
                             msgType={message.msgType}
