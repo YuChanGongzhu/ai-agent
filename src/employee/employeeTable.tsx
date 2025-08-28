@@ -119,7 +119,7 @@ export const EmployeeTable: React.FC = () => {
         if (filteredWxAccountList.length === 0) return;
         
         for (const account of filteredWxAccountList) {
-            await fetchTokenUsage(account.wxid);
+            await fetchTokenUsage(account.wxid, 'all');
         }
     };
     
