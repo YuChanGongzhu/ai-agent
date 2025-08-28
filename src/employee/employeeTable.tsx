@@ -86,12 +86,12 @@ export const EmployeeTable: React.FC = () => {
         }
     };
 
-    const fetchTokenUsage = async (wxId: string) => {
+    const fetchTokenUsage = async (wxId: string, source_platform: string) => {
         setIsLoadingTokens(prev => ({ ...prev, [wxId]: true }));
         try {
             console.log('Fetching token usage for:', wxId);
             const params = {
-                token_source_platform: 'wx_chat',
+                token_source_platform: source_platform,
                 wx_user_id: wxId,
             };
             console.log('Request params:', params);
@@ -220,7 +220,7 @@ export const EmployeeTable: React.FC = () => {
                                                 <div className="flex items-center space-x-2">
                                                     <span>{tokenUsage[wxAccount.wxid] || 0}</span>
                                                     <button
-                                                        onClick={() => fetchTokenUsage(wxAccount.wxid)}
+                                                        onClick={() => fetchTokenUsage(wxAccount.wxid,'all')}
                                                         disabled={isLoadingTokens[wxAccount.wxid]}
                                                         className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
                                                     >
@@ -328,7 +328,7 @@ export const EmployeeTable: React.FC = () => {
                                                 <div className="flex items-center space-x-2">
                                                     <span className="font-medium">{tokenUsage[wxAccount.wxid] || 0}</span>
                                                     <button
-                                                        onClick={() => fetchTokenUsage(wxAccount.wxid)}
+                                                        onClick={() => fetchTokenUsage(wxAccount.wxid,'wx_chat')}
                                                         disabled={isLoadingTokens[wxAccount.wxid]}
                                                         className="text-xs bg-blue-500 text-white rounded p-1 flex items-center"
                                                     >
