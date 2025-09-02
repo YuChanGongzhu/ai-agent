@@ -24,6 +24,7 @@ import {
   RoomListMessage,
   getMpRoomListApi,
   MpRoomListMessage,
+  getUserCreditApi,
 } from "../api/mysql";
 import { useWxAccount } from "../context/WxAccountContext";
 import { useUser } from "../context/UserContext";
@@ -54,7 +55,7 @@ export const Dialog = () => {
   const [disabledRooms, setDisabledRooms] = useState<string[]>([]);
   const [loadingAISettings, setLoadingAISettings] = useState(false);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
-
+  const [quota, setQuota] = useState<number>(0);
   // MP account states
   const [wxMpAccountList, setWxMpAccountList] = useState<WxMpAccount[]>([]);
   const [isLoadingMpAccounts, setIsLoadingMpAccounts] = useState(false);
@@ -322,7 +323,13 @@ export const Dialog = () => {
   }, [selectedMpAccount]);
 
   // Handle clicking wxPerson WeChat account button
-  const handleWxAccountClick = (account: WxAccount) => {
+  const handleWxAccountClick = async (account: WxAccount) => {
+    const res = await getUserCreditApi(account.wxid);
+    if (res.code === 0 || res.code === 1) {
+      res.data.credit_info.is_sufficient === true ? setQuota(0) : setQuota(1);
+    } else {
+      setQuota(-1);
+    }
     setSelectedAccount(account);
     setSelectedMpAccount(null);
     setViewMode("wxPerson");
@@ -649,6 +656,7 @@ export const Dialog = () => {
             </div>
             <div className="flex-1 overflow-y-auto">
               <Memory
+                quota={quota}
                 selectedAccount={selectedAccount}
                 selectedConversation={selectedConversation}
                 avatarList={avatarList}
@@ -902,6 +910,7 @@ export const Dialog = () => {
         {!isMobile && (
           <div className="flex-1 h-full min-h-0">
             <Memory
+              quota={quota}
               selectedAccount={selectedAccount}
               selectedConversation={selectedConversation}
               avatarList={avatarList}

@@ -40,6 +40,7 @@ interface AvatarData {
 }
 
 interface MemoryProps {
+  quota: number;
   selectedAccount?: { wxid: string; name: string } | null;
   selectedConversation?: { room_id: string; room_name: string } | null;
   avatarList?: AvatarData[];
@@ -69,6 +70,7 @@ interface customerRelationship {
   engagementLevel: string | null;
 }
 const Memory: React.FC<MemoryProps> = ({
+  quota,
   selectedAccount,
   selectedConversation,
   avatarList = [],
@@ -579,7 +581,36 @@ const Memory: React.FC<MemoryProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col"
+      style={{ position: "relative" }}
+    >
+      {(quota === 1 || quota === -1) && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            color: "#fff",
+            zIndex: 1000,
+            width: "100%",
+            height: "100%",
+            borderRadius: "8px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: "16px", fontWeight: "bold" }}>
+            {quota === 1
+              ? "当前配额不足，请联系管理员进行充值"
+              : quota === -1
+              ? "未查询到该用户余额信息"
+              : " "}
+          </span>
+        </div>
+      )}
       {/* 用户信息头部 */}
       <div className="flex-shrink-0 pt-3 pl-6">
         <div className="text-base">客户信息</div>

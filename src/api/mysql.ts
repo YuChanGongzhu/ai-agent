@@ -3,7 +3,7 @@ const roomListUrl = process.env.REACT_APP_GET_ROOM_LIST;
 const roomMpListUrl = process.env.REACT_APP_GET_MP_ROOM_LIST;
 const roomMpMsgListUrl = process.env.REACT_APP_GET_MP_ROOM_MSG_LIST;
 const tokenUsageUrl = process.env.REACT_APP_GET_CHAT_TOKEN;
-
+const userCreditUrl = process.env.REACT_APP_GET_USER_CREDIT;
 export interface ChatMessage {
   msg_id: string;
   wx_user_id: string;
@@ -471,7 +471,6 @@ export const getFriendCircleAnalysisApi = async (
   wx_user_id: string,
   wxid: string
 ): Promise<FriendCircleAnalysisResponse> => {
-  console.log("getFriendCircleAnalysisApi", wx_user_id, wxid);
   try {
     const queryParams = new URLSearchParams();
     queryParams.append("wx_user_id", wx_user_id);
@@ -487,6 +486,19 @@ export const getFriendCircleAnalysisApi = async (
     return response.json() as Promise<FriendCircleAnalysisResponse>;
   } catch (error) {
     console.error("Error fetching friend circle analysis:", error);
+    throw error;
+  }
+};
+export const getUserCreditApi = async (wx_user_id: string) => {
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.append("wx_user_id", wx_user_id);
+    const baseUrl = userCreditUrl || "";
+    const url = `${baseUrl}?${queryParams.toString()}`;
+    const response = await fetch(url);
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching user credit:", error);
     throw error;
   }
 };
