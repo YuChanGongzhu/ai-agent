@@ -325,9 +325,12 @@ export const Dialog = () => {
   // Handle clicking wxPerson WeChat account button
   const handleWxAccountClick = async (account: WxAccount) => {
     const res = await getUserCreditApi(account.wxid);
-    if (res.code === 0 || res.code === 1) {
+    if (res.code === 1) {
       res.data.credit_info.is_sufficient === true ? setQuota(0) : setQuota(1);
-    } else {
+    } else if (res.code===0){
+      setQuota(0);
+    }
+    else {
       setQuota(-1);
     }
     setSelectedAccount(account);
